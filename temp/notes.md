@@ -224,6 +224,7 @@ interface (i.e. new requests will block if there are any outstanding requests).
     - output-address-mask = ~address-mask: value and'ed with incoming address
     - output-address-base = 0: value added to incoming address
     - page-field = None: name of the primitive field used to control the upper bits of the output bus
+    - connects-to = None: name of the register file block that this bus connects to (used for documentation output)
 
 Memory passthrough
 ------------------

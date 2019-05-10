@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
@@ -39,6 +41,9 @@ setup(
         "License :: OSI Approved :: Apache Software License",
     ],
     packages = ['vhdmmio'],
+
+    # Install dependencies
+    install_requires = ['pyyaml'],
 
     # Testing
     tests_require = ['nose', 'coverage'],
