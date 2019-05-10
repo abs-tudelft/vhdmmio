@@ -43,4 +43,8 @@ setup(
     # Testing
     tests_require = ['nose', 'coverage'],
     cmdclass = {'test': NoseTestCommand},
+
+    # Setup dependencies
+    setup_requires = ['setuptools-lint', 'pylint']
+
 )
