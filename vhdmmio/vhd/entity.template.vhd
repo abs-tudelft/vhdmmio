@@ -123,12 +123,12 @@ $endif
       -- their holding registers) are ready/waiting for us.
       if awl.valid = '1' and wl.valid = '1' and bus_v.b.valid = '0' then
         w_req := true;
-        bus_v.b.resp := "11";
+        bus_v.b.resp := AXI4L_RESP_OKAY;
       end if;
       if arl.valid = '1' and bus_v.r.valid = '0' then
         r_req := true;
         bus_v.r.data := X"00000000";
-        bus_v.r.resp := "00";
+        bus_v.r.resp := AXI4L_RESP_OKAY;
       end if;
 
       -- The logic for the generated code for fields is as follows:
@@ -138,8 +138,8 @@ $endif
       --     - Set the w_block flag to delay the transaction; the request will
       --       be held until the next cycle. Note that blocking fields cannot
       --       coexist with other blocking fields or volatile fields.
-      --     - Set bus_v.b.valid to '1' and bus_v.b.resp to "10" or "11" to
-      --       send an error response.
+      --     - Set bus_v.b.valid to '1' and bus_v.b.resp to AXI4L_RESP_SLVERR
+      --       or AXI4L_RESP_DECERR to send an error response.
       --     - Set bus_v.b.valid to '1' to indicate OK.
       --  - Read requests are to be handled when r_req is true. The request
       --    information is to be taken from arl. When a field is addressed, it
@@ -147,8 +147,8 @@ $endif
       --     - Set the r_block flag to delay the transaction; the request will
       --       be held until the next cycle. Note that blocking fields cannot
       --       coexist with other blocking fields or volatile fields.
-      --     - Set bus_v.r.valid to '1' and bus_v.r.resp to "10" or "11" to
-      --       send an error response.
+      --     - Set bus_v.r.valid to '1' and bus_v.r.resp to AXI4L_RESP_SLVERR
+      --       or AXI4L_RESP_DECERR to send an error response.
       --     - Set bus_v.r.valid to '1' and the appropriate bits in
       --       bus_v.r.data to the read result to indicate OK.
       -- The blocks below are auto-generated for the fields requested by the
@@ -159,11 +159,11 @@ $     FIELD_LOGIC
       -- send a decode error.
       if w_req and not w_block and bus_v.b.valid = '0' then
         bus_v.b.valid := '1';
-        bus_v.b.resp := "11";
+        bus_v.b.resp := AXI4L_RESP_DECERR;
       end if;
       if r_req and not r_block and bus_v.r.valid = '0' then
         bus_v.r.valid := '1';
-        bus_v.r.resp := "11";
+        bus_v.r.resp := AXI4L_RESP_DECERR;
       end if;
 
       -- When a request is acknowledged, invalidate the holding registers that

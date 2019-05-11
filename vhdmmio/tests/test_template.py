@@ -355,7 +355,7 @@ class TestTemplateEngine(TestCase):
         engine['N_IRQ'] = 3
         engine['IRQ_MASK_RESET'] = '"111"'
         engine['IRQ_ENAB_RESET'] = '"1___11"'
-        filename = os.path.dirname(vhdmmio.__file__) + os.sep + 'vhd' + os.sep + 'entity.vhd.tpl'
+        filename = os.path.dirname(vhdmmio.__file__) + os.sep + 'vhd' + os.sep + 'entity.template.vhd'
         output = engine.apply_file_to_str(filename, '-- ')
         self.assertFalse('$' in output)
         self.assertTrue('"1___11"' in output)
