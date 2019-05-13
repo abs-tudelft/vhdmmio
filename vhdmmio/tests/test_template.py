@@ -196,47 +196,47 @@ class TestTemplateEngine(TestCase):
         self.maxDiff = None
 
         TEST = [
-            '$ hello!',
-            "$ I'm a bit of test code.",
-            '$    I should be a new block.',
-            '$  - So should I,',
-            '$    but this should be the same line.',
-            '$    At some point this should start wrapping... '
+            '@ hello!',
+            "@ I'm a bit of test code.",
+            '@    I should be a new block.',
+            '@  - So should I,',
+            '@    but this should be the same line.',
+            '@    At some point this should start wrapping... '
             'At some point this should start wrapping... '
             'At some point this should start wrapping... '
             'At some point this should start wrapping...',
-            '$  - Different line!',
-            '$',
-            '$ Paragraph N...',
-            '$',
-            '$ ...and paragraph N+1.',
-            '$',
-            '    $ This comment should be indented.',
+            '@  - Different line!',
+            '@',
+            '@ Paragraph N...',
+            '@',
+            '@ ...and paragraph N+1.',
+            '@',
+            '    @ This comment should be indented.',
             'this big line of code should not wrap. '
             'this big line of code should not wrap. '
             'this big line of code should not wrap. '
             'this big line of code should not wrap. '
             'this big line of code should not wrap.',
-            'this big line of code can wrap here$and here$and here.$'
-            'this big line of code can wrap here$and here$and here.$'
-            "here's a dollar and a wrapping marker: $$$"
-            'this big line of code can wrap here$and here$and here.$',
-            '$$this big line of code should not wrap. '
+            'this big line of code can wrap here@and here@and here.@'
+            'this big line of code can wrap here@and here@and here.@'
+            "here's an at and a wrapping marker: @@@"
+            'this big line of code can wrap here@and here@and here.@',
+            '@@this big line of code should not wrap. '
             'this big line of code should not wrap '
             'this big line of code should not wrap '
             'this big line of code should not wrap',
-            '$$this big line of code can wrap here$and here$and here.$'
-            'this big line of code can wrap here$and here$and here.$'
-            "here's a dollar and a wrapping marker: $$$"
-            'this big line of code can wrap here$and here$and here.$',
-            '$$$ <- dollar over there and over here -> $$ <-',
+            '@@this big line of code can wrap here@and here@and here.@'
+            'this big line of code can wrap here@and here@and here.@'
+            "here's an at and a wrapping marker: @@@"
+            'this big line of code can wrap here@and here@and here.@',
+            '@@@ <- at over there and over here -> @@ <-',
         ]
 
         engine = TemplateEngine()
         engine.append_block('TEST', TEST)
         engine.append_block('TEST', '')
-        engine.append_block('TEST', '$ second block!\nhello\n\n\nthere')
-        engine.append_block('STUFF', ['$ a bunch of other stuff goes here'])
+        engine.append_block('TEST', '@ second block!\nhello\n\n\nthere')
+        engine.append_block('STUFF', ['@ a bunch of other stuff goes here'])
 
         self.assertEquals(engine.apply_str_to_str([
             '$STUFF',
@@ -283,17 +283,17 @@ class TestTemplateEngine(TestCase):
               'this big line of code should not wrap.',
             '  this big line of code can wrap here and here and here.',
             '      this big line of code can wrap here and here and here.',
-            "      here's a dollar and a wrapping marker: $",
-            '      this big line of code can wrap here and here and here.',
+            "      here's an at and a wrapping marker: @ this big line of code can wrap here",
+            '      and here and here.',
             '  # this big line of code should not wrap. '
               'this big line of code should not wrap '
               'this big line of code should not wrap '
               'this big line of code should not wrap',
             '  # this big line of code can wrap here and here and here.',
             '  #     this big line of code can wrap here and here and here.',
-            "  #     here's a dollar and a wrapping marker: $",
+            "  #     here's an at and a wrapping marker: @",
             '  #     this big line of code can wrap here and here and here.',
-            '  $ <- dollar over there and over here -> $ <-',
+            '  @ <- at over there and over here -> @ <-',
             '',
             '  # second block!',
             '  hello',

@@ -63,26 +63,26 @@ class TemplateEngine:
         with code readability. Whitespace at the end of lines is automatically
         removed.
 
-        Dollar characters are used as control characters for formatting:
+        At characters are used as control characters for formatting:
 
-         - Inline dollar signs are replaced with spaces or newlines based on
+         - Inline at signs are replaced with spaces or newlines based on
            line length in a way that preserves indentation. An additional
            four-space indent is added when auto-wrapping.
-         - Double inline dollar signs escape this; they are changed into a
-           single dollar sign.
-         - A single dollar sign at the start of a line followed by a space
+         - Double inline at signs escape this; they are changed into a single
+           at sign.
+         - A single at sign at the start of a line followed by a space
            indicates that the line is a comment. The appropriate comment
            character sequence will be prefixed when the comment is inserted.
            The content is interpreted as markdown text; heuristics are used
-           to try to rewrap the text to the appropriate line width. Dollar
+           to try to rewrap the text to the appropriate line width. At
            signs on these lines are NOT interpreted as spacing, since this
            would have no effect anyway.
-         - A double dollar sign at the start of a line is replaced by the
+         - A double at sign at the start of a line is replaced by the
            appropriate comment sequence, but otherwise the line is treated
-           the same way as normal code, i.e. requiring dollar signs to mark
+           the same way as normal code, i.e. requiring at signs to mark
            line wrapping boundaries.
-         - Three dollar signs at the start of a line are replaced with a
-           single dollar sign in the output. The line is treated as regular
+         - Three at signs at the start of a line are replaced with a
+           single at sign in the output. The line is treated as regular
            code.
         """
         if not isinstance(code, list):
@@ -366,28 +366,28 @@ class TemplateEngine:
             # comment).
             line_is_text = False
 
-            if line.startswith('$$$'):
+            if line.startswith('@@@'):
 
-                # Escape sequence for $ at start of line in code. Just strip
-                # the first dollar to turn it into an inline escape.
+                # Escape sequence for @ at start of line in code. Just strip
+                # the first at to turn it into an inline escape.
                 line = line[1:]
 
-            elif line.startswith('$$'):
+            elif line.startswith('@@'):
 
                 # Code comment.
                 output_indent += comment
 
-                # Strip the '$$' sequence.
+                # Strip the '@@' sequence.
                 line = line[2:]
 
-            elif line.startswith('$'):
+            elif line.startswith('@'):
 
                 # Text comment.
                 output_indent += comment
                 line_is_text = True
 
-                # Strip the '$' or '$ ' sequence.
-                if line.startswith('$ '):
+                # Strip the '@' or '@ ' sequence.
+                if line.startswith('@ '):
                     line = line[2:]
                 else:
                     line = line[1:]
@@ -445,12 +445,12 @@ class TemplateEngine:
                     wrap))
                 paragraph_buffer = None
 
-            # Split the text into tokens split by single dollar signs. Also
+            # Split the text into tokens split by single at signs. Also
             # handle escaping, which admittedly is a little awkward right now
             # with the double replacing.
-            line = line.replace('$$', '$_')
-            line = re.split(r'\$(?!_)', line)
-            line = (token.replace('$_', '$') for token in line)
+            line = line.replace('@@', '@_')
+            line = re.split(r'\@(?!_)', line)
+            line = (token.replace('@_', '@') for token in line)
 
             # Wrap the text.
             output_lines.extend(self._wrap(
