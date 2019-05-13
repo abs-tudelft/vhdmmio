@@ -192,7 +192,7 @@ class TestTemplateEngine(TestCase):
         engine['a'] = 3
         self.assertEquals(engine.apply_str_to_str('$33*a$'), '99\n')
 
-    def test_block(self):
+    def test_block_and_formatting(self):
         self.maxDiff = None
 
         TEST = [

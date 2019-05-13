@@ -14,8 +14,8 @@ class TemplateEngine:
     This engine supports:
 
      - inline replacement through `$<expr>$`;
-     - block replacement with template-controlled indentation and
-       user-controlled line wrapping through `\n$<indent><name>\n`;
+     - block replacement with template-controlled indentation through
+       `\n$<indent><name>\n`;
      - conditional blocks through `\n$if <expr>\n`, `\n$else\n`, and
        `\n$endif\n`.
 
@@ -24,6 +24,30 @@ class TemplateEngine:
     specified, no indent is added, so it's not currently possible to output
     blocks indented by a single space. A dollar sign can be inserted into the
     output by writing `$$`.
+
+    Additionally, some pretty-printing is supported through @ characters:
+
+     - Inline @ signs are replaced with spaces or newlines based on line length
+       in a way that preserves indentation. An additional four-space indent is
+       added when auto-wrapping.
+     - Double inline @ signs escape this; they are changed into a single @
+       sign.
+     - A single @ sign at the start of a line, usually followed by a space,
+       indicates that the line is a comment. The appropriate comment character
+       sequence will be prefixed when the comment is inserted. The content is
+       interpreted as markdown text; heuristics are used to try to rewrap the
+       text to the appropriate line width. @ signs on these lines are NOT
+       interpreted as spacing (they are literal), since this would have no
+       effect anyway.
+     - A double @ sign at the start of a line is replaced by the appropriate
+       comment sequence, but otherwise the line is treated the same way as
+       normal code. That is, wrapping points have to be specified explicitly
+       using @ symbols, and @@ is escaped to @.
+     - Three @ signs at the start of a line are replaced with a single @ sign
+       in the output. The line is treated as regular code.
+
+    The formatting step can be disabled, allowing the output of the template
+    engine to be used as a block within a subsequent engine.
 
     Unlike the C preprocessor, line numbers are NOT preserved. The focus is on
     generating well-formatted, readable code.
@@ -60,31 +84,7 @@ class TemplateEngine:
         equivalent with passing `'\n'.join(code)`. Regardless of the number of
         terminating newlines, the spacing between consecutive blocks is always
         a single empty line and empty lines within a block are removed to help
-        with code readability. Whitespace at the end of lines is automatically
-        removed.
-
-        At characters are used as control characters for formatting:
-
-         - Inline at signs are replaced with spaces or newlines based on
-           line length in a way that preserves indentation. An additional
-           four-space indent is added when auto-wrapping.
-         - Double inline at signs escape this; they are changed into a single
-           at sign.
-         - A single at sign at the start of a line followed by a space
-           indicates that the line is a comment. The appropriate comment
-           character sequence will be prefixed when the comment is inserted.
-           The content is interpreted as markdown text; heuristics are used
-           to try to rewrap the text to the appropriate line width. At
-           signs on these lines are NOT interpreted as spacing, since this
-           would have no effect anyway.
-         - A double at sign at the start of a line is replaced by the
-           appropriate comment sequence, but otherwise the line is treated
-           the same way as normal code, i.e. requiring at signs to mark
-           line wrapping boundaries.
-         - Three at signs at the start of a line are replaced with a
-           single at sign in the output. The line is treated as regular
-           code.
-        """
+        with code readability."""
         if not isinstance(code, list):
             code = [code]
         lines = []
@@ -132,12 +132,15 @@ class TemplateEngine:
             exc.set_filename(template_filename)
             raise
 
-    def apply_str_to_str(self, template, comment='# ', wrap=80):
+    def apply_str_to_str(self, template, comment='# ', wrap=80, postprocess=True):
         """Applies this template engine to the given template string, returning
         the result as a string. The `comment` keyword argument specifies the
         character sequence that leads comment lines; it defaults to '# ' for
         Python files. The `wrap` keyword argument specifies the desired number
-        of characters per line when wrapping; it defaults to 80."""
+        of characters per line when wrapping; it defaults to 80. The
+        `postprocess` keyword argument can be set to `False` to disable
+        post-processing altogether; use this when the output of this templating
+        step will be used within a later templating step."""
 
         # If the template is specified as a list of strings, join them first.
         if isinstance(template, list):
@@ -155,10 +158,14 @@ class TemplateEngine:
         directives = self._process_inline(directives)
 
         # Handle block directives.
-        directives = self._process_block(directives, comment, wrap)
+        directives = self._process_block(directives)
 
-        # Check that no more directives remain and clean up the output.
-        output = self._postprocess(directives)
+        # Make sure no more directives remain.
+        text = self._assert_no_more_directives(directives)
+
+        # Process @ directives to clean up the output.
+        if postprocess:
+            output = self._postprocess(text, comment, wrap)
 
         return output
 
@@ -289,7 +296,7 @@ class TemplateEngine:
 
         return output_data
 
-    def _process_block(self, input_data, comment, wrap):
+    def _process_block(self, input_data):
         """Processes the block insertion directives in a list of directives as
         returned by `_split_directives()`."""
         output_data = []
@@ -318,7 +325,7 @@ class TemplateEngine:
 
                 # Format the blocks.
                 blocks = (
-                    self._format_block(block, indent, comment, wrap)
+                    self._format_block(block, indent)
                     for block in blocks)
 
                 # Append the blocks.
@@ -333,8 +340,37 @@ class TemplateEngine:
 
         return output_data
 
-    def _format_block(self, block, indent, comment, wrap):
-        """Formats a block as described in the docs for `append_block()`."""
+    @staticmethod
+    def _format_block(block, indent):
+        """Formats a block by inserting the appropriate indentation and
+        newlines."""
+
+        # Join the lines together with the right indentation while stripping
+        # trailing spaces.
+        block = '\n'.join(((indent + line).rstrip() for line in block))
+
+        # Make sure each block ends with two newlines.
+        return block.rstrip() + '\n\n'
+
+    @staticmethod
+    def _assert_no_more_directives(input_data):
+        """Asserts that no more directives are available in the incoming list
+        of directives as returned by `_split_directives()`. Returns the
+        remaining text as a string."""
+
+        # Ensure that all items are literals.
+        for item in input_data:
+            if isinstance(item, tuple):
+                line_nr, directive = input_data[1]
+                directive = directive.strip()
+                raise TemplateSyntaxError(
+                    line_nr, 'unknown directive: {}'.format(directive))
+
+        # Join the literals together.
+        return ''.join(input_data)
+
+    def _postprocess(self, text, comment, wrap):
+        """Post-processes code by handling comment and wrapping markers."""
 
         output_lines = []
 
@@ -352,14 +388,14 @@ class TemplateEngine:
         paragraph_buffer_leading = None
         paragraph_buffer_hanging = None
 
-        for line in block:
+        for line in text.split('\n'):
 
             # Strip trailing spaces.
             line = line.rstrip()
 
             # Add indentation in the input block to the output indent.
             match = re.match(r'( *)(.*)$', line)
-            output_indent = indent + match.group(1)
+            indent = match.group(1)
             line = match.group(2)
 
             # Detect the type of input line (normal code, text comment, or code
@@ -375,7 +411,7 @@ class TemplateEngine:
             elif line.startswith('@@'):
 
                 # Code comment.
-                output_indent += comment
+                indent += comment
 
                 # Strip the '@@' sequence.
                 line = line[2:]
@@ -383,7 +419,7 @@ class TemplateEngine:
             elif line.startswith('@'):
 
                 # Text comment.
-                output_indent += comment
+                indent += comment
                 line_is_text = True
 
                 # Strip the '@' or '@ ' sequence.
@@ -398,11 +434,11 @@ class TemplateEngine:
             # until we get a line that isn't a continuation of it.
             if line_is_text:
                 match = re.match(r'([-* ]*)(.*)$', line)
-                input_indent = match.group(1)
+                comment_indent = match.group(1)
                 line = match.group(2)
 
                 if paragraph_buffer is not None:
-                    if line and output_indent + input_indent == paragraph_buffer_hanging:
+                    if line and indent + comment_indent == paragraph_buffer_hanging:
 
                         # Continuation of that paragraph.
                         paragraph_buffer.extend(line.split())
@@ -423,14 +459,14 @@ class TemplateEngine:
 
                     # Start a new paragraph.
                     paragraph_buffer = line.split()
-                    paragraph_buffer_leading = output_indent + input_indent
-                    paragraph_buffer_hanging = output_indent + ' '*len(input_indent)
+                    paragraph_buffer_leading = indent + comment_indent
+                    paragraph_buffer_hanging = indent + ' '*len(comment_indent)
 
                 else:
 
                     # Output empty lines immediately to maintain them. They'd
                     # be lost if we'd stick them in the paragraph buffer.
-                    output_lines.append((output_indent + input_indent).rstrip())
+                    output_lines.append((indent + comment_indent).rstrip())
 
                 continue
 
@@ -454,8 +490,8 @@ class TemplateEngine:
 
             # Wrap the text.
             output_lines.extend(self._wrap(
-                output_indent,
-                output_indent + '    ',
+                indent,
+                indent + '    ',
                 line,
                 wrap))
 
@@ -468,8 +504,9 @@ class TemplateEngine:
                 paragraph_buffer,
                 wrap))
 
-        # Join the block back together and terminate it with a double newline.
-        return '\n'.join(output_lines) + '\n\n'
+        # Join the lines together and ensure that the file ends in a single
+        # newline.
+        return '\n'.join(output_lines).rstrip() + '\n'
 
     @staticmethod
     def _wrap(leading_indent, hanging_indent, tokens, wrap):
@@ -506,28 +543,6 @@ class TemplateEngine:
         if not first:
             yield line.rstrip()
 
-    @staticmethod
-    def _postprocess(input_data):
-        """Asserts that no more directives are available in the incoming list
-        of directives as returned by `_split_directives()`. Post-processes the
-        single remaining directive such that superfluous whitespace is removed
-        and the file ends in a single newline."""
-
-        # Check for superfluous directives.
-        if len(input_data) > 1:
-            line_nr, directive = input_data[1]
-            directive = directive.strip()
-            raise TemplateSyntaxError(
-                line_nr, 'unknown directive: {}'.format(directive))
-        text = input_data[0]
-
-        # Strip whitespace at the end of lines.
-        text = re.sub(r'\t +\n', '\n', text)
-
-        # Make sure the file ends in a single newline.
-        text = text.rstrip() + '\n'
-
-        return text
 
 
 class TemplateSyntaxError(Exception):
