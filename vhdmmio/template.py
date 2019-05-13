@@ -357,9 +357,13 @@ class TemplateEngine:
             # Strip trailing spaces.
             line = line.rstrip()
 
+            # Add indentation in the input block to the output indent.
+            match = re.match(r'( *)(.*)$', line)
+            output_indent = indent + match.group(1)
+            line = match.group(2)
+
             # Detect the type of input line (normal code, text comment, or code
             # comment).
-            output_indent = indent
             line_is_text = False
 
             if line.startswith('$$$'):

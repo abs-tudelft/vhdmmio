@@ -211,6 +211,7 @@ class TestTemplateEngine(TestCase):
             '$',
             '$ ...and paragraph N+1.',
             '$',
+            '    $ This comment should be indented.',
             'this big line of code should not wrap. '
             'this big line of code should not wrap. '
             'this big line of code should not wrap. '
@@ -274,6 +275,7 @@ class TestTemplateEngine(TestCase):
             '  #',
             '  # ...and paragraph N+1.',
             '  #',
+            '      # This comment should be indented.',
             '  this big line of code should not wrap. '
               'this big line of code should not wrap. '
               'this big line of code should not wrap. '
