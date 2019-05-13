@@ -16,6 +16,8 @@ class TemplateEngine:
      - inline replacement through `$<expr>$`;
      - block replacement with template-controlled indentation through
        `\n$<indent><name>\n`;
+     - blocks can be defined both programmatically and from within the template
+       through `\n$block <name>\n` and `\n$endblock\n`;
      - conditional blocks through `\n$if <expr>\n`, `\n$else\n`, and
        `\n$endif\n`.
 
@@ -77,7 +79,7 @@ class TemplateEngine:
         """Iterates over the variables defined within the expression engine."""
         return iter(self._variables)
 
-    def append_block(self, key, code):
+    def append_block(self, key, code, *args):
         """Add a block of code to the given key.
 
         `code` must be a string or a list of strings, the latter case being
@@ -85,18 +87,22 @@ class TemplateEngine:
         terminating newlines, the spacing between consecutive blocks is always
         a single empty line and empty lines within a block are removed to help
         with code readability."""
-        if not isinstance(code, list):
-            code = [code]
-        lines = []
-        for item in code:
-            lines.extend(filter(bool, str(item).split('\n')))
-        if not lines:
-            return
+
+        # Preprocess the arguments to allow for different calling conventions.
+        if isinstance(code, list):
+            code = '\n'.join(code)
+        if args:
+            code += '\n' + '\n'.join(args)
+
+        # Blocks can contain directives and are internally stored as directive
+        # lists. So split the code into directives now.
+        directives = self._split_directives(code)
+
+        # Save the block.
         key = str(key)
         if key not in self._blocks:
-            self._blocks[key] = [lines]
-        else:
-            self._blocks[key].append(lines)
+            self._blocks[key] = []
+        self._blocks[key].append(directives)
 
     def reset_block(self, key):
         """Removes all code blocks associated with the given key."""
@@ -152,20 +158,23 @@ class TemplateEngine:
 
         # Handle conditional directives first, so we don't try to process
         # anything within disabled conditional blocks.
-        directives = self._process_conditionals(directives)
+        #directives = self._process_conditionals(directives)
 
         # Replace inline directives.
-        directives = self._process_inline(directives)
+        #directives = self._process_inline(directives)
 
         # Handle block directives.
-        directives = self._process_block(directives)
+        #directives = self._process_block(directives)
 
         # Make sure no more directives remain.
-        text = self._assert_no_more_directives(directives)
+        #text = self._assert_no_more_directives(directives)
+
+        markers = self._process_directives(directives)
+        output = self._process_markers(markers)
 
         # Process @ directives to clean up the output.
         if postprocess:
-            output = self._postprocess(text, comment, wrap)
+            output = self._process_wrapping(output, comment, wrap)
 
         return output
 
@@ -184,192 +193,302 @@ class TemplateEngine:
         # stripped immediately; the final newline is stripped when we finish
         # parsing when the template engine ensures that all files end in a single
         # newline.
-        template = re.split(r'(\$[^$\n]*\$|(?<=\n)\$[^\n]+\n)', '\n' + template + '\n')
-        template[0] = template[0][1:]
+        directives = re.split(r'(\$[^$\n]*\$|(?<=\n)\$[^\n]+\n)', '\n' + template + '\n')
+        directives[0] = directives[0][1:]
 
         # Insert line number information.
         line_number = 1
-        for idx, item in enumerate(template):
+        for idx, item in enumerate(directives):
             directive_line_number = line_number
             line_number += item.count('\n')
             if idx % 2 == 1:
                 directive = item
-                template[idx] = (directive_line_number, directive)
+                directives[idx] = (directive_line_number, directive)
 
-        return template
+        return directives
 
-    def _process_conditionals(self, input_data):
-        """Processes the conditional directives in a list of directives as returned
-        by `_split_directives()`. Keyword arguments are used to specify the
-        variables available to the expressions."""
-        output_data = []
-        directive_deleted = False
-        first_if_line_nr = None
+    def _process_directives(self, directives, block_recursion_limit=100): #pylint: disable=R0912,R0914,R0915
+        """Process a directive list as returned by `_split_directives()` into a
+        list of literals and markers. Literals and markers are distinguished by
+        type: literals are strings, markers are N-tuples. The first entry of a
+        marker tuple is a string that identifies what it represents.
+
+        Currently the only marker is 'indent'. It's a two-tuple; the second
+        entry is an integer representing an indentation delta (number of
+        spaces). This indentation needs to be applied to subsequent literals."""
+
+        # Make a copy of the directive list so we can consume it one entry at a
+        # time without affecting the argument.
+        directive_stack = list(directives)
+
+        # Conditional code block stack. For code to be handled, all entries in
+        # this list must be True (or there must be zero entries). Each $if
+        # directive appends its condition to the list, $else directives invert
+        # the last one, and $endif directives remove from the list.
         condition_stack = []
-        for idx, item in enumerate(input_data):
-            if idx % 2 == 1:
 
-                # Unpack the directive.
-                line_nr, directive = item
-                directive, *expression = directive.split(maxsplit=1)
+        # Line number of the outermost $if statement, used for line number info
+        # when we're missing an $endif.
+        outer_if_line_nr = None
 
-                if directive == '$if':
-                    if not condition_stack:
-                        first_if_line_nr = line_nr
-                    if not expression:
-                        raise TemplateSyntaxError(
-                            line_nr, '$if without expression')
+        # Block definition buffer.
+        block_buffer = None
+        block_key = None
+
+        # Number of recursive $block definitions.
+        block_level = 0
+
+        # Block definitions.
+        block_definitions = {}
+
+        # Number of recursive block insertions.
+        block_recursion = 0
+
+        # Line number of the outermost $block statement, used for line number
+        # info when we're missing an $endblock.
+        outer_block_line_nr = None
+
+        # Output buffer.
+        output_buffer = []
+
+        # Iterate over all the directives and literals.
+        while directive_stack:
+            directive_or_literal = directive_stack.pop(0)
+
+            # Handle literals first.
+            if isinstance(directive_or_literal, str):
+                literal = directive_or_literal
+
+                # If we're in the middle of a block definition, save the
+                # literal to the block buffer.
+                if block_buffer is not None:
+                    block_buffer.append(literal)
+                    continue
+
+                # Delete literals that have been conditioned away.
+                if not all(condition_stack):
+                    continue
+
+                # Output the literal.
+                output_buffer.append(literal)
+                continue
+
+            # Unpack the directive.
+            directive_tuple = directive_or_literal
+            line_nr, directive = directive_tuple
+
+            # Handle markers inserted into the stack by this function.
+            if line_nr is None:
+                marker = directive
+                if marker[0] == 'end_block':
+                    block_recursion -= 1
+                else:
+                    output_buffer.append(marker)
+                continue
+
+            # Parse/simplify the directive syntax.
+            if directive.endswith('$'):
+                indent = 0
+                directive = directive[1:-1]
+                argument = None
+            else:
+                matches = re.match(r'\$( *)([^ ]*)(?: (.*))?$', directive)
+                indent = len(matches.group(1))
+                if indent:
+                    indent += 1
+                directive = '$' + matches.group(2).rstrip()
+                argument = matches.group(3)
+
+            # Handle $block directive.
+            if directive == '$block':
+                if not argument:
+                    raise TemplateSyntaxError(
+                        line_nr, '$block without key')
+                block_level += 1
+                if block_level == 1:
+                    block_buffer = []
+                    block_key = argument
+                    outer_block_line_nr = line_nr
+                    continue
+                # Don't continue here; save nested $block directives to the
+                # buffer!
+
+            # Handle $endblock directive.
+            if directive == '$endblock':
+                if argument:
+                    raise TemplateSyntaxError(
+                        line_nr, 'unexpected argument for $endblock')
+                if block_level == 0:
+                    raise TemplateSyntaxError(
+                        line_nr, '$endblock without $block')
+                block_level -= 1
+                if block_level == 0:
+                    if block_key not in block_definitions:
+                        block_definitions[block_key] = []
+                    block_definitions[block_key].append(block_buffer)
+                    block_key = None
+                    block_buffer = None
+                    continue
+                # Don't continue here; save nested $endblock directives to the
+                # buffer!
+
+            # If we're in the middle of a block definition, don't process
+            # directives yet.
+            if block_buffer is not None:
+                block_buffer.append(directive_tuple)
+
+            # Handle $if directive.
+            if directive == '$if':
+                if not argument:
+                    raise TemplateSyntaxError(
+                        line_nr, '$if without expression')
+                if not condition_stack:
+                    outer_if_line_nr = line_nr
+                if not all(condition_stack):
+                    # Don't try to evaluate the condition if we're already
+                    # conditioned away.
+                    condition = False
+                else:
                     try:
-                        condition_stack.append(
-                            all(condition_stack)
-                            and bool(eval(expression[0], self._variables))) #pylint: disable=W0123
+                        condition = bool(eval(argument, self._variables)) #pylint: disable=W0123
                     except (NameError, ValueError, TypeError, SyntaxError) as exc:
                         raise TemplateSyntaxError(
                             line_nr, 'error in $if expression: {}'.format(exc))
-                    directive_deleted = True
+                condition_stack.append(condition)
+                continue
 
-                elif directive == '$else':
-                    if not condition_stack:
-                        raise TemplateSyntaxError(
-                            line_nr, '$else without $if')
-                    condition_stack[-1] = not condition_stack[-1]
-                    directive_deleted = True
+            # Handle $else directive.
+            if directive == '$else':
+                if argument:
+                    raise TemplateSyntaxError(
+                        line_nr, 'unexpected argument for $else')
+                if not condition_stack:
+                    raise TemplateSyntaxError(
+                        line_nr, '$else without $if')
+                condition_stack[-1] = not condition_stack[-1]
+                continue
 
-                elif directive == '$endif':
-                    if not condition_stack:
-                        raise TemplateSyntaxError(
-                            line_nr, '$endif without $if')
-                    del condition_stack[-1]
-                    directive_deleted = True
+            # Handle $endif directive.
+            if directive == '$endif':
+                if argument:
+                    raise TemplateSyntaxError(
+                        line_nr, 'unexpected argument for $endif')
+                if not condition_stack:
+                    raise TemplateSyntaxError(
+                        line_nr, '$endif without $if')
+                del condition_stack[-1]
+                continue
 
-                elif all(condition_stack):
-                    output_data.append(item)
+            # Don't process directives further if we're inside a false conditional
+            # block.
+            if not all(condition_stack):
+                continue
 
-            elif not all(condition_stack):
-                pass
+            # Handle dollar escape sequences.
+            if directive == '':
+                output_buffer.append('$')
+                continue
 
-            elif directive_deleted:
-                output_data[-1] += item
-                directive_deleted = False
+            # Handle inline directives.
+            if not directive.startswith('$'):
+                try:
+                    result = str(eval(directive, self._variables)) #pylint: disable=W0123
+                except (NameError, ValueError, TypeError, SyntaxError) as exc:
+                    raise TemplateSyntaxError(
+                        line_nr, 'error in inline expression: {}'.format(exc))
+                output_buffer.append(result)
+                continue
 
-            else:
-                output_data.append(item)
-
-        if condition_stack:
-            raise TemplateSyntaxError(
-                first_if_line_nr, '$if without $endif')
-
-        return output_data
-
-    def _process_inline(self, input_data):
-        """Processes the inline expression directives and dollar escapes in a list
-        of directives as returned by `_split_directives()`."""
-        output_data = []
-        directive_deleted = False
-        for idx, item in enumerate(input_data):
-            if idx % 2 == 1:
-
-                # Unpack the directive.
-                line_nr, directive = item
-
-                if directive == '$$':
-                    output_data[-1] += '$'
-                    directive_deleted = True
-
-                elif directive.startswith('$') and directive.endswith('$'):
-                    try:
-                        output_data[-1] += str(eval(directive[1:-1], self._variables)) #pylint: disable=W0123
-                    except (NameError, ValueError, TypeError, SyntaxError) as exc:
-                        raise TemplateSyntaxError(
-                            line_nr, 'error in inline expression: {}'.format(exc))
-                    directive_deleted = True
-
-                else:
-                    output_data.append(item)
-
-            elif directive_deleted:
-                output_data[-1] += item
-                directive_deleted = False
-
-            else:
-                output_data.append(item)
-
-        return output_data
-
-    def _process_block(self, input_data):
-        """Processes the block insertion directives in a list of directives as
-        returned by `_split_directives()`."""
-        output_data = []
-        directive_deleted = False
-        for idx, item in enumerate(input_data):
-            if idx % 2 == 1:
-
-                # Unpack the directive.
-                _, directive = item
-                directive = re.match(r'\$( *)([a-zA-Z0-9_]+)\n', directive)
-
-                # Ignore non-block-insert directives.
-                if not directive:
-                    output_data.append(item)
-                    continue
-                directive_deleted = True
-
-                # Unpack further.
-                indent = directive.group(1)
-                if indent:
-                    indent = ' ' + indent
-                key = directive.group(2)
+            # Handle block insertions.
+            if directive.startswith('$') and not argument:
+                block_recursion += 1
+                if block_recursion > block_recursion_limit:
+                    raise TemplateSyntaxError(
+                        line_nr, 'block recursion limit reached ({})'.format(block_recursion_limit))
+                key = directive[1:]
 
                 # Get the blocks associated with the given key, if any.
                 blocks = self._blocks.get(key, [])
+                blocks.extend(block_definitions.get(key, []))
 
-                # Format the blocks.
-                blocks = (
-                    self._format_block(block, indent)
-                    for block in blocks)
+                # Flatten the directive lists.
+                directives = [(None, ('indent', indent))]
+                for block_directives in blocks:
+                    directives.extend(block_directives)
+                    directives.append('\n\n')
+                directives.append((None, ('indent', -indent)))
+                directives.append((None, ('end_block',)))
 
-                # Append the blocks.
-                output_data[-1] += ''.join(blocks)
+                # Insert the directives at the start of our directive stack.
+                directive_stack[0:0] = directives
+                continue
 
-            elif directive_deleted:
-                output_data[-1] += item
-                directive_deleted = False
+            # Unknown directive.
+            raise TemplateSyntaxError(
+                line_nr, 'unknown directive: {}'.format(directive))
 
+        # Raise errors when we have unterminated blocks.
+        if condition_stack:
+            raise TemplateSyntaxError(
+                outer_if_line_nr, '$if without $endif')
+        if block_buffer is not None:
+            raise TemplateSyntaxError(
+                outer_block_line_nr, '$block without $endblock')
+
+        return output_buffer
+
+    @staticmethod
+    def _process_markers(markers):
+        """Processes a list of literals and markers as returned by
+        `_process_directives()` into a single string representing the source
+        code."""
+
+        # Join all consecutive literals together, then split them into lines.
+        # That allows us to prefix indentation properly.
+        marker_buffer = [[]]
+        for marker_or_literal in markers:
+            if isinstance(marker_or_literal, tuple):
+                marker_buffer[-1] = ''.join(marker_buffer[-1]).split('\n')
+                marker_buffer.append(marker_or_literal)
+                marker_buffer.append([])
             else:
-                output_data.append(item)
+                marker_buffer[-1].append(marker_or_literal)
+        marker_buffer[-1] = ''.join(marker_buffer[-1]).split('\n')
 
-        return output_data
+        # Current number of spaces to indent by.
+        indent = 0
 
-    @staticmethod
-    def _format_block(block, indent):
-        """Formats a block by inserting the appropriate indentation and
-        newlines."""
+        # Buffer to output processed literals to.
+        output_buffer = []
 
-        # Join the lines together with the right indentation while stripping
-        # trailing spaces.
-        block = '\n'.join(((indent + line).rstrip() for line in block))
+        for marker_or_literals in marker_buffer:
 
-        # Make sure each block ends with two newlines.
-        return block.rstrip() + '\n\n'
+            # Handle markers.
+            if isinstance(marker_or_literals, tuple):
+                marker = marker_or_literals
 
-    @staticmethod
-    def _assert_no_more_directives(input_data):
-        """Asserts that no more directives are available in the incoming list
-        of directives as returned by `_split_directives()`. Returns the
-        remaining text as a string."""
+                if marker[0] == 'indent':
+                    indent += marker[1]
+                    continue
 
-        # Ensure that all items are literals.
-        for item in input_data:
-            if isinstance(item, tuple):
-                line_nr, directive = input_data[1]
-                directive = directive.strip()
-                raise TemplateSyntaxError(
-                    line_nr, 'unknown directive: {}'.format(directive))
+                raise AssertionError('unknown marker: {}'.format(indent))
 
-        # Join the literals together.
-        return ''.join(input_data)
+            # Handle literals.
+            for literal in marker_or_literals:
+                literal = literal.rstrip()
 
-    def _postprocess(self, text, comment, wrap):
+                # If the line is non-empty, prefix indentation and output it.
+                if literal:
+                    literal = ' ' * indent + literal
+                    output_buffer.append(literal)
+
+                # Append at most one empty line to the output.
+                elif output_buffer and output_buffer[-1]:
+                    output_buffer.append(literal)
+
+        return '\n'.join(output_buffer)
+
+    def _process_wrapping(self, text, comment, wrap): #pylint disable=R0912
         """Post-processes code by handling comment and wrapping markers."""
 
         output_lines = []
@@ -542,7 +661,6 @@ class TemplateEngine:
         # If we saw at least one token, yield the final line.
         if not first:
             yield line.rstrip()
-
 
 
 class TemplateSyntaxError(Exception):

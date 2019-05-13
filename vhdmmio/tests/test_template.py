@@ -97,6 +97,7 @@ class TestTemplateEngine(TestCase):
             'good',
             '$else',
             'also bad',
+            '$bad directive',
             '$endif',
             'good',
         ]), '\n'.join([
@@ -176,6 +177,25 @@ class TestTemplateEngine(TestCase):
                 '$endif',
             ])
 
+        with self.assertRaisesRegexp(
+            TemplateSyntaxError,
+            r"on <unknown> line 2: unexpected argument for \$endif"
+        ):
+            engine.apply_str_to_str([
+                '$if True',
+                '$endif a',
+            ])
+
+        with self.assertRaisesRegexp(
+            TemplateSyntaxError,
+            r"on <unknown> line 2: unexpected argument for \$else"
+        ):
+            engine.apply_str_to_str([
+                '$if True',
+                '$else a',
+                '$endif',
+            ])
+
     def test_inline(self):
         engine = TemplateEngine()
 
@@ -235,7 +255,7 @@ class TestTemplateEngine(TestCase):
         engine = TemplateEngine()
         engine.append_block('TEST', TEST)
         engine.append_block('TEST', '')
-        engine.append_block('TEST', '@ second block!\nhello\n\n\nthere')
+        engine.append_block('TEST', '@ second block!\nhello\n\n', '', 'there')
         engine.append_block('STUFF', ['@ a bunch of other stuff goes here'])
 
         self.assertEquals(engine.apply_str_to_str([
@@ -262,6 +282,7 @@ class TestTemplateEngine(TestCase):
 
         self.assertEquals(engine.apply_str_to_str([
             '$ TEST',
+            '@ comment at the end',
         ]), '\n'.join([
             "  # hello! I'm a bit of test code.",
             '  #    I should be a new block.',
@@ -297,20 +318,102 @@ class TestTemplateEngine(TestCase):
             '',
             '  # second block!',
             '  hello',
+            '',
             '  there',
+            '',
+            '# comment at the end',
         ]) + '\n')
 
     def test_unknown_directive(self):
         engine = TemplateEngine()
         with self.assertRaisesRegexp(
             TemplateSyntaxError,
-            r"on <unknown> line 2: unknown directive: \$i am wrong"
+            r"on <unknown> line 2: unknown directive: \$i"
         ):
             engine.apply_str_to_str([
                 '$test',
                 '$i am wrong',
                 'boooo',
             ])
+
+    def test_block_definitions(self):
+        engine = TemplateEngine()
+        engine.append_block('TEST', 'programmatic block', 'second line')
+        self.assertEquals(engine.apply_str_to_str([
+            '$TEST',
+            '$block TEST',
+            'template block',
+            '  second line, indented',
+            '$endblock',
+            '$ TEST',
+        ]), '\n'.join([
+            'programmatic block',
+            'second line',
+            '',
+            '  programmatic block',
+            '  second line',
+            '',
+            '  template block',
+            '    second line, indented',
+        ]) + '\n')
+
+        self.assertEquals(engine.apply_str_to_str([
+            '$block a',
+            '$b',
+            '$endblock',
+            '$block b',
+            'expected',
+            '$endblock',
+            '$a',
+        ]), '\n'.join([
+            'expected',
+        ]) + '\n')
+
+        with self.assertRaisesRegexp(
+            TemplateSyntaxError,
+            r"on <unknown> line 2: block recursion limit reached"
+        ):
+            engine.apply_str_to_str([
+                '$block a',
+                '$a',
+                '$endblock',
+                '$a',
+            ])
+
+        with self.assertRaisesRegexp(
+            TemplateSyntaxError,
+            r"on <unknown> line 1: \$block without key"
+        ):
+            engine.apply_str_to_str([
+                '$block',
+                '$endblock',
+            ])
+
+        with self.assertRaisesRegexp(
+            TemplateSyntaxError,
+            r"on <unknown> line 2: unexpected argument for \$endblock"
+        ):
+            engine.apply_str_to_str([
+                '$block a',
+                '$endblock a',
+            ])
+
+        with self.assertRaisesRegexp(
+            TemplateSyntaxError,
+            r"on <unknown> line 1: \$endblock without \$block"
+        ):
+            engine.apply_str_to_str([
+                '$endblock',
+            ])
+
+        with self.assertRaisesRegexp(
+            TemplateSyntaxError,
+            r"on <unknown> line 1: \$block without \$endblock"
+        ):
+            engine.apply_str_to_str([
+                '$block a',
+            ])
+
 
     def test_files(self):
         engine = TemplateEngine()
@@ -336,7 +439,7 @@ class TestTemplateEngine(TestCase):
 
             with self.assertRaisesRegexp(
                 TemplateSyntaxError,
-                r"input_file_name\.tpl line 1: unknown directive: \$bad directive"
+                r"input_file_name\.tpl line 1: unknown directive: \$bad"
             ):
                 engine.apply_file_to_file(template_filename, output_filename)
 
