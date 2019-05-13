@@ -1,0 +1,44 @@
+
+Metadata
+  name -> identifier str
+  brief -> single paragraph markdown str
+  doc -> multi paragraph markdown str
+
+RegisterFile: the thing that's described by a single YAML file
+  meta -> Metadata
+  __iter__ -> Field
+  to_memory_map() -> MemoryMap
+
+Field: the thing that's described in a "fields" entry of the YAML file
+  mnemonic -> uppercase str; can embed digits but cannot start or end with them
+  meta -> Metadata
+  reg_meta -> Metadata
+  logic -> FieldLogic
+  regfile -> RegisterFile
+  __iter__ -> FieldItem
+
+FieldLogic: base class for different types of fields
+  read_caps -> FieldCapabilities
+  write_caps -> FieldCapabilities
+  get_caps(read/write) -> FieldCapabilities
+  various generator functions based on field type
+
+FieldItem: a single repetition of a field
+  field -> Field
+  index -> index within field
+  bitrange -> BitRange representing the field item
+  __iter__ -> SubFieldItem
+
+SubFieldItem: part of a SubField that fits within a single register
+  subfield -> SubField
+  bitrange -> BitRange representing the SubFieldItem
+  offset -> bit offset
+
+MemoryMap: mapping from a full 32-bit address space to blocks
+  __iter__ -> MemoryBlock
+
+MemoryBlock: mapping from a subset of an address space to a homogeneous block of memory: a single device, a RAM, a register, etc.
+  low: lowest address that's part of this block
+  high: highest address that's part of this block
+  __iter__: SubFieldItem
+

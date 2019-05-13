@@ -4,7 +4,7 @@
 Parameters of all fields
 ========================
 
- - address: <address>[/<mask=0xFFFFFFFC>][:[<high-bit=31>..]<low-bit=0>]
+ - address: <address>[/<size=2>][:[<high-bit=31/63>..]<low-bit=0>]
     - the register is addressed if the incoming address & mask == address.
     - if high-bit > 31, the register becomes multi-word. the necessary amount
       of subsequent registers then become in/out holding registers. read
@@ -44,7 +44,7 @@ Parameters of all fields
  - register-brief: <single-paragraph markdown=None>
     - combination of register-name and brief
 
- - register-brief: <multiline markdown=None>
+ - register-doc: <multiline markdown=None>
     - combination of register-name and doc
 
  - repeat: <num=1>
