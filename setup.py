@@ -40,7 +40,7 @@ setup(
         "Topic :: Software Development :: Code Generators",
         "License :: OSI Approved :: Apache Software License",
     ],
-    packages = ['vhdmmio'],
+    packages = ['vhdmmio', 'vhdmmio.vhd', 'vhdmmio.core'],
 
     # Install dependencies
     install_requires = ['pyyaml'],

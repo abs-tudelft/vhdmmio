@@ -1,44 +1,58 @@
 
-Metadata
+[.] Metadata
+  mnemonic -> uppercase str; can embed digits but cannot start or end with them
   name -> identifier str
   brief -> single paragraph markdown str
   doc -> multi paragraph markdown str
 
-RegisterFile: the thing that's described by a single YAML file
+[.] ExpandedMetadata
+  as above, but with {index} etc replaced
+
+[ ] RegisterFile: the thing that's described by a single YAML file
   meta -> Metadata
-  __iter__ -> Field
+  fields() -> FieldDescriptor
+  __iter__() -> Register (ordered by address)
   to_memory_map() -> MemoryMap
 
-Field: the thing that's described in a "fields" entry of the YAML file
-  mnemonic -> uppercase str; can embed digits but cannot start or end with them
+[.] FieldDescriptor: the thing that's described in a "fields" entry of the YAML file
   meta -> Metadata
   reg_meta -> Metadata
+  (repetition information, all data to reconstruct YAML)
   logic -> FieldLogic
   regfile -> RegisterFile
-  __iter__ -> FieldItem
+  __iter__() -> Field
 
-FieldLogic: base class for different types of fields
+[ ] FieldLogic: base class for different types of fields
   read_caps -> FieldCapabilities
   write_caps -> FieldCapabilities
   get_caps(read/write) -> FieldCapabilities
   various generator functions based on field type
 
-FieldItem: a single repetition of a field
-  field -> Field
-  index -> index within field
-  bitrange -> BitRange representing the field item
-  __iter__ -> SubFieldItem
+[ ] Register: a collection of fields sharing the same base address; implicit in the YAML file!
+  meta -> ExpandedMetadata
+  reg_meta -> ExpandedMetadata for register or None
+  address -> aligned base address
+  block_size -> number of LSBs to ignore in the address match
+  block_num -> number of blocks needed to describe this register
+  regfile -> RegisterFile
+  __iter__() -> Field
 
-SubFieldItem: part of a SubField that fits within a single register
-  subfield -> SubField
-  bitrange -> BitRange representing the SubFieldItem
-  offset -> bit offset
+ [ ] Field: a single repetition of a field
+  meta -> ExpandedMetadata
+  bitrange -> BitRange representing the field item
+  logic -> FieldLogic
+  register -> Register
+  descriptor -> (FieldDescriptor, index)
+
+[.] FieldCapabilities
+[x] BitRange
+
 
 MemoryMap: mapping from a full 32-bit address space to blocks
-  __iter__ -> MemoryBlock
+  __iter__() -> MemoryBlock
 
 MemoryBlock: mapping from a subset of an address space to a homogeneous block of memory: a single device, a RAM, a register, etc.
   low: lowest address that's part of this block
   high: highest address that's part of this block
-  __iter__: SubFieldItem
+  __iter__(): SubFieldItem
 

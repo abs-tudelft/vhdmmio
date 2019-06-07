@@ -32,6 +32,8 @@ Parameters of all fields
     - when field is repeated, {index} is replaced with the field index where
       appropriate, or "*<0..N>*" when summary is printed for all repetitions
 
+ - register-mnemonic: <identifier=name>
+
  - register-name: <identifier=name>
     - name used to refer to the register in documentation and C constants
     - when multiple fields are associated with a register, only one may carry
@@ -57,7 +59,7 @@ Parameters of all fields
       first field (index 0). the rest is calculated using field-repeat, stride,
       and field-stride.
 
- - field-repeat: <num=1>
+ - field-repeat: <num=repeat>
     - number of times to repeat the field within a logical register before
       advancing to the next register
     - only used when only the first field's address is specified

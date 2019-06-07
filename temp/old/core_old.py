@@ -9,46 +9,66 @@ class Operation(Enum):
 class Metadata:
     """Documentation metadata for register files, registers, and fields."""
 
-    def __init__(self, name, brief='', doc=''):
+    def __init__(self, mnemonic=None, name=None, brief=None, doc=None):
         """Constructs a new metadata object.
 
-         - `name` must be an identifier.
-         - `brief` must either be `None` or a markdown string that serves as a
-           one-line description of the register file. Defaults to `name`.
-         - `doc` must either be `None` or a markdown string that serves as more
-           complete documentation of the register file. Defaults to an empty
-           string.
+         - `mnemonic`, if specified, must be an uppercase string that can only
+           have digits and underscores in the middle of it. Mnemonics must be
+           unique among the siblings of the object that this metadata
+           represents.
+         - `name`, if specified, must be a valid identifier like mnemonic, but
+           can also have lowercase letters. Names must be unique among the
+           siblings and cousins of the object that this metadata represents.
+         - `brief`, if specified, must be a markdown string that serves as a
+           one-line description of the register file. Newline characters are
+           not allowed at all, even if they would not open a new paragraph in
+           markdown.
+         - `doc`, if specified, must be a markdown string that serves as more
+           complete documentation of the represented objct.
+
+        Either `mnemonic`, `name`, or both must be specified. If one is
+        missing, it's derived from the other. `brief` defaults to the outcome
+        for `name`, while `doc` defaults to an empty string.
         """
         super().__init__()
 
-        self._name = str(name).strip()
-        if not re.match(r'[a-zA-Z][a-zA-Z_0-9]*$', self._name):
+        if mnemonic is None and name is None:
+            raise ValueError('either name or mnemonic must be specified')
+
+        # Parse and check mnemonic.
+        if mnemonic is None:
+            self._mnemonic = str(name).upper()
+        else:
+            self._mnemonic = str(mnemonic)
+        if not re.match(r'[A-Z]([A-Z_0-9]*[A-Z])?$', self._name):
+            raise ValueError('name {!r} is not a valid mnemonic'.format(self._name))
+
+        # Parse and check name.
+        if name is None:
+            self._name = str(mnemonic).lower()
+        else:
+            self._name = str(name)
+        if not re.match(r'[a-zA-Z]([a-zA-Z_0-9]*[a-zA-Z])?$', self._name):
             raise ValueError('name {!r} is not a valid identifier'.format(self._name))
 
-        if brief:
-            self._brief = str(brief).strip()
-            if '\n' in self._brief:
-                raise ValueError('brief documentation should not contain newlines')
-        else:
+        # Parse and check brief.
+        if brief is None:
             self._brief = self._name
+        else:
+            self._brief = str(brief)
+        if '\n' in self._brief:
+            raise ValueError('brief documentation contains one or more newlines')
 
-        self._doc = str(doc).strip()
+        # Parse and check doc.
+        if doc is None:
+            self._doc = ''
+        else:
+            self._doc = str(doc)
 
-    @classmethod
-    def from_dict(cls, dictionary):
-        """Constructs a metadata object from the given dictionary, removing the
-        keys that were used."""
-        return cls(
-            dictionary.pop('name'),
-            dictionary.pop('brief', ''),
-            dictionary.pop('doc', ''))
-
-    def to_dict(self, dictionary):
-        """Inverse of `from_dict()`."""
-        dictionary['name'] = self.name
-        dictionary['brief'] = self.brief
-        dictionary['doc'] = self.doc
-        return dictionary
+    @property
+    def mnemonic(self):
+        """Object mnemonic."""
+        return self._mnemonic
 
     @property
     def name(self):
@@ -57,13 +77,31 @@ class Metadata:
 
     @property
     def brief(self):
-        """Brief description of the object (a single paragraph of markdown)."""
+        """Brief description of the object (a single line of markdown)."""
         return self._brief
 
     @property
     def doc(self):
-        """Long description of the object (multiple paragraphs of markdown)."""
+        """Long description of the object (multiple lines/paragraphs of markdown)."""
         return self._doc
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        """Constructs a metadata object from the given dictionary, removing the
+        keys that were used."""
+        return cls(
+            dictionary.pop('mnemonic', None),
+            dictionary.pop('name', None),
+            dictionary.pop('brief', None),
+            dictionary.pop('doc', None))
+
+    def to_dict(self, dictionary):
+        """Inverse of `from_dict()`."""
+        dictionary['mnemonic'] = self.mnemonic
+        dictionary['name'] = self.name
+        dictionary['brief'] = self.brief
+        dictionary['doc'] = self.doc
+        return dictionary
 
 
 class RegisterFile:
