@@ -1,0 +1,156 @@
+meta:
+  mnemonic: SSP
+  name: serial
+  doc: |
+    This is mostly copypasted from the user manual of the SSP controller of
+    the LPC1313 microcontroller (NXP UM10375) to serve as a real-world example
+    of a register file description.
+
+bus-width: 32
+
+fields:
+
+- register-name: CRA
+  register-brief: SSP Control Register 0.
+
+  address: 0x0000:3..0
+  type: control
+  mnemonic: DSS
+  name: data_size_select
+  brief: Data Size Select.
+  doc: |
+    This field controls the number of bits transferred in each frame. Values
+    0000-0010 are not supported and should not be used.
+
+    | Value | Description     |
+    |-------|-----------------|
+    | 0x3   | 4-bit transfer  |
+    | 0x4   | 5-bit transfer  |
+    | 0x5   | 6-bit transfer  |
+    | 0x6   | 7-bit transfer  |
+    | 0x7   | 8-bit transfer  |
+    | 0x8   | 9-bit transfer  |
+    | 0x9   | 10-bit transfer |
+    | 0xA   | 11-bit transfer |
+    | 0xB   | 12-bit transfer |
+    | 0xC   | 13-bit transfer |
+    | 0xD   | 14-bit transfer |
+    | 0xE   | 15-bit transfer |
+    | 0xF   | 16-bit transfer |
+
+- address: 0x0000:5..4
+  type: control
+  mnemonic: FRF
+  name: frame_format
+  brief: Frame Format.
+  doc: |
+    | Value | Description   |
+    |-------|---------------|
+    | 0x0   | SPI           |
+    | 0x1   | TI            |
+    | 0x2   | Microwire     |
+    | 0x3   | Not supported |
+
+- address: 0x0000:6
+  type: control
+  mnemonic: CPOL
+  name: clock_polarity
+  brief: Clock Out Polarity.
+  doc: |
+    This bit is only used in SPI mode.
+
+    When 0, the SSP controller maintains the bus clock low between frames.
+
+    When 1, the SSP controller maintains the bus clock high between frames.
+
+- address: 0x0000:7
+  type: control
+  mnemonic: CPHA
+  name: clock_phase
+  brief: Clock Out Phase.
+  doc: |
+    This bit is only used in SPI mode.
+
+    When 0, the SSP controller captures serial data on the first clock
+    transition of the frame, that is, the transition *away from* the inter
+    frame state of the clock line.
+
+    When 1, the SSP controller captures serial data on the second clock
+    transition of the frame, that is, the transition back to the inter-frame
+    state of the clock line.
+
+- address: 0x0000:15..8
+  type: control
+  mnemonic: SCR
+  name: prescaler
+  brief: Serial Clock Rate.
+  doc: |
+    The number of prescaler-output clocks per bit on the bus, minus one.
+    Given that CPSDVSR is the prescale divider, and the APB clock PCLK clocks
+    the prescaler, the bit frequency is PCLK / (CPSDVSR x [SCR+1]).
+
+- register-name: CRB
+  register-brief: SSP Control Register 1.
+
+  address: 0x0008:0
+  type: control
+  mnemonic: LBM
+  name: loopback
+  brief: Loop Back Mode.
+  doc: |
+    When 0, the SSP behaves normally. When 1, serial input is taken from the
+    serial output (MOSI or MISO) rather than the serial input pin (MISO or MOSI
+    respectively).
+
+- address: 0x0008:1
+  mnemonic: SSE
+  name: enable
+  brief: SSP Enable.
+  doc: |
+    When 0, the SSP is disabled. When 1, the SSP controller will interact with
+    other devices on the serial bus. Software should write the appropriate
+    control information to the other SSP registers and interrupt controller
+    registers, before setting this bit.
+
+- address: 0x0008:2
+  type: control
+  mnemonic: MS
+  name: mode
+  brief: Master/Slave Mode.
+  doc: |
+    This bit can only be written when the SSE bit is 0. When 0, the SSP
+    controller acts as a master on the bus, driving the SCLK, MOSI, and SSEL
+    lines and receiving the MISO line. When 1, the SSP controller acts as a
+    slave on the bus, driving MISO line and receiving SCLK, MOSI, and SSEL
+    lines.
+
+- address: 0x0008:3
+  type: status
+  mnemonic: SOD
+  name: output_disable
+  brief: Slave Output Disable.
+  doc: |
+    This bit is relevant only in slave mode (MS = 1). If it is 1, this blocks
+    this SSP controller from driving the transmit data line (MISO).
+
+
+- register-name: TEST
+  register-brief: Multiword register test
+
+  address: 0x000C:75..25
+  type: control
+  mnemonic: TEST
+  name: test
+
+- address: 0x000C:24..0
+  type: status
+  mnemonic: FOO
+  name: test
+
+- register-name: TESTB
+  register-brief: Multiword register test
+
+  address: 0x0018:63..0
+  type: control
+  mnemonic: TEST
+  name: test

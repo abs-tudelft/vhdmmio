@@ -4,6 +4,8 @@ import sys
 import re
 from enum import Enum
 import yaml
+from .core.regfile import RegisterFile
+from .html import HtmlGenerator
 
 class RunComplete(Exception):
     """Exception used by `VhdMmio` to report that the program should terminate
@@ -12,7 +14,6 @@ class RunComplete(Exception):
     def __init__(self, code):
         super().__init__('Exit with code {}'.format(code))
         self.code = code
-
 
 class VhdMmio:
     """Main class for vhdMMIO, representing a single run."""
@@ -39,7 +40,9 @@ class VhdMmio:
 
         # Load/parse the register file descriptions.
         for spec_file in spec_files:
-            self.add_register_file(RegisterFile.from_yaml(spec_file))
+            with open(spec_file, 'r') as fil:
+                spec = yaml.load(fil.read())
+            self.add_register_file(RegisterFile.from_dict(spec))
 
         # Generate the requested output files.
         self.generate()
@@ -48,7 +51,7 @@ class VhdMmio:
         """Parse a list of command line arguments to configure this `VhdMmio`
         object. Returns the list of specification files that should be
         loaded."""
-        raise NotImplementedError() # TODO
+        return args[1:]
 
     def add_register_file(self, register_file):
         """Adds a `RegisterFile` object to the list of register files that are
@@ -62,12 +65,4 @@ class VhdMmio:
     def generate(self):
         """Produces the output files requested by the previously loaded
         configuration using the previously loaded specification files."""
-        raise NotImplementedError() # TODO
-
-
-if __name__ == '__main__':
-    try:
-        VhdMmio().run()
-    except RunComplete as exc:
-        sys.exit(exc.code)
-    # TODO: exception pretty-printing
+        HtmlGenerator(self.register_files)

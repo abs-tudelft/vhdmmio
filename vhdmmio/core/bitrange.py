@@ -104,9 +104,9 @@ class BitRange:
     def to_spec(self):
         """Inverse of `from_spec()`."""
         if self.size == {32:2, 64:3}[self.bus_width]:
-            addr = '0x{:X}'.format(self.address)
+            addr = '0x{:08X}'.format(self.address)
         else:
-            addr = '0x{:X}/{:d}'.format(self.address, self.size)
+            addr = '0x{:08X}/{:d}'.format(self.address, self.size)
         if self.is_word():
             return addr
         if self.is_vector():

@@ -68,25 +68,18 @@ class Metadata:
             self._doc = str(doc)
 
     @classmethod
-    def from_dict(cls, dictionary, prefix=None):
+    def from_dict(cls, count, dictionary, prefix=''):
         """Constructs a metadata object from the given dictionary, removing the
         keys that were used."""
-        if prefix is None:
-            prefix = ''
-        else:
-            prefix = str(prefix) + '-'
         return cls(
+            count,
             dictionary.pop(prefix + 'mnemonic', None),
             dictionary.pop(prefix + 'name', None),
             dictionary.pop(prefix + 'brief', None),
             dictionary.pop(prefix + 'doc', None))
 
-    def to_dict(self, dictionary, prefix=None):
+    def to_dict(self, dictionary, prefix=''):
         """Inverse of `from_dict()`."""
-        if prefix is None:
-            prefix = ''
-        else:
-            prefix = str(prefix) + '-'
         dictionary[prefix + 'mnemonic'] = self.mnemonic
         dictionary[prefix + 'name'] = self.name
         dictionary[prefix + 'brief'] = self.markdown_brief
@@ -113,6 +106,11 @@ class Metadata:
         """Long description of the object (multiple lines/paragraphs of
         markdown)."""
         return self._doc
+
+    @property
+    def count(self):
+        """Size of the array that this metadata object describes."""
+        return self._count
 
     def __len__(self):
         """Number of repetitions."""
@@ -206,6 +204,16 @@ class ExpandedMetadata:
         """Long description of the object for use within documentation
         output."""
         return self._doc
+
+    def to_markdown(self, header=1):
+        """Generates basic markdown from this metadata object with the
+        specified header level."""
+        return '%s %s (%s)\n\n%s\n\n%s\n\n' % (
+            '#' * header,
+            self.markdown_name,
+            self.markdown_mnemonic,
+            self.markdown_brief,
+            self.markdown_doc)
 
     @staticmethod
     def check_siblings(siblings):

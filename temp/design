@@ -22,7 +22,7 @@
   regfile -> RegisterFile
   __iter__() -> Field
 
-[ ] FieldLogic: base class for different types of fields
+[.] FieldLogic: base class for different types of fields
   read_caps -> FieldCapabilities
   write_caps -> FieldCapabilities
   get_caps(read/write) -> FieldCapabilities
@@ -30,14 +30,13 @@
 
 [ ] Register: a collection of fields sharing the same base address; implicit in the YAML file!
   meta -> ExpandedMetadata
-  reg_meta -> ExpandedMetadata for register or None
   address -> aligned base address
   block_size -> number of LSBs to ignore in the address match
   block_num -> number of blocks needed to describe this register
   regfile -> RegisterFile
   __iter__() -> Field
 
- [ ] Field: a single repetition of a field
+ [.] Field: a single repetition of a field
   meta -> ExpandedMetadata
   bitrange -> BitRange representing the field item
   logic -> FieldLogic

@@ -43,7 +43,7 @@ setup(
     packages = ['vhdmmio', 'vhdmmio.vhd', 'vhdmmio.core'],
 
     # Install dependencies
-    install_requires = ['pyyaml'],
+    install_requires = ['pyyaml', 'markdown2'],
 
     # Testing
     tests_require = ['nose', 'coverage'],
