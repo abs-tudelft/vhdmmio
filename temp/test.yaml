@@ -10,7 +10,7 @@ bus-width: 32
 
 fields:
 
-- register-name: CRA
+- register-name: CR0
   register-brief: SSP Control Register 0.
 
   address: 0x0000:3..0
@@ -89,7 +89,7 @@ fields:
     Given that CPSDVSR is the prescale divider, and the APB clock PCLK clocks
     the prescaler, the bit frequency is PCLK / (CPSDVSR x [SCR+1]).
 
-- register-name: CRB
+- register-name: CR1
   register-brief: SSP Control Register 1.
 
   address: 0x0008:0
@@ -125,7 +125,7 @@ fields:
     lines.
 
 - address: 0x0008:3
-  type: status
+  type: control
   mnemonic: SOD
   name: output_disable
   brief: Slave Output Disable.
@@ -142,10 +142,11 @@ fields:
   mnemonic: TEST
   name: test
 
-- address: 0x000C:24..0
+- address: 0x000C:7..0
   type: status
   mnemonic: FOO
-  name: test
+  name: foo
+  repeat: 3
 
 - register-name: TESTB
   register-brief: Multiword register test
@@ -153,4 +154,4 @@ fields:
   address: 0x0018:63..0
   type: control
   mnemonic: TEST
-  name: test
+  name: testb

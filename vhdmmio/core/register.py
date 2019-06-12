@@ -1,6 +1,6 @@
 """Module for `Register` object."""
 
-from .metadata import Metadata
+from .metadata import Metadata, ExpandedMetadata
 from .accesscaps import ReadWriteCapabilities, AccessCapabilities
 
 class Register(ReadWriteCapabilities):
@@ -32,68 +32,87 @@ class Register(ReadWriteCapabilities):
             f.bitrange.low_bit, f.logic.read_caps is None)))
         self._fields = fields
         if not fields:
-            raise ValueError('a register must consist of at least one field')
+            raise ValueError('found register with zero fields')
 
-        # Infer and sanity-check register addressing information.
-        self._regfile = fields[0].descriptor.regfile
-        self._address = fields[0].bitrange.address
-        self._block_size = fields[0].bitrange.size
-        for field in fields[1:]:
-            assert field.descriptor.regfile == self._regfile
-            assert field.bitrange.address == self._address
-            if field.bitrange.size != self._block_size:
-                raise ValueError('fields %s and %s are assigned to the same '
-                                 'base address, but have different block sizes'
-                                 % (fields[0], field))
+        try:
 
-        # Infer the width and block count of the register.
-        bus_width = self._regfile.bus_width
-        msb = 0
-        for field in fields:
-            msb = max(msb, field.bitrange.high_bit)
-            assert field.bitrange.bus_width == bus_width
-        self._block_count = msb // bus_width + 1
-        width = self._block_count * bus_width
+            # Infer and sanity-check register addressing information.
+            self._regfile = fields[0].descriptor.regfile
+            self._address = fields[0].bitrange.address
+            self._block_size = fields[0].bitrange.size
+            for field in fields[1:]:
+                assert field.descriptor.regfile == self._regfile
+                assert field.bitrange.address == self._address
+                if field.bitrange.size != self._block_size:
+                    raise ValueError('fields %s and %s are assigned to the same '
+                                     'base address, but have different block sizes'
+                                     % (fields[0], field))
 
-        # Infer the bitmap from logical register bit index to field and field
-        # index for both read and write operations (independently).
-        def populate(write):
-            bitmap = [(None, 0)] * width
-            caps = []
+            # Infer the width and block count of the register.
+            bus_width = self._regfile.bus_width
+            msb = 0
             for field in fields:
-                field_caps = field.logic.get_caps(write)
-                if field_caps is not None:
-                    caps.append(field_caps)
-                    for field_idx in range(field.bitrange.width):
-                        reg_idx = field_idx + field.bitrange.low_bit
-                        if bitmap[reg_idx][0] is not None:
-                            raise ValueError('fields %s and %s overlap in %s '
-                                             'mode at bit %d' % (
-                                                 field,
-                                                 bitmap[reg_idx][0],
-                                                 'write' if write else 'read',
-                                                 reg_idx))
-                        bitmap[reg_idx] = (field, field_idx)
-            return tuple(bitmap), AccessCapabilities.check_siblings(caps)
-        self._read_bitmap, read_caps = populate(False)
-        self._write_bitmap, write_caps = populate(True)
+                msb = max(msb, field.bitrange.high_bit)
+                assert field.bitrange.bus_width == bus_width
+            self._block_count = msb // bus_width + 1
+            width = self._block_count * bus_width
 
-        # Infer metadata for the register.
-        for field, _ in self._read_bitmap + self._write_bitmap:
-            if field is None:
-                continue
-            if field.descriptor.reg_meta is None:
-                continue
-            self._meta = field.descriptor.reg_meta[field.index]
-            break
-        else:
-            if len(fields) == 1:
-                meta = fields[0].meta
-                self._meta = Metadata(mnemonic=meta.mnemonic, name=meta.name, brief='', doc='')[None]
+            # Infer the bitmap from logical register bit index to field and field
+            # index for both read and write operations (independently).
+            def populate(write):
+                bitmap = [(None, 0)] * width
+                caps = []
+                for field in fields:
+                    field_caps = field.logic.get_caps(write)
+                    if field_caps is not None:
+                        caps.append(field_caps)
+                        for field_idx in range(field.bitrange.width):
+                            reg_idx = field_idx + field.bitrange.low_bit
+                            if bitmap[reg_idx][0] is not None:
+                                raise ValueError('fields %s and %s overlap in %s '
+                                                 'mode at bit %d' % (
+                                                     field,
+                                                     bitmap[reg_idx][0],
+                                                     'write' if write else 'read',
+                                                     reg_idx))
+                            bitmap[reg_idx] = (field, field_idx)
+                return tuple(bitmap), AccessCapabilities.check_siblings(caps)
+            self._read_bitmap, read_caps = populate(False)
+            self._write_bitmap, write_caps = populate(True)
+
+            # Infer metadata for the register.
+            for field, _ in self._read_bitmap + self._write_bitmap:
+                if field is None:
+                    continue
+                if field.descriptor.reg_meta is None:
+                    continue
+                self._meta = field.descriptor.reg_meta[field.index]
+                break
             else:
-                raise ValueError('none of the field descriptors mapping to address '
-                                 '0x%08X carry metadata for the encompassing '
-                                 'register' % self._address)
+                if len(fields) == 1:
+                    meta = fields[0].meta
+                    self._meta = Metadata(
+                        mnemonic=meta.mnemonic,
+                        name=meta.name,
+                        brief='',
+                        doc='')[None]
+                else:
+                    raise ValueError('none of the field descriptors mapping to address '
+                                     '0x%08X carry metadata for the encompassing '
+                                     'register' % self._address)
+
+        except (ValueError, TypeError) as exc:
+            field_names = ', '.join((field.meta.name for field in fields[:3]))
+            if len(fields) > 3:
+                field_names += ', etc.'
+            raise type(exc)('while building register with fields %s: %s' % (field_names, exc))
+        try:
+
+            # Check for mnemonic conflicts within the fields of this register.
+            ExpandedMetadata.check_siblings((field.meta for field in fields))
+
+        except (ValueError, TypeError) as exc:
+            raise type(exc)('while building register %s: %s' % (self._meta.name, exc))
 
         # Connect the fields to this register.
         for field in fields:

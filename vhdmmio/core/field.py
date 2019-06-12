@@ -14,78 +14,99 @@ class FieldDescriptor:
         representation."""
         self._regfile = regfile
 
-        # Parse address.
-        address = kwargs.pop('address', None)
-        if isinstance(address, list):
-            self._field_repeat = None
-            self._stride = None
-            self._field_stride = None
-            self._bitranges = [BitRange.from_spec(regfile.bus_width, spec) for spec in address]
-            if not self._bitranges:
-                raise ValueError('at least one address must be specified')
-            if 'repeat' in kwargs:
-                raise ValueError('cannot combine repeat with multiple addresses')
-            if 'field_repeat' in kwargs:
-                raise ValueError('cannot combine field-repeat with multiple addresses')
-            if 'stride' in kwargs:
-                raise ValueError('cannot combine stride with multiple addresses')
-            if 'field_stride' in kwargs:
-                raise ValueError('cannot combine field-stride with multiple addresses')
-
-        elif isinstance(address, (str, int)):
-            base = BitRange.from_spec(regfile.bus_width, address)
-            repeat = int(kwargs.pop('repeat', 1))
-            if repeat < 1:
-                raise ValueError('repeat must be positive')
-            field_repeat = kwargs.pop('field_repeat', None)
-            if field_repeat is None:
-                field_repeat = repeat
-            else:
-                field_repeat = int(field_repeat)
-            if field_repeat < 1:
-                raise ValueError('field-repeat must be positive')
-            stride = int(kwargs.pop('stride', 2**base.size))
-            if stride < 2**base.size:
-                raise ValueError('stride is smaller than the block size')
-            if stride & (2**base.size-1):
-                raise ValueError('stride is not aligned to the block size')
-            field_stride = int(kwargs.pop('field_stride', 2**base.width))
-            if field_stride < base.width:
-                raise ValueError('field-stride is smaller than the width of a single field')
-
-            self._field_repeat = field_repeat
-            self._stride = stride
-            self._field_stride = field_stride
-            self._bitranges = [base.move(
-                (index // field_repeat) * stride,
-                (index % field_repeat) * field_stride)
-                               for index in range(repeat)]
-
-        else:
-            raise ValueError('invalid or missing address')
-
         # Parse metadata.
-        self._meta = Metadata.from_dict(len(self._bitranges), kwargs)
-        if any(('register_' + key in kwargs for key in ('mnemonic', 'name', 'brief', 'doc'))):
-            self._reg_meta = Metadata.from_dict(len(self._bitranges), kwargs, 'register_')
-        else:
-            self._reg_meta = None
+        self._meta = Metadata.from_dict(1, kwargs.copy())
+        try:
 
-        # Parse type information.
-        self._logic = FieldLogic.from_dict(kwargs)
+            # Parse address.
+            address = kwargs.pop('address', None)
+            if isinstance(address, list):
+                self._field_repeat = None
+                self._stride = None
+                self._field_stride = None
+                self._bitranges = [BitRange.from_spec(regfile.bus_width, spec) for spec in address]
+                if not self._bitranges:
+                    raise ValueError('at least one address must be specified')
+                if any(key in kwargs for key in [
+                        'repeat', 'field_repeat', 'stride', 'field_stride']):
+                    raise ValueError('cannot combine automatic repetition with multiple addresses')
+                self._vector_width = self._bitranges[0].xwidth
+                for bitrange in self._bitranges[1:]:
+                    if bitrange.xwidth != self._vector_width:
+                        raise ValueError('repeated fields must all have the same width')
+                self._vector_count = len(self._bitranges)
 
-        # Collect the fields described by this descriptor.
-        self._fields = tuple((
-            Field(self._meta[index], bitrange, self._logic, self, index)
-            for index, bitrange in enumerate(self._bitranges)))
+            elif isinstance(address, (str, int)):
+                base = BitRange.from_spec(regfile.bus_width, address)
+                if 'repeat' in kwargs:
+                    repeat = int(kwargs.pop('repeat', 1))
+                    if repeat < 1:
+                        raise ValueError('repeat must be positive')
+                    field_repeat = kwargs.pop('field_repeat', None)
+                    if field_repeat is None:
+                        field_repeat = repeat
+                    else:
+                        field_repeat = int(field_repeat)
+                    if field_repeat < 1:
+                        raise ValueError('field-repeat must be positive')
+                    stride = int(kwargs.pop('stride', 2**base.size))
+                    if abs(stride) < 2**base.size:
+                        raise ValueError('stride is smaller than the block size')
+                    if stride & (2**base.size-1):
+                        raise ValueError('stride is not aligned to the block size')
+                    field_stride = int(kwargs.pop('field_stride', base.width))
+                    if abs(field_stride) < base.width:
+                        raise ValueError('field-stride is smaller than the width of a single field')
 
-        # Check for unknown keys.
-        for key in kwargs:
-            raise ValueError('unexpected key in field description: %s' % key)
+                    self._field_repeat = field_repeat
+                    self._stride = stride
+                    self._field_stride = field_stride
+                    self._bitranges = [base.move(
+                        (index // field_repeat) * stride,
+                        (index % field_repeat) * field_stride)
+                                       for index in range(repeat)]
+                    self._vector_width = base.xwidth
+                    self._vector_count = repeat
+                else:
+                    self._field_repeat = None
+                    self._stride = None
+                    self._field_stride = None
+                    self._bitranges = [base]
+                    self._vector_width = base.xwidth
+                    self._vector_count = None
+            else:
+                raise ValueError('invalid or missing address')
+
+            # Parse metadata again, now with the correct repetition count.
+            self._meta = Metadata.from_dict(self._vector_count, kwargs)
+            if any(('register_' + key in kwargs for key in ('mnemonic', 'name', 'brief', 'doc'))):
+                self._reg_meta = Metadata.from_dict(self._vector_count, kwargs, 'register_')
+            else:
+                self._reg_meta = None
+
+            # Parse type information.
+            self._logic = FieldLogic.from_dict(self, kwargs)
+
+            # Collect the fields described by this descriptor.
+            if self._vector_count is None:
+                self._fields = (
+                    Field(self._meta[None], self._bitranges[0], self._logic, self, None),)
+            else:
+                self._fields = tuple((
+                    Field(self._meta[index], self._bitranges[index], self._logic, self, index)
+                    for index in range(self._vector_count)))
+
+            # Check for unknown keys.
+            for key in kwargs:
+                raise ValueError('unexpected key in field description: %s' % key)
+
+        except (ValueError, TypeError) as exc:
+            raise type(exc)('while parsing field %s: %s' % (self._meta.name, exc))
 
     @classmethod
     def from_dict(cls, regfile, dictionary):
         """Constructs a field descriptor object from a dictionary."""
+        dictionary = dictionary.copy()
         for key in list(dictionary.keys()):
             if '-' in key:
                 dictionary[key.replace('-', '_')] = dictionary.pop(key)
@@ -101,7 +122,7 @@ class FieldDescriptor:
         if len(self._bitranges) == 1:
             dictionary['address'] = base.to_spec()
         if self._field_repeat is None:
-            dictionary['address'] = [address.to_spect() for address in self._bitranges]
+            dictionary['address'] = [address.to_spec() for address in self._bitranges]
         else:
             dictionary['address'] = base.to_spec()
             dictionary['repeat'] = len(self._bitranges)
@@ -131,6 +152,18 @@ class FieldDescriptor:
     def reg_meta(self):
         """Metadata for the surrounding register, if any."""
         return self._reg_meta
+
+    @property
+    def vector_width(self):
+        """Size of each field described by this array in bits, or `None` if the
+        fields are single-bit."""
+        return self._vector_width
+
+    @property
+    def vector_count(self):
+        """Number of fields described by this descriptor if it describes an
+        array, or `None` if this is a scalar field."""
+        return self._vector_count
 
     @property
     def logic(self):
@@ -165,28 +198,23 @@ class Field:
         """
         super().__init__()
 
-        if not isinstance(meta, ExpandedMetadata):
-            raise TypeError('meta must be of type ExpandedMetadata')
+        assert isinstance(meta, ExpandedMetadata)
         self._meta = meta
 
-        if not isinstance(bitrange, BitRange):
-            raise TypeError('bitrange must be of type BitRange')
+        assert isinstance(bitrange, BitRange)
         self._bitrange = bitrange
 
-        if not isinstance(logic, FieldLogic):
-            raise TypeError('logic must be of type FieldLogic')
+        assert isinstance(logic, FieldLogic)
         self._logic = logic
 
-        if not isinstance(descriptor, FieldDescriptor):
-            raise TypeError('descriptor must be of type FieldDescriptor')
+        assert isinstance(descriptor, FieldDescriptor)
         self._descriptor = descriptor
         if index is None:
             self._index = None
         else:
             self._index = int(index)
 
-        if register is not None and not isinstance(register, Register):
-            raise TypeError('register must be None or be of type Register')
+        assert register is None or isinstance(register, Register)
         self._register = register
 
     @property
@@ -218,16 +246,13 @@ class Field:
     def register(self):
         """The register associated to this field, or `None` if it has not been
         mapped to a register yet."""
-        if self._register is None:
-            raise ValueError('this field does not a register assigned to it yet')
+        assert self._register is not None
         return self._register
 
     @register.setter
     def register(self, register):
-        if not isinstance(register, Register):
-            raise TypeError('register must be of type Register')
-        if self._register is not None:
-            raise ValueError('this field already has a register assigned to it')
+        assert isinstance(register, Register)
+        assert self._register is None
         self._register = register
 
     def is_array(self):
@@ -262,16 +287,27 @@ class FieldLogic(ReadWriteCapabilities):
     _TYPE_CODE = None
     _TYPE_LOOKUP = {}
 
+    def __init__(self, field_descriptor=None, **kwargs):
+        super().__init__(**kwargs)
+        assert field_descriptor is not None
+        self._field_descriptor = field_descriptor
+
     @staticmethod
-    def from_dict(dictionary):
+    def from_dict(field_descriptor, dictionary):
         """Constructs a `FieldLogic` object from a dictionary. The key `'type'`
         is used to select the subclass to use."""
-        import vhdmmio.core.logic
+
+        # Make sure that the logic submodule is loaded; without this,
+        # _TYPE_LOOKUP may not have been populated yet. We shouldn't do this
+        # import at the top of this file though, because it would be a circular
+        # import.
+        import vhdmmio.core.logic #pylint: disable=W0611
+
         typ = dictionary.pop('type', 'control')
         cls = FieldLogic._TYPE_LOOKUP.get(typ, None)
         if cls is None:
             raise ValueError('unknown type code "%s"' % typ)
-        return cls(dictionary)
+        return cls(field_descriptor, dictionary)
 
     def to_dict(self, dictionary):
         """Returns a dictionary representation of this object."""
@@ -281,3 +317,25 @@ class FieldLogic(ReadWriteCapabilities):
     def type_code(self):
         """Returns the type code of this field."""
         return self._TYPE_CODE
+
+    @property
+    def field_descriptor(self):
+        """The `FieldDescriptor` object associated with this object."""
+        return self._field_descriptor
+
+    @property
+    def meta(self):
+        """Metadata for this group of fields."""
+        return self._field_descriptor.meta
+
+    @property
+    def vector_width(self):
+        """Size of each field described by this array in bits, or `None` if the
+        fields are single-bit."""
+        return self._field_descriptor.vector_width
+
+    @property
+    def vector_count(self):
+        """Number of fields described by this descriptor if it describes an
+        array, or `None` if this is a scalar field."""
+        return self._field_descriptor.vector_count

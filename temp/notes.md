@@ -92,7 +92,7 @@ Primitive
 ---------
 
  - primitive
-    - bus-read-mode = read: specifies action of bus reads (no/read/clear/increment/decrement) [singular]
+    - bus-read-mode = read: specifies action of bus reads (none/read/clear/increment/decrement) [singular]
     - bus-write-mode = none: specifies action of bus writes (none/write/accumulate/clear/increment/decrement/set/reset/toggle) [singular]
     - hw-read-enable = no: specifies hardware read interface (no/yes) [singular]
     - hw-write-mode = none: specifies hardware write interface (none/transparent/write/accumulate) [singular]
@@ -104,7 +104,182 @@ Primitive
     - hw-reset-enable = no: specifies existence of bit-reset signal (no/yes) [singular]
     - hw-toggle-enable = no: specifies existence of bit-toggle signal (no/yes) [singular]
     - reset-value = 0: value to set when block is reset [const/generic/signal]
-    - reset-response = ok: read response to send between reset and first write (ok/slave-error/decode-error/block) [const/generic/signal]
+    - reset-response = ok: read response to send between reset and first write (ok/slave-error/decode-error/block)
+
+```
+-- $state$.value = std_logic_vector register of the size of the field
+-- r_data = std_logic_vector register of size of logical register
+-- w_data = std_logic_vector register of size of logical register, forced 0 when mask is low
+-- w_strb = std_logic_vector register of size of logical register, 1 when bit is written, 0 when bit is skipped
+
+$block package
+@ Types for $name$.
+type $prefix$_in_type is record
+end record;
+constant $prefix.upper()$_IN_DEFAULT: $prefix$_in_type := (
+);
+type $prefix$_out_type is record
+end record;
+$if count is None
+$prefix$_in  : in  $prefix$_in_type;
+$prefix$_out : out $prefix$_out_type;
+$else
+$prefix$_in  : in  $prefix$_in_array(0 to $count - 1$);
+$prefix$_out : out $prefix$_out_array(0 to $count - 1$);
+$endif
+$endblock
+
+$block ports
+@ Ports for $name$.
+$if count is None
+$prefix$_in  : in  $prefix$_in_type := $prefix.upper()$_IN_DEFAULT;
+$prefix$_out : out $prefix$_out_type := $prefix.upper()$_OUT_DEFAULT;
+$else
+$prefix$_in  : in  $prefix$_in_array(0 to $count - 1$) := (others => $prefix.upper()$_IN_DEFAULT);
+$prefix$_out : out $prefix$_out_array(0 to $count - 1$) := (others => $prefix.upper()$_OUT_DEFAULT);
+$endif
+$endblock
+
+$block variables
+@ Variables for $name$.
+type $prefix$_state_type is record
+  value : std_logic_vector($width - 1$ downto 0) := $reset_value$;
+  resp  : std_logic_vector(1 downto 0) := $reset_response$;
+end record;
+$if count is None
+variable $prefix$_state : $prefix$_state_type;
+$else
+type $prefix$_state_array is array (natural range <>) of $prefix$_state_type;
+variable $prefix$_state : $prefix$_state_array(0 to $count - 1$);
+$endif
+$endblock
+
+$block logic
+@ Logic for $name$.
+$if hw_write_mode != 'none'
+$if hw_write_mode == 'transparent'
+$state$.value := vect($input$.write_data);
+$if hw_response_enable
+$state$.resp := $input$.write_resp;
+$endif
+$endif
+$if hw_write_mode == 'write'
+if $input$.write_enable = '1' then
+  $state$.value := vect($input$.write_data);
+$if hw_response_enable
+  $state$.resp := $input$.write_resp;
+$endif
+end if;
+$endif
+
+$if hw_write_mode == 'accumulate'
+if $input$.write_enable = '1' then
+  $state$.value := std_logic_vector(@unsigned($state$.value)@+ unsigned(vect($input$.write_data)));
+$if hw_response_enable
+  $state$.resp := $input$.write_resp;
+$endif
+end if;
+$endif
+
+$if hw_clear_enable
+if $input$.clear = '1' then
+  $state$.value := (others => '0');
+end if;
+$endif
+
+$if hw_increment_enable
+if $input$.increment = '1' then
+  $state$.value := std_logic_vector(unsigned($state$.value) + 1);
+end if;
+$endif
+
+$if hw_decrement_enable
+if $input$.decrement = '1' then
+  $state$.value := std_logic_vector(unsigned($state$.value) - 1);
+end if;
+$endif
+
+$if hw_set_enable
+$state$.value := $state$.value or vect($input$.set);
+$endif
+
+$if hw_reset_enable
+$state$.value := $state$.value and not vect($input$.reset);
+$endif
+
+$if hw_toggle_enable
+$state$.value := $state$.value xor vect($input$.toggle);
+$endif
+
+$if bus_read_mode != 'none'
+if r_req and arl.addr(31 downto $addr_size$) = "$read_addr_bits$" then
+  r_data($addr_range$) := $state$.value;
+  r_hit := true;
+  case $state$.resp is
+    when "00" => null;
+    when "01" => r_block := true;
+    when others => r_resp := $state$.resp;
+  end case;
+$if bus_read_mode == 'clear'
+  $state$.value := (others => '0');
+$endif
+$if bus_read_mode == 'increment'
+  $state$.value := std_logic_vector(unsigned($state$.value) + 1);
+$endif
+$if bus_read_mode == 'decrement'
+  $state$.value := std_logic_vector(unsigned($state$.value) - 1);
+$endif
+end if;
+
+$if bus_write_mode != 'none'
+if w_req and awl.addr(31 downto $addr_size$) = "$write_addr_bits$" then
+  w_hit := true;
+$if bus_write_mode == 'write'
+  $state$.value := @($state$.value and not w_strb($addr_range$))@or w_data($addr_range$);
+$endif
+$if bus_write_mode == 'accumulate'
+  $state$.value := std_logic_vector(@unsigned($state$.value)@+ unsigned(w_data($addr_range$)));
+$endif
+$if bus_write_mode == 'clear'
+  if or_reduce(w_data($addr_range$)) = '1' then
+    $state$.value := (others => '0');
+  end if;
+$endif
+$if bus_write_mode == 'increment'
+  if or_reduce(w_data($addr_range$)) = '1' then
+    $state$.value := std_logic_vector(unsigned($state$.value) + 1);
+  end if;
+$endif
+$if bus_write_mode == 'decrement'
+  if or_reduce(w_data($addr_range$)) = '1' then
+    $state$.value := std_logic_vector(unsigned($state$.value) - 1);
+  end if;
+$endif
+$if bus_write_mode == 'set'
+  $state$.value := $state$.value or w_data($addr_range$);
+$endif
+$if bus_write_mode == 'reset'
+  $state$.value := $state$.value and not w_data($addr_range$);
+$endif
+$if bus_write_mode == 'toggle'
+  $state$.value := $state$.value xor w_data($addr_range$);
+$endif
+  $state$.resp := AXI4L_RESP_OKAY;
+end if;
+$endif
+
+$if hw_read_enable
+$output$.read_data <= $state$.resp;
+$endif
+
+if reset = '1' then
+  $state$.value := $reset_value$;
+  $state$.resp := $reset_response$;
+end if;
+
+$endblock
+```
+
 
  - control: synonym for primitive with the following defaults overridden:
     - bus-read-mode = read

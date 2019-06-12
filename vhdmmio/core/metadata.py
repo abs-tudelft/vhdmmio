@@ -5,13 +5,15 @@ import re
 class Metadata:
     """Documentation metadata for register files, registers, and fields."""
 
-    def __init__(self, count=1, mnemonic=None, name=None, brief=None, doc=None):
+    def __init__(self, count=None, mnemonic=None, name=None, brief=None, doc=None):
         """Constructs a new metadata object.
 
          - `count` is the number of times the object represented by this
-           metadata object is repeated.
+           metadata object is repeated in array-form, or `None` if it is a
+           scalar.
          - `mnemonic`, if specified, must be an uppercase string that can only
-           have digits and underscores in the middle of it. Mnemonics must be
+           have digits and underscores after the first character. When `count`
+           is not `None`, they also cannot end in a digit. Mnemonics must be
            unique among the siblings of the object that this metadata
            represents.
          - `name`, if specified, must be a valid identifier like mnemonic, but
@@ -33,25 +35,32 @@ class Metadata:
         if mnemonic is None and name is None:
             raise ValueError('either name or mnemonic must be specified')
 
-        self._count = int(count)
-        if self._count < 1:
-            raise ValueError('count must be positive')
+        if count is None:
+            self._count = None
+        else:
+            self._count = int(count)
+            if self._count < 1:
+                raise ValueError('count must be positive')
 
         # Parse and check mnemonic.
         if mnemonic is None:
             self._mnemonic = str(name).upper()
         else:
             self._mnemonic = str(mnemonic)
-        if not re.match(r'[A-Z]([A-Z_0-9]*[A-Z])?$', self._mnemonic):
+        if not re.match(r'[A-Z][A-Z_0-9]*$', self._mnemonic):
             raise ValueError('name {!r} is not a valid mnemonic'.format(self._mnemonic))
+        if count is not None and re.match(r'[0-9]*$', self._mnemonic):
+            raise ValueError('mnemonic cannot end in a digit when repetition is used')
 
         # Parse and check name.
         if name is None:
             self._name = str(mnemonic).lower()
         else:
             self._name = str(name)
-        if not re.match(r'[a-zA-Z]([a-zA-Z_0-9]*[a-zA-Z])?$', self._name):
+        if not re.match(r'[a-zA-Z][a-zA-Z_0-9]*$', self._name):
             raise ValueError('name {!r} is not a valid identifier'.format(self._name))
+        if count is not None and re.match(r'[0-9]*$', self._name):
+            raise ValueError('name cannot end in a digit when repetition is used')
 
         # Parse and check brief.
         if brief is None:
@@ -109,7 +118,8 @@ class Metadata:
 
     @property
     def count(self):
-        """Size of the array that this metadata object describes."""
+        """Size of the array that this metadata object describes, or `None` if
+        it does not describe an array."""
         return self._count
 
     def __len__(self):
@@ -133,10 +143,11 @@ class ExpandedMetadata:
     def __init__(self, metadata, index=None):
         """"Expands" a `Metadata` object into an `ExpandedMetadata` using the
         specified object index, or the full range if no index is specified."""
-        if index is not None and (index < 0 or index >= metadata.count):
-            raise ValueError('index out of range')
+        if index is not None:
+            if metadata.count is None or (index < 0 or index >= metadata.count):
+                raise ValueError('index out of range')
 
-        if metadata.count == 1:
+        if metadata.count is None:
             self._singular = True
             self._mnemonic = metadata.mnemonic
             self._name = metadata.name
