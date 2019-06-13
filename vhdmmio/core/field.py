@@ -301,7 +301,7 @@ class FieldLogic(ReadWriteCapabilities):
         # _TYPE_LOOKUP may not have been populated yet. We shouldn't do this
         # import at the top of this file though, because it would be a circular
         # import.
-        import vhdmmio.core.logic #pylint: disable=W0611
+        import vhdmmio.core.logic.primitive #pylint: disable=W0611
 
         typ = dictionary.pop('type', 'control')
         cls = FieldLogic._TYPE_LOOKUP.get(typ, None)

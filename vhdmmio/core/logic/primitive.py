@@ -1,56 +1,35 @@
+"""Module for primitive fields."""
+
 from vhdmmio.core.field import FieldLogic, field_logic
 from vhdmmio.core.accesscaps import AccessCapabilities
-
-def _choice(dictionary, key, values):
-    value = dictionary.pop(key, values[0])
-    if value not in values:
-        raise ValueError('%s must be one of %s' % (key, ', '.join(values)))
-    return value
-
-def _switches(dictionary, key, values):
-    switches = dictionary.pop(key, [])
-    if not isinstance(switches, list):
-        raise ValueError('%s must be a list of strings' % key)
-    for switch in switches:
-        if switch not in values:
-            raise ValueError('values for %s must be one of %s' % (key, ', '.join(values)))
-    switches = set(switches)
-
-    for value in values:
-        switch = dictionary.pop(key, False)
-        if switch == 'enabled':
-            switch = True
-        elif switch == 'disabled':
-            switch = False
-        if not isinstance(switch, bool):
-            raise ValueError('%s-%s must be a boolean' % (key, value))
-        if switch:
-            switches.add(value)
-
-    return switches
+import vhdmmio.core.logic.utils as utils
 
 @field_logic('primitive')
-class ControlField(FieldLogic):
+class PrimitiveField(FieldLogic):
+    """Basic field. Supports almost all register styles due to its high
+    configurability."""
+
     def __init__(self, field_descriptor, dictionary):
+        """Constructs a primitive field."""
 
         # Configures what happens when a read occurs.
-        self._bus_read = _choice(dictionary, 'bus-read', [
+        self._bus_read = utils.choice(dictionary, 'bus_read', [
             'disabled',     # Read access is disabled.
             'error',        # Reads always return a slave error.
-            'enabled',      # Normal read access to register.
+            'enabled',      # Normal read access to register, ignoring valid bit.
             'valid-wait',   # As above, but blocks until register is valid.
-            'valid-only'])  # As above, but fails when register is not valid yet.
+            'valid-only'])  # As above, but fails when register is not valid.
 
         # Configures what happens to the register after the read.
-        self._after_bus_read = _choice(dictionary, 'after-bus-read', [
+        self._after_bus_read = utils.choice(dictionary, 'after_bus_read', [
             'nothing',      # No extra operation after read.
-            'invalidate',   # Register is invalidated after read.
-            'clear',        # Register is cleared and invalidated after read.
-            'increment',    # Register is incremented after read.
-            'decrement'])   # Register is decremented after read.
+            'invalidate',   # Register is invalidated and cleared after read.
+            'clear',        # Register is cleared after read, valid untouched.
+            'increment',    # Register is incremented after read, valid untouched.
+            'decrement'])   # Register is decremented after read, valid untouched.
 
         # Configures what happens when a write occurs.
-        self._bus_write = _choice(dictionary, 'bus-write',
+        self._bus_write = utils.choice(dictionary, 'bus_write', [
             'disabled',     # Write access is disabled.
             'error',        # Writes always return a slave error.
             'enabled',      # Normal write access to register. Masked bits are written 0.
@@ -58,47 +37,45 @@ class ControlField(FieldLogic):
             'invalid-only', # As above, but fails when register is already valid.
             'masked',       # Write access respects strobe bits. Precludes after-bus-write.
             'accumulate',   # Write data is added to the register.
-            'set',          # Bits that are written 1 are set in the register.
-            'reset',        # Bits that are written 1 are cleared in the register.
-            'toggle')       # Bits that are written 1 are toggled in the register.
+            'subtract',     # Write data is subtracted from the register.
+            'bit-set',      # Bits that are written 1 are set in the register.
+            'bit-clear',    # Bits that are written 1 are cleared in the register.
+            'bit-toggle'])  # Bits that are written 1 are toggled in the register.
 
         # Configures what happens after a write occurs. Clear is special in
         # that it happens after the new value is pushed to the hardware read,
         # so it can be used to create a strobe register. The other operations
         # happen immediately after the write.
-        self._after_bus_write = _choice(dictionary, 'after-bus-write', [
+        self._after_bus_write = utils.choice(dictionary, 'after_bus_write', [
             'nothing',      # No extra operation after write.
             'validate',     # Register is validated after write.
-            'clear',        # Register is cleared and invalidated after write.
-            'increment',    # Register is incremented after write.
-            'decrement'])   # Register is decremented after write.
+            'invalidate'])  # As above, but invalidated again one cycle later.
 
         # Configure hardware read port.
-        self._hw_read = _choice(dictionary, 'hw-read', [
+        self._hw_read = utils.choice(dictionary, 'hw_read', [
             'disabled',     # No read port is generated.
             'simple',       # Only a simple data port is generated (no record).
             'enabled'])     # A record of the data and valid bit is generated.
 
         # Configure hardware write port.
-        self._hw_write = _choice(dictionary, 'hw-write',
+        self._hw_write = utils.choice(dictionary, 'hw_write', [
             'disabled',     # No write port is generated.
             'status',       # The register is constantly driven by a port and is always valid.
             'enabled',      # A record consisting of a write enable flag and data is generated.
-            'accumulate',   # As above, but the data is accumulated instead of written.
-            'set',          # As above, but bits that are written 1 are set in the register.
-            'reset',        # As above, but bits that are written 1 are cleared in the register.
-            'toggle')       # As above, but bits that are written 1 are toggled in the register.
+            'invalid-only', # Like enabled, but the write only occurs when the register is invalid.
+            'accumulate',   # Like enabled, but the data is accumulated instead of written.
+            'subtract',     # Like enabled, but the data is subtracted instead of written.
+            'set',          # Like enabled, but bits that are written 1 are set in the register.
+            'reset',        # Like enabled, but bits that are written 1 are cleared in the register.
+            'toggle'])      # Like enabled, but bits that are written 1 are toggled in the register.
 
         # Configures what happens after a hardware write occurs.
-        self._after_hw_write = _choice(dictionary, 'after-hw-write', [
+        self._after_hw_write = utils.choice(dictionary, 'after_hw_write', [
             'nothing',      # No extra operation after write.
-            'validate',     # Register is validated after write.
-            'clear',        # Register is cleared and invalidated after write.
-            'increment',    # Register is incremented after write.
-            'decrement'])   # Register is decremented after write.
+            'validate'])    # Register is automatically validated after write.
 
         # The following switches add an extra write port record.
-        self._ctrl = _switches(dictionary, 'ctrl', [
+        self._ctrl = utils.switches(dictionary, 'ctrl', [
             'validate',     # Adds a strobe signal that validates the register.
             'invalidate',   # Adds a strobe signal that invalidates the register.
             'clear',        # Adds a strobe signal that clears the register (sets value to 0).
@@ -125,42 +102,382 @@ class ControlField(FieldLogic):
         if self._bus_read in ('disabled', 'error'):
             if self._after_bus_read != 'nothing':
                 raise ValueError('bus read mode "%s" cannot be combined with a '
-                                'post-read operation' % self._bus_read)
+                                 'post-read operation' % self._bus_read)
 
         if self._bus_write in ('disabled', 'error', 'masked'):
             if self._after_bus_write != 'nothing':
                 raise ValueError('bus write mode "%s" cannot be combined with a '
-                                'post-write operation' % self._bus_write)
+                                 'post-write operation' % self._bus_write)
 
         if self._hw_write in ('disabled', 'status'):
             if self._after_hw_write != 'nothing':
                 raise ValueError('hardware write mode "%s" cannot be combined with a '
-                                'post-write operation' % self._hw_write)
+                                 'post-write operation' % self._hw_write)
 
         if self._hw_write == 'status':
             if self._ctrl:
-                raise ValueError('status fields cannot have control registers')
+                raise ValueError('status fields do not support additional control signals')
             if self._bus_write not in ('disabled', 'error'):
                 raise ValueError('status fields cannot allow bus writes')
+
+        # Determine the read/write capability fields.
+        if self._bus_read == 'disabled':
+            read_caps = None
+        else:
+            read_caps = AccessCapabilities(
+                volatile=(self._after_bus_read != 'nothing'),
+                can_block=(self._bus_read == 'valid-wait'))
+
+        if self._bus_write == 'disabled':
+            write_caps = None
+        else:
+            write_caps = AccessCapabilities(
+                volatile=(self._after_bus_write != 'nothing'
+                          or self._bus_write in ('accumulate', 'subtract', 'bit-toggle')),
+                can_block=(self._bus_write == 'invalid-wait'))
 
         super().__init__(
             field_descriptor=field_descriptor,
             read_caps=read_caps,
             write_caps=write_caps)
 
+    def to_dict(self, dictionary):
+        """Returns a dictionary representation of this object."""
+        super().to_dict(dictionary)
+        dictionary['bus-read'] = self.bus_read
+        dictionary['after-bus-read'] = self.after_bus_read
+        dictionary['bus-write'] = self.bus_write
+        dictionary['after-bus-write'] = self.after_bus_write
+        dictionary['hw-read'] = self.hw_read
+        dictionary['hw-write'] = self.hw_write
+        dictionary['after-hw-write'] = self.after_hw_write
+        dictionary['ctrl'] = list(self.ctrl)
+        dictionary['reset'] = self.reset
+
+    @property
+    def bus_read(self):
+        """Returns a string signifying the configured bus read operation."""
+        return self._bus_read
+
+    @property
+    def after_bus_read(self):
+        """Returns a string signifying the configured action after a bus
+        read."""
+        return self._after_bus_read
+
+    @property
+    def bus_write(self):
+        """Returns a string signifying the configured bus write operation."""
+        return self._bus_write
+
+    @property
+    def after_bus_write(self):
+        """Returns a string signifying the configured action after a bus
+        write."""
+        return self._after_bus_write
+
+    @property
+    def hw_read(self):
+        """Returns a string signifying the configured hardware read
+        operation."""
+        return self._hw_read
+
+    @property
+    def hw_write(self):
+        """Returns a string signifying the configured hardware write
+        operation."""
+        return self._hw_write
+
+    @property
+    def after_hw_write(self):
+        """Returns a string signifying the configured action after a hardware
+        write."""
+        return self._after_hw_write
+
+    @property
+    def ctrl(self):
+        """Returns the set of ctrl options."""
+        return set(self._ctrl)
+
+    def get_ctrl(self, key):
+        """Returns whether the given key is part of the ctrl options."""
+        return key in self._ctrl
+
+    @property
+    def reset(self):
+        """Returns the reset value for this register, which may be an int for
+        a preconfigured value, the string `'generic'` to set the value with a
+        generic, or `None` to reset the register to the invalid state."""
+        return self._reset
 
 
-@field_logic('control')
-class ControlField(FieldLogic):
+@field_logic('constant')
+class ConstantField(PrimitiveField):
+    """Read-only constant field. The constant is set in the register file
+    description using the value key."""
+
     def __init__(self, field_descriptor, dictionary):
-        super().__init__(
-            field_descriptor=field_descriptor,
-            read_caps=AccessCapabilities(),
-            write_caps=AccessCapabilities())
+        value = dictionary.pop('value', None)
+        if value is None:
+            raise ValueError('missing value key')
+
+        utils.override(dictionary, {
+            'bus_read':         'enabled',
+            'after_bus_read':   'nothing',
+            'bus_write':        'disabled',
+            'after_bus_write':  'nothing',
+            'hw_read':          'disabled',
+            'hw_write':         'disabled',
+            'after_hw_write':   'nothing',
+            'reset':            value,
+        })
+
+        super().__init__(field_descriptor, dictionary)
+
+        if self.ctrl:
+            raise ValueError('constant fields do not support additional control signals')
+
+    def to_dict(self, dictionary):
+        """Returns a dictionary representation of this object."""
+        super().to_dict(dictionary)
+        del dictionary['reset']
+        dictionary['value'] = self.reset
+
+
+@field_logic('config')
+class ConfigField(ConstantField):
+    """Read-only constant field. The constant is set through a generic."""
+
+    def __init__(self, field_descriptor, dictionary):
+        utils.override(dictionary, {'value': 'generic'})
+        super().__init__(field_descriptor, dictionary)
+
 
 @field_logic('status')
-class StatusField(FieldLogic):
+class StatusField(PrimitiveField):
+    """Read-only field. The value is driven by a signal."""
+
     def __init__(self, field_descriptor, dictionary):
-        super().__init__(
-            field_descriptor=field_descriptor,
-            read_caps=AccessCapabilities())
+        utils.override(dictionary, {
+            'bus_read':         'enabled',
+            'after_bus_read':   'nothing',
+            'bus_write':        'disabled',
+            'after_bus_write':  'nothing',
+            'hw_read':          'disabled',
+            'hw_write':         'status',
+            'after_hw_write':   'nothing',
+            'reset':            None,
+        })
+
+        super().__init__(field_descriptor, dictionary)
+
+        if self.ctrl:
+            raise ValueError('status fields do not support additional control signals')
+
+
+@field_logic('latching')
+class LatchingField(PrimitiveField):
+    """Read-only field. The value is written by a stream-like interface."""
+
+    def __init__(self, field_descriptor, dictionary):
+        utils.override(dictionary, {
+            'bus_read':         'enabled',
+            'hw_read':          'disabled',
+            'hw_write':         'enabled',
+        })
+
+        utils.default(dictionary, {
+            'after-hw-write':   'validate'
+        })
+
+        super().__init__(field_descriptor, dictionary)
+
+
+@field_logic('stream-to-mmio')
+class StreamToMmioField(PrimitiveField):
+    """Hardware to software stream. The stream is "popped" when the field is
+    read, so it is write-once read-once; for write-once read-many use
+    `latching` instead. By default, the read is blocked until a value is
+    available. The valid bit of the internal register is used as the `!ready`
+    signal for the stream, while the write-enable signal represents `valid`."""
+
+    def __init__(self, field_descriptor, dictionary):
+        utils.override(dictionary, {
+            'after_bus_read':   'invalidate',
+            'bus_write':        'disabled',
+            'after_bus_write':  'nothing',
+            'hw_read':          'enabled', # for the register valid flag, serving as !ready
+            'hw_write':         'invalid-only', # data; write enable = valid & ready
+            'after_hw_write':   'validate',
+        })
+
+        utils.default(dictionary, {
+            'bus_read':         'valid-wait',
+            'reset':            None,
+        })
+
+        super().__init__(field_descriptor, dictionary)
+
+
+@field_logic('mmio-to-stream')
+class MmioToStreamField(PrimitiveField):
+    """Software to hardware stream. By default, writes are blocked while the
+    field has not been popped by hardware yet. The valid bit of the internal
+    register maps one-to-one to the stream valid signal, while the invalidate
+    signal is connected to `ready`."""
+
+    def __init__(self, field_descriptor, dictionary):
+        utils.override(dictionary, {
+            'bus_read':         'disabled',
+            'after_bus_read':   'nothing',
+            'after_bus_write':  'validate',
+            'hw_read':          'enabled', # for data and stream valid
+            'hw_write':         'disabled',
+            'after_hw_write':   'nothing',
+            'ctrl_invalidate':  'enabled', # ready flag
+        })
+
+        utils.default(dictionary, {
+            'bus_write':        'invalid-wait',
+            'reset':            None,
+        })
+
+        super().__init__(field_descriptor, dictionary)
+
+@field_logic('control')
+class ControlField(PrimitiveField):
+    """Your standard control register; read-write by the bus and readable by
+    hardware.."""
+
+    def __init__(self, field_descriptor, dictionary):
+        utils.default(dictionary, {
+            'bus_read':         'enabled',
+            'after_bus_read':   'nothing',
+            'bus_write':        'masked',
+            'after_bus_write':  'nothing',
+            'hw_read':          'simple',
+            'hw_write':         'disabled',
+            'after_hw_write':   'nothing',
+            'reset':            0,
+        })
+
+        super().__init__(field_descriptor, dictionary)
+
+@field_logic('flag')
+class FlagField(PrimitiveField):
+    """Field consisting of bit flags written by hardware and explicitly cleared
+    by a write."""
+
+    def __init__(self, field_descriptor, dictionary):
+        utils.override(dictionary, {
+            'bus_read':         'enabled',
+            'bus_write':        'bit-clear',
+            'ctrl_bit_set':     'enabled',
+        })
+
+        utils.default(dictionary, {
+            'hw_read':          'simple',
+        })
+
+        super().__init__(field_descriptor, dictionary)
+
+
+@field_logic('volatile-flag')
+class VolatileFlagField(PrimitiveField):
+    """Field consisting of bit flags written by hardware and implicitly cleared
+    when read."""
+
+    def __init__(self, field_descriptor, dictionary):
+        utils.override(dictionary, {
+            'bus_read':         'enabled',
+            'after_bus_read':   'clear',
+            'ctrl_bit_set':     'enabled',
+        })
+
+        utils.default(dictionary, {
+            'hw_read':          'simple',
+        })
+
+        super().__init__(field_descriptor, dictionary)
+
+
+@field_logic('reverse-flag')
+class ReverseFlagField(PrimitiveField):
+    """Reversed flag field: set by software, cleared by hardware."""
+
+    def __init__(self, field_descriptor, dictionary):
+        utils.override(dictionary, {
+            'bus_write':        'bit-set',
+            'hw_read':          'simple',
+            'ctrl_bit_clear':   'enabled',
+        })
+
+        utils.default(dictionary, {
+            'bus_read':         'enabled',
+        })
+
+        super().__init__(field_descriptor, dictionary)
+
+@field_logic('counter')
+class CounterField(PrimitiveField):
+    """Event counter field. With the default configuration, the register is
+    incremented using a strobe control signal. The bus can then read the
+    accumulated value. Values written to the register are subtracted from the
+    counter, so a read-write cycle that writes the read value will "reset" the
+    counter without losing any events that may be counted between the read and
+    write. Decrement, accumulate, and readback signals can be optionally added
+    when needed."""
+
+    def __init__(self, field_descriptor, dictionary):
+        utils.override(dictionary, {
+            'bus_read':         'enabled',
+            'bus_write':        'subtract',
+        })
+
+        utils.default(dictionary, {
+            'ctrl_increment':   'enabled',
+            'hw_read':          'disabled',
+            'hw_write':         'disabled',
+            'after_hw_write':   'nothing',
+        })
+
+        super().__init__(field_descriptor, dictionary)
+
+@field_logic('volatile-counter')
+class VolatileCounterField(PrimitiveField):
+    """Same as a regular counter, but the value is cleared immediately when the
+    register is read. This prevents the need for a write cycle, but requires
+    read-volatility."""
+
+    def __init__(self, field_descriptor, dictionary):
+        utils.override(dictionary, {
+            'bus_read':         'enabled',
+            'after_bus_read':   'clear',
+        })
+
+        utils.default(dictionary, {
+            'ctrl_increment':   'enabled',
+            'hw_read':          'disabled',
+            'hw_write':         'disabled',
+            'after_hw_write':   'nothing',
+        })
+
+        super().__init__(field_descriptor, dictionary)
+
+@field_logic('reverse-counter')
+class ReverseCounterField(PrimitiveField):
+    """Reverse form of a counter, where the counter is incremented by software
+    and cleared by hardware."""
+
+    def __init__(self, field_descriptor, dictionary):
+        utils.override(dictionary, {
+            'bus_write':        'accumulate',
+            'hw_read':          'simple',
+            'ctrl_clear':       'enabled',
+        })
+
+        utils.default(dictionary, {
+            'bus_read':         'enabled',
+        })
+
+        super().__init__(field_descriptor, dictionary)

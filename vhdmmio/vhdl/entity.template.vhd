@@ -7,34 +7,35 @@ use ieee.numeric_std.all;
 
 library work;
 use work.vhdmmio_pkg.all;
-use work.$NAME$_pkg.all;
+use work.$r.meta.name$_pkg.all;
 
-entity $NAME$ is
+entity $r.meta.name$ is
   port (
     -- Clock sensitive to the rising edge and synchronous, active-high reset.
     clk   : in  std_logic;
     reset : in  std_logic := '0';
 
+$   IRQ_PORTS
 $   PORTS
     -- AXI4-lite + interrupt request bus to the master.
-    bus_i : in  axi4l$DATA_WIDTH$_m2s_type := AXI4L$DATA_WIDTH$_M2S_RESET;
-    bus_o : out axi4l$DATA_WIDTH$_s2m_type := AXI4L$DATA_WIDTH$_S2M_RESET
+    bus_i : in  axi4l$r.bus_width$_m2s_type := AXI4L$r.bus_width$_M2S_RESET;
+    bus_o : out axi4l$r.bus_width$_s2m_type := AXI4L$r.bus_width$_S2M_RESET
 
   );
-end $NAME$;
+end $r.meta.name$;
 
-architecure behavioral of $NAME$ is
+architecure behavioral of $r.meta.name$ is
 begin
   reg_proc: process (clk) is
 
     -- Bus response output register.
-    variable bus_v : axi4l$DATA_WIDTH$_s2m_type := AXI4L$DATA_WIDTH$_S2M_RESET;
+    variable bus_v : axi4l$r.bus_width$_s2m_type := AXI4L$r.bus_width$_S2M_RESET;
 
     -- Holding registers for the AXI4-lite request channels. Having these
     -- allows us to make the accompanying ready signals register outputs
     -- without sacrificing a cycle's worth of delay for every transaction.
     variable awl : axi4la_type := AXI4LA_RESET;
-    variable wl  : axi4lw$DATA_WIDTH$_type := AXI4LW$DATA_WIDTH$_RESET;
+    variable wl  : axi4lw$r.bus_width$_type := AXI4LW$r.bus_width$_RESET;
     variable arl : axi4la_type := AXI4LA_RESET;
 
     -- Request flags for the register logic. When asserted, a request is
@@ -47,7 +48,7 @@ begin
     variable w_block : boolean := false;
     variable r_block : boolean := false;
 
-$if N_IRQ > 0
+$if r.interrupt_count > 0
     -- Interrupt registers. The interrupt output is asserted if flag & mask
     -- is nonzero. flags are asserted by hardware by means of incoming strobe
     -- signals when the respective enab bit is set, or by software through
@@ -55,9 +56,9 @@ $if N_IRQ > 0
     -- enable and mask fields are controlled through software only. They
     -- default and reset to 0 when such a field is present, or are constant
     -- high if not. flags always reset to 0.
-    variable i_mask : std_logic_vector($N_IRQ - 1$ downto 0) := $IRQ_MASK_RESET$;
-    variable i_flag : std_logic_vector($N_IRQ - 1$ downto 0) := (others => '0');
-    variable i_enab : std_logic_vector($N_IRQ - 1$ downto 0) := $IRQ_ENAB_RESET$;
+    variable i_mask : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$r.get_interrupt_mask_reset()$";
+    variable i_flag : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$'0' * r.interrupt_count$";
+    variable i_enab : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$r.get_interrupt_enable_reset()$";
 
 $endif
 $   FIELD_VARIABLES
@@ -101,13 +102,13 @@ $   FIELD_VARIABLES
       -------------------------------------------------------------------------
       -- Handle interrupts
       -------------------------------------------------------------------------
-$if N_IRQ > 0
+$if r.interrupt_count > 0
       -- Assert the interrupt flags when the incoming strobe signals are
       -- asserted and the respective enable bits are set. Flags that do not
       -- have an accompanying field for clearing them are always overridden
       -- with the incoming signal, flags that do have a software clear field
       -- are OR'd.
-$     IRQ_FLAG_LOGIC
+$     IRQ_LOGIC
 
       -- Set the outgoing interrupt flag if any flag/mask combo is active.
       bus_v.u.irq := or_reduce(i_mask and i_flag);
@@ -190,14 +191,14 @@ $     FIELD_LOGIC
       -- Instead, the generated field logic blocks include reset logic for the
       -- field-specific registers.
       if reset = '1' then
-        bus_v  := AXI4L$DATA_WIDTH$_S2M_RESET;
+        bus_v  := AXI4L$r.bus_width$_S2M_RESET;
         awl    := AXI4LA_RESET;
-        wl     := AXI4LW$DATA_WIDTH$_RESET;
+        wl     := AXI4LW$r.bus_width$_RESET;
         arl    := AXI4LA_RESET;
-$if N_IRQ > 0
-        i_mask := $IRQ_MASK_RESET$;
-        i_flag := (others => '0');
-        i_enab := $IRQ_ENAB_RESET$;
+$if r.interrupt_count > 0
+        i_mask := "$r.get_interrupt_mask_reset()$";
+        i_flag := "$'0' * r.interrupt_count$";
+        i_enab := "$r.get_interrupt_enable_reset()$";
 $endif
       end if;
 

@@ -8,6 +8,12 @@ meta:
 
 bus-width: 32
 
+interrupts:
+
+- name: test
+- name: hello
+  width: 5
+
 fields:
 
 - register-name: CR0

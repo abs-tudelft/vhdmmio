@@ -3,6 +3,7 @@
 from .metadata import Metadata, ExpandedMetadata
 from .field import FieldDescriptor
 from .register import Register
+from .interrupt import Interrupt
 
 class RegisterFile:
     """Represents a register file."""
@@ -25,6 +26,16 @@ class RegisterFile:
             self._bus_width = int(kwargs.pop('bus_width', 32))
             if self._bus_width not in (32, 64):
                 raise ValueError('bus-width must be 32 or 64')
+
+            # Read the interrupts.
+            self._interrupts = tuple((
+                Interrupt.from_dict(self, d) for d in kwargs.pop('interrupts', [])))
+
+            # Give each interrupt an index.
+            self._interrupt_count = 0
+            for interrupt in self._interrupts:
+                interrupt.index = self._interrupt_count
+                self._interrupt_count += 1 if interrupt.width is None else interrupt.width
 
             # Read the fields.
             self._field_descriptors = tuple((
@@ -62,6 +73,9 @@ class RegisterFile:
 
             # Check for naming conflicts.
             ExpandedMetadata.check_siblings((
+                irq.meta
+                for irq in self._interrupts))
+            ExpandedMetadata.check_siblings((
                 reg.meta
                 for reg in self._registers))
             ExpandedMetadata.check_cousins((
@@ -94,6 +108,11 @@ class RegisterFile:
         dictionary['meta'] = {}
         self._meta.to_dict(dictionary['meta'])
 
+        # Write interrupts.
+        dictionary['interrupts'] = []
+        for interrupt in self._interrupts:
+            dictionary['interrupts'].append(interrupt.to_dict())
+
         # Write fields.
         dictionary['fields'] = []
         for field in self._field_descriptors:
@@ -110,6 +129,45 @@ class RegisterFile:
     def bus_width(self):
         """Returns the bus width for this register file."""
         return self._bus_width
+
+    @property
+    def interrupts(self):
+        """Returns the collection of interrupts that are part of this register
+        file."""
+        return self._interrupts
+
+    @property
+    def interrupt_count(self):
+        """Returns the number of interrupts accepted by this register file."""
+        return self._interrupt_count
+
+    def get_interrupt_mask_reset(self):
+        """Returns the bit vector used to initialize the interrupt mask
+        register."""
+        vector = ''
+        for interrupt in reversed(self.interrupts):
+            width = interrupt.width
+            if width is None:
+                width = 1
+            if interrupt.mask_field is None:
+                vector += '1' * width
+            else:
+                vector += '0' * width
+        return vector
+
+    def get_interrupt_enable_reset(self):
+        """Returns the bit vector used to initialize the interrupt enable
+        register."""
+        vector = ''
+        for interrupt in reversed(self.interrupts):
+            width = interrupt.width
+            if width is None:
+                width = 1
+            if interrupt.enable_field is None:
+                vector += '1' * width
+            else:
+                vector += '0' * width
+        return vector
 
     @property
     def field_descriptors(self):

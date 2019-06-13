@@ -40,7 +40,13 @@ setup(
         "Topic :: Software Development :: Code Generators",
         "License :: OSI Approved :: Apache Software License",
     ],
-    packages = ['vhdmmio', 'vhdmmio.vhd', 'vhdmmio.core'],
+    packages = [
+        'vhdmmio',
+        'vhdmmio.core',
+        'vhdmmio.core.logic',
+        'vhdmmio.vhdl',
+        'vhdmmio.html'
+    ],
 
     # Install dependencies
     install_requires = ['pyyaml', 'markdown2'],
