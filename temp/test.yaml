@@ -1,3 +1,5 @@
+# rm temp/output/*.vhd && python3 -m vhdmmio temp/test.yaml && vhdeps ghdl -i temp/output
+
 meta:
   mnemonic: SSP
   name: serial

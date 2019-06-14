@@ -2,6 +2,7 @@
 
 from markdown2 import Markdown
 from vhdmmio.core.bitrange import BitRange
+import os
 
 class HtmlGenerator:
 
@@ -124,8 +125,9 @@ class HtmlGenerator:
         lines.append('</table>')
         return '\n'.join(lines)
 
-    def __init__(self, regfiles):
-        print('''<!DOCTYPE html>
+    def __init__(self, regfiles, output_dir):
+        with open(output_dir + os.sep + 'index.html', 'w') as out_fd:
+            print('''<!DOCTYPE html>
 <html>
 <meta charset="UTF-8">
 <style>
@@ -163,14 +165,14 @@ class HtmlGenerator:
 .tooltip:hover .tooltiptext {
   visibility: visible;
 }
-</style>''')
-        markdowner = Markdown(extras=["tables"])
-        for regfile in regfiles:
-            print(markdowner.convert(regfile.meta.to_markdown(1)))
-            print(self.bitfield_table(*regfile.registers))
-            for register in regfile.registers:
-                print(markdowner.convert(register.meta.to_markdown(2)))
-                print(self.bitfield_table(register))
-                for field in register.fields:
-                    print(markdowner.convert(field.meta.to_markdown(3)))
-        print('</body>\n</html>')
+</style>''', file=out_fd)
+            markdowner = Markdown(extras=["tables"])
+            for regfile in regfiles:
+                print(markdowner.convert(regfile.meta.to_markdown(1)), file=out_fd)
+                print(self.bitfield_table(*regfile.registers), file=out_fd)
+                for register in regfile.registers:
+                    print(markdowner.convert(register.meta.to_markdown(2)), file=out_fd)
+                    print(self.bitfield_table(register), file=out_fd)
+                    for field in register.fields:
+                        print(markdowner.convert(field.meta.to_markdown(3)), file=out_fd)
+            print('</body>\n</html>', file=out_fd)

@@ -24,7 +24,7 @@ $   PORTS
   );
 end $r.meta.name$;
 
-architecure behavioral of $r.meta.name$ is
+architecture behavioral of $r.meta.name$ is
 begin
   reg_proc: process (clk) is
 

@@ -18,3 +18,4 @@ vhdmmio.egg-info
 .idea/
 .pytest_cache/
 htmlcov
+*.cf

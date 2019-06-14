@@ -48,13 +48,13 @@ package vhdmmio_pkg is
   type axi4lw64_type is record
     valid : std_logic;
     data  : std_logic_vector(63 downto 0);
-    strb  : std_logic_vector(3 downto 0);
+    strb  : std_logic_vector(7 downto 0);
   end record;
 
   constant AXI4LW64_RESET: axi4lw64_type := (
     valid => '0',
     data  => X"00000000_00000000",
-    strb  => "0000_0000"
+    strb  => "00000000"
   );
 
   -- Write response channel, slave to master.
@@ -65,7 +65,7 @@ package vhdmmio_pkg is
 
   constant AXI4LB_RESET: axi4lb_type := (
     valid => '0',
-    resp  => AXI4L_RESP_OKAY,
+    resp  => AXI4L_RESP_OKAY
   );
 
   -- Read response channel, 32-bit, slave to master.
@@ -78,7 +78,7 @@ package vhdmmio_pkg is
   constant AXI4LR32_RESET: axi4lr32_type := (
     valid => '0',
     data  => X"00000000",
-    resp  => AXI4L_RESP_OKAY,
+    resp  => AXI4L_RESP_OKAY
   );
 
   -- Read response channel, 64-bit, slave to master.
@@ -91,7 +91,7 @@ package vhdmmio_pkg is
   constant AXI4LR64_RESET: axi4lr64_type := (
     valid => '0',
     data  => X"00000000_00000000",
-    resp  => AXI4L_RESP_OKAY,
+    resp  => AXI4L_RESP_OKAY
   );
 
   -- Handshake return for any AXI4-lite channel.
@@ -123,11 +123,11 @@ package vhdmmio_pkg is
   end record;
 
   constant AXI4L32_M2S_RESET: axi4l32_m2s_type := (
-    aw    => AXI4LA_RESET;
-    w     => AXI4LW32_RESET;
-    b     => AXI4LH_RESET;
-    ar    => AXI4LA_RESET;
-    r     => AXI4LH_RESET;
+    aw    => AXI4LA_RESET,
+    w     => AXI4LW32_RESET,
+    b     => AXI4LH_RESET,
+    ar    => AXI4LA_RESET,
+    r     => AXI4LH_RESET
   );
 
   -- Complete 32-bit AXI4-lite bus, slave to master direction.
@@ -141,12 +141,12 @@ package vhdmmio_pkg is
   end record;
 
   constant AXI4L32_S2M_RESET: axi4l32_s2m_type := (
-    aw    => AXI4LH_RESET;
-    w     => AXI4LH_RESET;
-    b     => AXI4LB_RESET;
-    ar    => AXI4LH_RESET;
-    r     => AXI4LR32_RESET;
-    u     => AXI4LU_RESET;
+    aw    => AXI4LH_RESET,
+    w     => AXI4LH_RESET,
+    b     => AXI4LB_RESET,
+    ar    => AXI4LH_RESET,
+    r     => AXI4LR32_RESET,
+    u     => AXI4LU_RESET
   );
 
   -- Complete 64-bit AXI4-lite bus, master to slave direction.
@@ -159,11 +159,11 @@ package vhdmmio_pkg is
   end record;
 
   constant AXI4L64_M2S_RESET: axi4l64_m2s_type := (
-    aw    => AXI4LA_RESET;
-    w     => AXI4LW64_RESET;
-    b     => AXI4LH_RESET;
-    ar    => AXI4LA_RESET;
-    r     => AXI4LH_RESET;
+    aw    => AXI4LA_RESET,
+    w     => AXI4LW64_RESET,
+    b     => AXI4LH_RESET,
+    ar    => AXI4LA_RESET,
+    r     => AXI4LH_RESET
   );
 
   -- Complete 64-bit AXI4-lite bus, slave to master direction.
@@ -177,15 +177,12 @@ package vhdmmio_pkg is
   end record;
 
   constant AXI4L64_S2M_RESET: axi4l64_s2m_type := (
-    aw    => AXI4LH_RESET;
-    w     => AXI4LH_RESET;
-    b     => AXI4LB_RESET;
-    ar    => AXI4LH_RESET;
-    r     => AXI4LR64_RESET;
-    u     => AXI4LU_RESET;
+    aw    => AXI4LH_RESET,
+    w     => AXI4LH_RESET,
+    b     => AXI4LB_RESET,
+    ar    => AXI4LH_RESET,
+    r     => AXI4LR64_RESET,
+    u     => AXI4LU_RESET
   );
 
 end package vhdmmio_pkg;
-
-package body vhdmmio_pkg is
-end package body vhdmmio_pkg;

@@ -66,4 +66,5 @@ class VhdMmio:
     def generate(self):
         """Produces the output files requested by the previously loaded
         configuration using the previously loaded specification files."""
-        VhdlGenerator(self.register_files)
+        VhdlGenerator(self.register_files, 'temp/output')
+        HtmlGenerator(self.register_files, 'temp/output')
