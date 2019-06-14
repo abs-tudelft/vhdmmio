@@ -1,4 +1,4 @@
--- Generated using vhdMMIO (https://github.com/jvanstraten/vhdmmio)
+-- Generated using vhdMMIO (https://github.com/abs-tudelft/vhdmmio)
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -15,8 +15,8 @@ entity $r.meta.name$ is
     clk   : in  std_logic;
     reset : in  std_logic := '0';
 
-$   IRQ_PORTS
 $   PORTS
+
     -- AXI4-lite + interrupt request bus to the master.
     bus_i : in  axi4l$r.bus_width$_m2s_type := AXI4L$r.bus_width$_M2S_RESET;
     bus_o : out axi4l$r.bus_width$_s2m_type := AXI4L$r.bus_width$_S2M_RESET
@@ -49,14 +49,16 @@ begin
     variable r_block : boolean := false;
 
 $if r.interrupt_count > 0
-    -- Interrupt registers. The interrupt output is asserted if flag & mask
-    -- is nonzero. flags are asserted by hardware by means of incoming strobe
-    -- signals when the respective enab bit is set, or by software through
-    -- trigger fields, and are cleared by software through flag fields. The
-    -- enable and mask fields are controlled through software only. They
+    -- Interrupt registers. The interrupt output is asserted if flag & umsk
+    -- is nonzero. If an interrupt flag clearing field is available, flags are
+    -- asserted by hardware by means of an incoming signal when the respective
+    -- enab bit is set, or by software through trigger fields, and are cleared
+    -- by software through the clear field. If there is no clear field, the
+    -- interrupt is level-sensitive (mutually exclusive with the pend field).
+    -- The enable and mask fields are controlled through software only. They
     -- default and reset to 0 when such a field is present, or are constant
     -- high if not. flags always reset to 0.
-    variable i_mask : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$r.get_interrupt_mask_reset()$";
+    variable i_umsk : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$r.get_interrupt_unmask_reset()$";
     variable i_flag : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$'0' * r.interrupt_count$";
     variable i_enab : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$r.get_interrupt_enable_reset()$";
 
@@ -102,16 +104,16 @@ $   FIELD_VARIABLES
       -------------------------------------------------------------------------
       -- Handle interrupts
       -------------------------------------------------------------------------
-$if r.interrupt_count > 0
       -- Assert the interrupt flags when the incoming strobe signals are
       -- asserted and the respective enable bits are set. Flags that do not
       -- have an accompanying field for clearing them are always overridden
       -- with the incoming signal, flags that do have a software clear field
       -- are OR'd.
+$if r.interrupt_count > 0
 $     IRQ_LOGIC
 
       -- Set the outgoing interrupt flag if any flag/mask combo is active.
-      bus_v.u.irq := or_reduce(i_mask and i_flag);
+      bus_v.u.irq := or_reduce(i_umsk and i_flag);
 $else
       -- No incoming interrupts; request signal is always released.
       bus_v.u.irq := '0';
@@ -196,7 +198,7 @@ $     FIELD_LOGIC
         wl     := AXI4LW$r.bus_width$_RESET;
         arl    := AXI4LA_RESET;
 $if r.interrupt_count > 0
-        i_mask := "$r.get_interrupt_mask_reset()$";
+        i_umsk := "$r.get_interrupt_unmask_reset()$";
         i_flag := "$'0' * r.interrupt_count$";
         i_enab := "$r.get_interrupt_enable_reset()$";
 $endif

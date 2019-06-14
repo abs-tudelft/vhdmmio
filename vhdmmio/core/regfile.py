@@ -141,7 +141,7 @@ class RegisterFile:
         """Returns the number of interrupts accepted by this register file."""
         return self._interrupt_count
 
-    def get_interrupt_mask_reset(self):
+    def get_interrupt_unmask_reset(self):
         """Returns the bit vector used to initialize the interrupt mask
         register."""
         vector = ''
@@ -149,10 +149,10 @@ class RegisterFile:
             width = interrupt.width
             if width is None:
                 width = 1
-            if interrupt.mask_field is None:
-                vector += '1' * width
-            else:
+            if interrupt.can_unmask:
                 vector += '0' * width
+            else:
+                vector += '1' * width
         return vector
 
     def get_interrupt_enable_reset(self):
@@ -163,10 +163,10 @@ class RegisterFile:
             width = interrupt.width
             if width is None:
                 width = 1
-            if interrupt.enable_field is None:
-                vector += '1' * width
-            else:
+            if interrupt.can_enable:
                 vector += '0' * width
+            else:
+                vector += '1' * width
         return vector
 
     @property

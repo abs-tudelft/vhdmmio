@@ -4,13 +4,36 @@ from .metadata import Metadata
 
 class Interrupt:
     """Class representing the description of an interrupt or vector of
-    interrupts."""
+    interrupts.
+
+    Every interrupt is associated with three internal registers:
+
+     - enable: indicates that activation of the incoming IRQ signal pends the
+       interrupt.
+     - flag: indicates that the interrupt is pending.
+     - unmasked: indicates that the outgoing IRQ signal is asserted when the
+       interrupt is pending.
+
+    These registers can be controlled through a number of fields in a number
+    of different ways.
+
+    If there is no way to clear the flag register, the incoming IRQ is
+    level-sensitive. That is, when the external signal deasserts or the
+    interrupt is disabled, the flag will also deassert. It is illegal to have
+    a pend field in this case, as pending an interrupt is by definition a
+    strobe-like operation.
+
+    Interrupt flags always reset to cleared. Interrupts start disabled unless
+    there is no way to disable them, and start masked unless there is no way
+    to unmask them."""
 
     def __init__(self, regfile, **kwargs):
         """Constructs an interrupt from its YAML dictionary representation."""
         self._regfile = regfile
-        self._mask_field = None
-        self._enable_field = None
+        self._can_enable = False
+        self._can_clear = False
+        self._can_pend = False
+        self._can_unmask = False
         self._index = None
 
         # Parse metadata first, so we can print error messages properly.
@@ -95,25 +118,50 @@ class Interrupt:
         return self._index + self._width - 1
 
     @property
-    def mask_field(self):
-        """Field that controls this interrupt's masking bit(s), or `None` if
-        there is no such field."""
-        return self._mask_field
-
-    @mask_field.setter
-    def mask_field(self, value):
-        if self._mask_field is not None:
-            raise ValueError('multiple mask fields for interrupt %s' % self.meta.name)
-        self._mask_field = value
+    def can_enable(self):
+        """Indicates whether the interrupt can be enabled through a field. If
+        there is no way to do this, the interrupt resets to the enabled
+        state."""
+        return self._can_enable
 
     @property
-    def enable_field(self):
-        """Field that controls this interrupt's enable bit(s), or `None` if
-        there is no such field."""
-        return self._enable_field
+    def can_clear(self):
+        """Indicates whether the interrupt can be cleared through a field. If
+        there is no way to do this, the incoming interrupt signal is
+        level-sensitive."""
+        return self._can_clear
 
-    @enable_field.setter
-    def enable_field(self, value):
-        if self._enable_field is not None:
-            raise ValueError('multiple enable fields for interrupt %s' % self.meta.name)
-        self._enable_field = value
+    @property
+    def can_pend(self):
+        """Indicates whether the interrupt can be pended through a field."""
+        return self._can_pend
+
+    @property
+    def can_unmask(self):
+        """Indicates whether the interrupt can be unmasked through a field. If
+        there is no way to do this, the interrupt resets to the unmasked
+        state."""
+        return self._can_unmask
+
+    def register_enable(self):
+        """Registers that a field is present that can enable the interrupt."""
+        self._can_enable = True
+
+    def register_clear(self):
+        """Registers that a field is present that can clear the interrupt."""
+        self._can_clear = True
+
+    def register_clear(self):
+        """Registers that a field is present that can pend the interrupt."""
+        self._can_pend = True
+
+    def register_unmask(self):
+        """Registers that a field is present that can unmask the interrupt."""
+        self._can_unmask = True
+
+    def check_consistency(self):
+        """Consistency-checks this interrupt after all fields have been
+        processed."""
+        if self.can_pend and not self.can_clear:
+            raise ValueError('illegal pend field is present for level-sensitive '
+                'interrupt %s (add a clear field to make it edge-sensitive)' % self.meta.name)
