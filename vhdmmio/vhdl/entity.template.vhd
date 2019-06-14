@@ -29,24 +29,170 @@ begin
   reg_proc: process (clk) is
 
     -- Bus response output register.
-    variable bus_v : axi4l$r.bus_width$_s2m_type := AXI4L$r.bus_width$_S2M_RESET;
+    variable bus_v : axi4l$r.bus_width$_s2m_type := AXI4L$r.bus_width$_S2M_RESET; -- reg
 
     -- Holding registers for the AXI4-lite request channels. Having these
     -- allows us to make the accompanying ready signals register outputs
     -- without sacrificing a cycle's worth of delay for every transaction.
-    variable awl : axi4la_type := AXI4LA_RESET;
-    variable wl  : axi4lw$r.bus_width$_type := AXI4LW$r.bus_width$_RESET;
-    variable arl : axi4la_type := AXI4LA_RESET;
+    variable awl : axi4la_type := AXI4LA_RESET; -- reg
+    variable wl  : axi4lw$r.bus_width$_type := AXI4LW$r.bus_width$_RESET; -- reg
+    variable arl : axi4la_type := AXI4LA_RESET; -- reg
 
     -- Request flags for the register logic. When asserted, a request is
-    -- present in awl/wl/arl.
+    -- present in awl/wl/arl, and the response can be returned immediately.
+    -- This is used by simple registers.
     variable w_req : boolean := false;
     variable r_req : boolean := false;
 
-    -- Block flags for the register logic. This flag should be asserted when
-    -- the respective request *can* be handled by the slave, but not yet.
+    -- As above, but asserted when there is a request that can NOT be returned
+    -- immediately for whatever reason, but CAN be started already if deferral
+    -- is supported by the targeted block. Abbreviation for lookahead request.
+    -- Note that *_lreq implies *_req.
+    variable w_lreq : boolean := false;
+    variable r_lreq : boolean := false;
+
+    -- Response request flag and tag for deferred requests. When the flag is
+    -- set, the register matching the tag can return its result.
+    variable w_rreq : boolean := false;
+    variable w_rtag : std_logic_vector($r.write_tag_width-1$ downto 0);
+    variable r_rreq : boolean := false;
+    variable r_rtag : std_logic_vector($r.read_tag_width-1$ downto 0);
+
+$if r.write_tag_count
+    -- Write tag FIFO.
+    type w_tag_array is array (natural range <>) of std_logic_vector($r.write_tag_width-1$ downto 0);
+    variable w_tags     : w_tag_array(0 to $2**r.tag_depth_log2$-1); -- mem
+    variable w_tag_wptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
+    variable w_tag_rptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
+    variable w_tag_cnt  : std_logic_vector($r.tag_depth_log2$ downto 0) := (others => '0'); -- reg;
+$endif
+
+$if r.write_tag_count
+    -- Read tag FIFO.
+    type r_tag_array is array (natural range <>) of std_logic_vector($r.read_tag_width-1$ downto 0);
+    variable r_tags     : r_tag_array(0 to $2**r.tag_depth_log2$-1); -- mem
+    variable r_tag_wptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
+    variable r_tag_rptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
+    variable r_tag_cnt  : std_logic_vector($r.tag_depth_log2$ downto 0) := (others => '0'); -- reg;
+$endif
+
+    -- Request signals. w_strb is a validity bit for each data bit; it actually
+    -- always has byte granularity but encoding it this way makes the code a
+    -- lot nicer (and it should be optimized to the same thing by any sane
+    -- synthesizer).
+    variable w_addr : std_logic_vector(31 downto 0);
+    variable w_data : std_logic_vector($r.bus_width-1$ downto 0) := (others => '0');
+    variable w_strb : std_logic_vector($r.bus_width-1$ downto 0) := (others => '0');
+    variable w_prot : std_logic_vector(2 downto 0) := (others => '0'); -- reg
+    variable r_addr : std_logic_vector(31 downto 0);
+    variable r_prot : std_logic_vector(2 downto 0) := (others => '0'); -- reg
+
+    -- Logical write data holding registers. For multi-word registers, write
+    -- data is held in w_hold and w_hstb until the last subregister is written,
+    -- at which point their entire contents are written at once.
+    variable w_hold : std_logic_vector($r.get_max_logical_write_width()-1$ downto 0) := (others => '0'); -- reg
+    variable w_hstb : std_logic_vector($r.get_max_logical_write_width()-1$ downto 0) := (others => '0'); -- reg
+
+    -- Between the first and last access to a multiword register, the multi
+    -- bit will be set. If it is set while a request with a different *_prot is
+    -- received, the interrupting request is rejected if it is A) non-secure
+    -- while the interrupted request is secure or B) unprivileged while the
+    -- interrupted request is privileged. If it is not rejected, previously
+    -- buffered data is cleared and masked. Within the same security level, it
+    -- is up to the bus master to not mess up its own access pattern. The last
+    -- access to a multiword register clears the bit; for the read end r_hold
+    -- is also cleared in this case to prevent data leaks.
+    variable w_multi : std_logic := '0'; -- reg
+    variable r_multi : std_logic := '0'; -- reg
+
+    -- Response flags. When *_req is set and *_addr matches a register, it must
+    -- set at least one of these flags; when *_rreq is set and *_rtag matches a
+    -- register, it must also set at least one of these, except it cannot set
+    -- *_defer. A decode error can be generated by intentionally NOT setting
+    -- any of these flags, but this should only be done by registers that
+    -- contain only one field (usually, these would be AXI-lite passthrough
+    -- "registers"). The action taken by the non-register-specific logic is as
+    -- follows (priority decoder):
+    --
+    --  - if *_defer is set, push *_dtag into the deferal FIFO;
+    --  - otherwise, if *_block is set, do nothing;
+    --  - otherwise, if *_nack is set, send a slave error response;
+    --  - otherwise, if *_ack is set, send a positive response;
+    --  - otherwise, send a decode error response.
+    --
+    -- In addition to the above, the request stream(s) will be handshaked if
+    -- *_req was set and a response is sent or the response is deferred.
+    -- Likewise, the deferal FIFO will be popped if *_rreq was set and a
+    -- response is sent.
+    --
+    -- The valid states can be summarized as follows:
+    --
+    -- .----------------------------------------------------------------------------------.
+    -- | req | lreq | rreq || ack | nack | block | defer || request | response | defer    |
+    -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
+    -- |  0  |  0   |  0   ||  0  |  0   |   0   |   0   ||         |          |          | Idle.
+    -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
+    -- |  0  |  0   |  1   ||  0  |  0   |   0   |   0   ||         | dec_err  | pop      | Completing
+    -- |  0  |  0   |  1   ||  1  |  0   |   0   |   0   ||         | ack      | pop      | previous,
+    -- |  0  |  0   |  1   ||  -  |  1   |   0   |   0   ||         | slv_err  | pop      | no
+    -- |  0  |  0   |  1   ||  -  |  -   |   1   |   0   ||         |          |          | lookahead.
+    -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
+    -- |  1  |  0   |  0   ||  0  |  0   |   0   |   0   || accept  | dec_err  |          | Responding
+    -- |  1  |  0   |  0   ||  1  |  0   |   0   |   0   || accept  | ack      |          | immediately
+    -- |  1  |  0   |  0   ||  -  |  1   |   0   |   0   || accept  | slv_err  |          | to incoming
+    -- |  1  |  0   |  0   ||  -  |  -   |   1   |   0   ||         |          |          | request.
+    -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
+    -- |  0  |  1   |  0   ||  0  |  0   |   0   |   1   || accept  |          | push     | Deferring
+    -- |     |      |      ||     |      |       |       ||         |          |          | lookahead.
+    -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
+    -- |  0  |  1   |  1   ||  0  |  0   |   0   |   0   ||         | dec_err  | pop      | Completing
+    -- |  0  |  1   |  1   ||  1  |  0   |   0   |   0   ||         | ack      | pop      | previous,
+    -- |  0  |  1   |  1   ||  -  |  1   |   0   |   0   ||         | slv_err  | pop      | ignoring
+    -- |  0  |  1   |  1   ||  -  |  -   |   1   |   0   ||         |          |          | lookahead.
+    -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
+    -- |  0  |  1   |  1   ||  0  |  0   |   0   |   1   || accept  | dec_err  | pop+push | Completing
+    -- |  0  |  1   |  1   ||  1  |  0   |   0   |   1   || accept  | ack      | pop+push | previous,
+    -- |  0  |  1   |  1   ||  -  |  1   |   0   |   1   || accept  | slv_err  | pop+push | deferring
+    -- |  0  |  1   |  1   ||  -  |  -   |   1   |   1   || accept  |          | push     | lookahead.
+    -- '----------------------------------------------------------------------------------'
+    --
+    -- This can be simplified to the following:
+    --
+    -- .----------------------------------------------------------------------------------.
+    -- | req | lreq | rreq || ack | nack | block | defer || request | response | defer    |
+    -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
+    -- |  -  |  -   |  -   ||  -  |  -   |   1   |   -   ||         |          |          |
+    -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
+    -- |  -  |  -   |  1   ||  -  |  1   |   0   |   -   ||         | slv_err  | pop      |
+    -- |  -  |  -   |  0   ||  -  |  1   |   0   |   -   || accept  | slv_err  |          |
+    -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
+    -- |  -  |  -   |  1   ||  1  |  0   |   0   |   -   ||         | ack      | pop      |
+    -- |  -  |  -   |  0   ||  1  |  0   |   0   |   -   || accept  | ack      |          |
+    -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
+    -- |  -  |  -   |  1   ||  0  |  0   |   0   |   -   ||         | dec_err  | pop      |
+    -- |  -  |  1   |  0   ||  0  |  0   |   0   |   -   || accept  | dec_err  |          |
+    -- |  1  |  0   |  0   ||  0  |  0   |   0   |   -   || accept  | dec_err  |          |
+    -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
+    -- |  -  |  -   |  -   ||  -  |  -   |   -   |   1   || accept  |          | push     |
+    -- '----------------------------------------------------------------------------------'
+    --
+    variable w_defer : boolean := false;
+    variable r_defer : boolean := false;
     variable w_block : boolean := false;
     variable r_block : boolean := false;
+    variable w_nack  : boolean := false;
+    variable r_nack  : boolean := false;
+    variable w_ack   : boolean := false;
+    variable r_ack   : boolean := false;
+
+    -- Logical read data holding register. This is set when r_ack is set during
+    -- an access to the first physical register of a logical register for all
+    -- fields in the logical register.
+    variable r_hold : std_logic_vector($r.get_max_logical_read_width()-1$ downto 0) := (others => '0'); -- reg
+
+    -- Physical read data. This is taken from r_hold based on which physical
+    -- subregister is being read.
+    variable r_data : std_logic_vector($r.bus_width-1$ downto 0);
 
 $if r.interrupt_count > 0
     -- Interrupt registers. The interrupt output is asserted if flag & umsk
@@ -58,14 +204,37 @@ $if r.interrupt_count > 0
     -- The enable and mask fields are controlled through software only. They
     -- default and reset to 0 when such a field is present, or are constant
     -- high if not. flags always reset to 0.
-    variable i_umsk : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$r.get_interrupt_unmask_reset()$";
-    variable i_flag : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$'0' * r.interrupt_count$";
-    variable i_enab : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$r.get_interrupt_enable_reset()$";
+    variable i_umsk : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$r.get_interrupt_unmask_reset()$"; -- reg
+    variable i_flag : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$'0' * r.interrupt_count$"; -- reg
+    variable i_enab : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$r.get_interrupt_enable_reset()$"; -- reg
 
 $endif
 $   FIELD_VARIABLES
   begin
     if rising_edge(clk) then
+
+      -- Reset variables that shouldn't become registers to default values.
+      w_req   := false;
+      r_req   := false;
+      w_lreq  := false;
+      r_lreq  := false;
+      w_rreq  := false;
+      w_rtag  := (others => '0');
+      r_rreq  := false;
+      r_rtag  := (others => '0');
+      w_addr  := (others => '0');
+      w_data  := (others => '0');
+      w_strb  := (others => '0');
+      r_addr  := (others => '0');
+      w_defer := false;
+      r_defer := false;
+      w_block := false;
+      r_block := false;
+      w_nack  := false;
+      r_nack  := false;
+      w_ack   := false;
+      r_ack   := false;
+      r_data  := (others => '0');
 
       -------------------------------------------------------------------------
       -- Finish up the previous cycle
@@ -93,15 +262,6 @@ $   FIELD_VARIABLES
       end if;
 
       -------------------------------------------------------------------------
-      -- Set default values for the next cycle
-      -------------------------------------------------------------------------
-      -- Reset variables that shouldn't become registers to default values.
-      w_req := false;
-      r_req := false;
-      w_block := false;
-      r_block := false;
-
-      -------------------------------------------------------------------------
       -- Handle interrupts
       -------------------------------------------------------------------------
       -- Assert the interrupt flags when the incoming strobe signals are
@@ -124,40 +284,132 @@ $endif
       -------------------------------------------------------------------------
       -- We're ready for a write/read when all the respective channels (or
       -- their holding registers) are ready/waiting for us.
-      if awl.valid = '1' and wl.valid = '1' and bus_v.b.valid = '0' then
-        w_req := true;
-        bus_v.b.resp := AXI4L_RESP_OKAY;
+      if awl.valid = '1' and wl.valid = '1' then
+        if bus_v.b.valid = '0' then
+          w_req := true; -- Request valid and response register empty.
+        else
+          w_lreq := true; -- Request valid, but response register is busy.
+        end if;
       end if;
-      if arl.valid = '1' and bus_v.r.valid = '0' then
-        r_req := true;
-        bus_v.r.data := X"00000000";
-        bus_v.r.resp := AXI4L_RESP_OKAY;
+      if arl.valid = '1' then
+        if bus_v.r.valid = '0' then
+          r_req := true; -- Request valid and response register empty.
+        else
+          r_lreq := true; -- Request valid, but response register is busy.
+        end if;
       end if;
 
-      -- The logic for the generated code for fields is as follows:
-      --  - Write requests are to be handled when w_req is true. The request
-      --    information is to be taken from awl and wl. When a field is
-      --    addressed, it must do exactly one of the following:
-      --     - Set the w_block flag to delay the transaction; the request will
-      --       be held until the next cycle. Note that blocking fields cannot
-      --       coexist with other blocking fields or volatile fields.
-      --     - Set bus_v.b.valid to '1' and bus_v.b.resp to AXI4L_RESP_SLVERR
-      --       or AXI4L_RESP_DECERR to send an error response.
-      --     - Set bus_v.b.valid to '1' to indicate OK.
-      --  - Read requests are to be handled when r_req is true. The request
-      --    information is to be taken from arl. When a field is addressed, it
-      --    must do exactly one of the following:
-      --     - Set the r_block flag to delay the transaction; the request will
-      --       be held until the next cycle. Note that blocking fields cannot
-      --       coexist with other blocking fields or volatile fields.
-      --     - Set bus_v.r.valid to '1' and bus_v.r.resp to AXI4L_RESP_SLVERR
-      --       or AXI4L_RESP_DECERR to send an error response.
-      --     - Set bus_v.r.valid to '1' and the appropriate bits in
-      --       bus_v.r.data to the read result to indicate OK.
-      -- The blocks below are auto-generated for the fields requested by the
-      -- user.
+$if r.write_tag_count
+      -- Handle outstanding write requests.
+      w_rtag := w_tags(to_integer(unsigned(w_tag_rptr)));
+      if w_tag_cnt = "0$'0'*r.tag_depth_log2$" then
+
+        -- There are outstanding requests, so everything is a lookahead now.
+        w_lreq := w_lreq or w_req;
+        w_req := false;
+
+        -- If there is room in the response register, request a response.
+        if bus_v.b.valid = '0' then
+          w_rreq := true;
+        end if;
+
+      elsif w_tag_cnt($r.tag_depth_log2$) = '1' then
+
+        -- FIFO full; disable even lookaheads (since we wouldn't be able to do
+        -- anything with the deferral tag if the lookahead can be deferred).
+        w_req := false;
+        w_lreq := false;
+
+      end if;
+
+$endif
+$if r.read_tag_count
+      -- Handle outstanding read requests.
+      r_rtag := r_tags(to_integer(unsigned(r_tag_rptr)));
+      if r_tag_cnt = "0$'0'*r.tag_depth_log2$" then
+
+        -- There are outstanding requests, so everything is a lookahead now.
+        r_lreq := r_lreq or r_req;
+        r_req := false;
+
+        -- If there is room in the response register, request a response.
+        if bus_v.b.valid = '0' then
+          r_rreq := true;
+        end if;
+
+      elsif r_tag_cnt($r.tag_depth_log2$) = '1' then
+
+        -- FIFO full; disable even lookaheads (since we wouldn't be able to do
+        -- anything with the deferral tag if the lookahead can be deferred).
+        r_req := false;
+        r_lreq := false;
+
+      end if;
+
+$endif
+$if 1
+      -- Security: if the incoming request is interrupting a multi-word
+      -- register access made by a higher-security master, block it until all
+      -- outstanding requests are done and then send an error response.
+      if w_multi = '1' and (
+        (awl.prot(0) = '0' and w_prot(0) = '1') or (awl.prot(1) = '1' and w_prot(1) = '0')
+      ) then
+        if w_req then
+          w_nack := true;
+        end if;
+        w_lreq := false;
+        w_req := false;
+      end if;
+      if r_multi = '1' and (
+        (arl.prot(0) = '0' and r_prot(0) = '1') or (arl.prot(1) = '1' and r_prot(1) = '0')
+      ) then
+        if r_req then
+          r_nack := true;
+        end if;
+        r_lreq := false;
+        r_req := false;
+      end if;
+
+$endif
+      -- Capture request inputs into more consistently named variables.
+      if w_req then
+        w_prot := awl.prot;
+      end if;
+      w_addr := awl.addr;
+      w_data := wl.data;
+      for bit in w_strb'range loop
+        w_strb(bit) := wl.strb(bit / 8);
+      end loop;
+      if r_req then
+        r_prot := arl.prot;
+      end if;
+      r_addr := arl.addr;
 
 $     FIELD_LOGIC
+
+      if not w_block then
+        if w_nack then
+          if w_rreq then
+          else
+          end if;
+        elsif w_ack then
+          if w_rreq then
+          else
+          end if;
+        else
+          if w_rreq then
+          elsif w_req and w_lreq then
+          end if;
+        end if;
+      end if;
+
+
+      -- TODO: write stuff to:
+      bus_v.b.resp := AXI4L_RESP_OKAY;
+      bus_v.r.data := X"00000000";
+      bus_v.r.resp := AXI4L_RESP_OKAY;
+
+
       -- If neither block nor valid was asserted for a requested write/read,
       -- send a decode error.
       if w_req and not w_block and bus_v.b.valid = '0' then
@@ -193,14 +445,31 @@ $     FIELD_LOGIC
       -- Instead, the generated field logic blocks include reset logic for the
       -- field-specific registers.
       if reset = '1' then
-        bus_v  := AXI4L$r.bus_width$_S2M_RESET;
-        awl    := AXI4LA_RESET;
-        wl     := AXI4LW$r.bus_width$_RESET;
-        arl    := AXI4LA_RESET;
+        bus_v      := AXI4L$r.bus_width$_S2M_RESET;
+        awl        := AXI4LA_RESET;
+        wl         := AXI4LW$r.bus_width$_RESET;
+        arl        := AXI4LA_RESET;
+$if r.write_tag_count
+        w_tag_wptr := (others => '0');
+        w_tag_rptr := (others => '0');
+        w_tag_cnt  := (others => '0');
+$endif
+$if r.read_tag_count
+        r_tag_wptr := (others => '0');
+        r_tag_rptr := (others => '0');
+        r_tag_cnt  := (others => '0');
+$endif
+        w_hstb     := (others => '0');
+        w_hold     := (others => '0');
+        w_prot     := (others => '0');
+        r_prot     := (others => '0');
+        w_multi    := '0';
+        r_multi    := '0';
+        r_hold     := (others => '0');
 $if r.interrupt_count > 0
-        i_umsk := "$r.get_interrupt_unmask_reset()$";
-        i_flag := "$'0' * r.interrupt_count$";
-        i_enab := "$r.get_interrupt_enable_reset()$";
+        i_umsk     := "$r.get_interrupt_unmask_reset()$";
+        i_flag     := "$'0' * r.interrupt_count$";
+        i_enab     := "$r.get_interrupt_enable_reset()$";
 $endif
       end if;
 

@@ -26,6 +26,8 @@ class Register(ReadWriteCapabilities):
         have had another register assigned to them previously; constructing
         the `Register` object completes all the links, which then become
         immutable."""
+        self._read_tag = None
+        self._write_tag = None
 
         # Save the list of fields.
         fields = tuple(sorted(fields, key=lambda f: (
@@ -187,6 +189,28 @@ class Register(ReadWriteCapabilities):
         """Returns the bitmap of this register for reading (`!write`) or
         writing (`write`)."""
         return self.write_bitmap if write else self.read_bitmap
+
+    @property
+    def read_tag(self):
+        """Return the tag used for deferring reads, or `None` if this register
+        cannot defer reads."""
+        return self._read_tag
+
+    def assign_read_tag(self, tag):
+        """Assigns a read tag to this register."""
+        assert self._read_tag is None
+        self._read_tag = tag
+
+    @property
+    def write_tag(self):
+        """Return the tag used for deferring writes, or `None` if this register
+        cannot defer writes."""
+        return self._write_tag
+
+    def assign_write_tag(self, tag):
+        """Assigns a write tag to this register."""
+        assert self._write_tag is None
+        self._write_tag = tag
 
     def __str__(self):
         return self.meta.name

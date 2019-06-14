@@ -51,6 +51,18 @@ class RegisterFile:
                     reg_map[addr].append(field)
             self._registers = tuple((Register(*fields) for _, fields in sorted(reg_map.items())))
 
+            # Assign read and write tags to registers that can defer accesses
+            # (= multiple outstanding requests).
+            self._read_tag_count = 1
+            self._write_tag_count = 1
+            for register in self._registers:
+                if register.read_caps is not None and register.read_caps.can_defer:
+                    register.assign_read_tag(self._read_tag_count)
+                    self._read_tag_count += 1
+                if register.write_caps is not None and register.write_caps.can_defer:
+                    register.assign_read_tag(self._write_tag_count)
+                    self._write_tag_count += 1
+
             # Check for overlapping registers. Note that this assumes that the
             # registers are ordered by address, which we do in the one-liner above.
             min_read = 0
@@ -168,6 +180,18 @@ class RegisterFile:
             else:
                 vector += '1' * width
         return vector
+
+    @property
+    def read_tag_count(self):
+        """Returns the number of read deferral tags used by this register
+        file."""
+        return self._read_tag_count
+
+    @property
+    def write_tag_count(self):
+        """Returns the number of write deferral tags used by this register
+        file."""
+        return self._write_tag_count
 
     @property
     def field_descriptors(self):
