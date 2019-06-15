@@ -27,6 +27,14 @@ class RegisterFile:
             if self._bus_width not in (32, 64):
                 raise ValueError('bus-width must be 32 or 64')
 
+            # Parse maximum outstanding request count.
+            max_outstanding = int(kwargs.pop('max_outstanding', 16))
+            if max_outstanding < 2:
+                raise ValueError('maximum number of outstanding requests must be at least 2')
+            self._tag_depth_log2 = int.bit_length(max_outstanding) - 1
+            if max_outstanding != 2**self._tag_depth_log2:
+                raise ValueError('maximum number of outstanding requests must be a power of 2')
+
             # Read the interrupts.
             self._interrupts = tuple((
                 Interrupt.from_dict(self, d) for d in kwargs.pop('interrupts', [])))
@@ -53,14 +61,23 @@ class RegisterFile:
 
             # Assign read and write tags to registers that can defer accesses
             # (= multiple outstanding requests).
-            self._read_tag_count = 1
-            self._write_tag_count = 1
+            self._read_tag_count = 0
+            self._write_tag_count = 0
             for register in self._registers:
                 if register.read_caps is not None and register.read_caps.can_defer:
-                    register.assign_read_tag(self._read_tag_count)
                     self._read_tag_count += 1
                 if register.write_caps is not None and register.write_caps.can_defer:
-                    register.assign_read_tag(self._write_tag_count)
+                    self._write_tag_count += 1
+            read_tag_format = '"{:0%db}"' % self.read_tag_width
+            write_tag_format = '"{:0%db}"' % self.write_tag_width
+            self._read_tag_count = 0
+            self._write_tag_count = 0
+            for register in self._registers:
+                if register.read_caps is not None and register.read_caps.can_defer:
+                    register.assign_read_tag(read_tag_format.format(self._read_tag_count))
+                    self._read_tag_count += 1
+                if register.write_caps is not None and register.write_caps.can_defer:
+                    register.assign_read_tag(write_tag_format.format(self._write_tag_count))
                     self._write_tag_count += 1
 
             # Check for overlapping registers. Note that this assumes that the
@@ -188,10 +205,45 @@ class RegisterFile:
         return self._read_tag_count
 
     @property
+    def read_tag_width(self):
+        """Returns the width of the `std_logic_vector` used to represent the
+        read tags."""
+        return max(1, int.bit_length(self._read_tag_count - 1))
+
+    @property
     def write_tag_count(self):
         """Returns the number of write deferral tags used by this register
         file."""
         return self._write_tag_count
+
+    @property
+    def write_tag_width(self):
+        """Returns the width of the `std_logic_vector` used to represent the
+        write tags."""
+        return max(1, int.bit_length(self._write_tag_count - 1))
+
+    @property
+    def tag_depth_log2(self):
+        """Returns the number of bits used to represent the addresses of the
+        deferral tag FIFOs."""
+        return self._tag_depth_log2
+
+    @property
+    def tag_depth(self):
+        """Returns the maximum number of in the deferral tag FIFOs. This is
+        equivalent to the maximum number of outstanding requests for either
+        operation."""
+        return 2**self._tag_depth_log2
+
+    def get_max_logical_read_width(self):
+        """Returns the width in bits of the largest readable register."""
+        n_blocks = max((r.block_count for r in self._registers if r.read_caps is not None))
+        return self._bus_width * n_blocks
+
+    def get_max_logical_write_width(self):
+        """Returns the width in bits of the largest writable register."""
+        n_blocks = max((r.block_count for r in self._registers if r.write_caps is not None))
+        return self._bus_width * n_blocks
 
     @property
     def field_descriptors(self):

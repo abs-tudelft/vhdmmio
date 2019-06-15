@@ -42,7 +42,11 @@ class VhdMmio:
         # Load/parse the register file descriptions.
         for spec_file in spec_files:
             with open(spec_file, 'r') as fil:
-                spec = yaml.load(fil.read())
+                spec = fil.read()
+            if hasattr(yaml, 'safe_load'):
+                spec = yaml.safe_load(spec)
+            else:
+                spec = yaml.load(spec)
             self.add_register_file(RegisterFile.from_dict(spec))
 
         # Generate the requested output files.
@@ -62,6 +66,11 @@ class VhdMmio:
                 'Expected an object of type RegisterFile, received {}'
                 .format(type(RegisterFile)))
         self.register_files.append(register_file)
+
+        from .vhdl import _gen_switch_template
+        print(_gen_switch_template(32, [
+            0, 4, 8, 12, 16
+        ]))
 
     def generate(self):
         """Produces the output files requested by the previously loaded

@@ -151,7 +151,7 @@ class Interrupt:
         """Registers that a field is present that can clear the interrupt."""
         self._can_clear = True
 
-    def register_clear(self):
+    def register_pend(self):
         """Registers that a field is present that can pend the interrupt."""
         self._can_pend = True
 
@@ -163,5 +163,6 @@ class Interrupt:
         """Consistency-checks this interrupt after all fields have been
         processed."""
         if self.can_pend and not self.can_clear:
-            raise ValueError('illegal pend field is present for level-sensitive '
-                'interrupt %s (add a clear field to make it edge-sensitive)' % self.meta.name)
+            raise ValueError(
+                'illegal pend field is present for level-sensitive interrupt %s '
+                '(add a clear field to make it edge-sensitive)' % self.meta.name)

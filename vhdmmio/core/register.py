@@ -192,8 +192,8 @@ class Register(ReadWriteCapabilities):
 
     @property
     def read_tag(self):
-        """Return the tag used for deferring reads, or `None` if this register
-        cannot defer reads."""
+        """Return the tag used for deferring reads as a VHDL bit vector literal
+        including quotes, or `None` if this register cannot defer reads."""
         return self._read_tag
 
     def assign_read_tag(self, tag):
@@ -203,8 +203,9 @@ class Register(ReadWriteCapabilities):
 
     @property
     def write_tag(self):
-        """Return the tag used for deferring writes, or `None` if this register
-        cannot defer writes."""
+        """Return the tag used for deferring writes as a VHDL bit vector
+        literal including quotes, or `None` if this register cannot defer
+        writes."""
         return self._write_tag
 
     def assign_write_tag(self, tag):

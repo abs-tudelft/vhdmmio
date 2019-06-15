@@ -51,14 +51,12 @@ begin
     variable w_lreq : boolean := false;
     variable r_lreq : boolean := false;
 
-    -- Response request flag and tag for deferred requests. When the flag is
-    -- set, the register matching the tag can return its result.
+$if r.write_tag_count
+    -- Write response request flag and tag for deferred requests. When the flag
+    -- is set, the register matching the tag can return its result.
     variable w_rreq : boolean := false;
     variable w_rtag : std_logic_vector($r.write_tag_width-1$ downto 0);
-    variable r_rreq : boolean := false;
-    variable r_rtag : std_logic_vector($r.read_tag_width-1$ downto 0);
 
-$if r.write_tag_count
     -- Write tag FIFO.
     type w_tag_array is array (natural range <>) of std_logic_vector($r.write_tag_width-1$ downto 0);
     variable w_tags     : w_tag_array(0 to $2**r.tag_depth_log2$-1); -- mem
@@ -67,7 +65,12 @@ $if r.write_tag_count
     variable w_tag_cnt  : std_logic_vector($r.tag_depth_log2$ downto 0) := (others => '0'); -- reg;
 $endif
 
-$if r.write_tag_count
+$if r.read_tag_count
+    -- Read response request flag and tag for deferred requests. When the flag
+    -- is set, the register matching the tag can return its result.
+    variable r_rreq : boolean := false;
+    variable r_rtag : std_logic_vector($r.read_tag_width-1$ downto 0);
+
     -- Read tag FIFO.
     type r_tag_array is array (natural range <>) of std_logic_vector($r.read_tag_width-1$ downto 0);
     variable r_tags     : r_tag_array(0 to $2**r.tag_depth_log2$-1); -- mem
@@ -115,7 +118,7 @@ $endif
     -- follows (priority decoder):
     --
     --  - if *_defer is set, push *_dtag into the deferal FIFO;
-    --  - otherwise, if *_block is set, do nothing;
+    --  - if *_block is set, do nothing;
     --  - otherwise, if *_nack is set, send a slave error response;
     --  - otherwise, if *_ack is set, send a positive response;
     --  - otherwise, send a decode error response.
@@ -142,8 +145,8 @@ $endif
     -- |  1  |  0   |  0   ||  -  |  1   |   0   |   0   || accept  | slv_err  |          | to incoming
     -- |  1  |  0   |  0   ||  -  |  -   |   1   |   0   ||         |          |          | request.
     -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
-    -- |  0  |  1   |  0   ||  0  |  0   |   0   |   1   || accept  |          | push     | Deferring
-    -- |     |      |      ||     |      |       |       ||         |          |          | lookahead.
+    -- |  1  |  0   |  0   ||  0  |  0   |   0   |   1   || accept  |          | push     | Deferring.
+    -- |  0  |  1   |  0   ||  0  |  0   |   0   |   1   || accept  |          | push     | Deferring.
     -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
     -- |  0  |  1   |  1   ||  0  |  0   |   0   |   0   ||         | dec_err  | pop      | Completing
     -- |  0  |  1   |  1   ||  1  |  0   |   0   |   0   ||         | ack      | pop      | previous,
@@ -164,20 +167,25 @@ $endif
     -- |  -  |  -   |  -   ||  -  |  -   |   1   |   -   ||         |          |          |
     -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
     -- |  -  |  -   |  1   ||  -  |  1   |   0   |   -   ||         | slv_err  | pop      |
-    -- |  -  |  -   |  0   ||  -  |  1   |   0   |   -   || accept  | slv_err  |          |
+    -- |  1  |  -   |  0   ||  -  |  1   |   0   |   -   || accept  | slv_err  |          |
     -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
     -- |  -  |  -   |  1   ||  1  |  0   |   0   |   -   ||         | ack      | pop      |
-    -- |  -  |  -   |  0   ||  1  |  0   |   0   |   -   || accept  | ack      |          |
+    -- |  1  |  -   |  0   ||  1  |  0   |   0   |   -   || accept  | ack      |          |
     -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
     -- |  -  |  -   |  1   ||  0  |  0   |   0   |   -   ||         | dec_err  | pop      |
-    -- |  -  |  1   |  0   ||  0  |  0   |   0   |   -   || accept  | dec_err  |          |
-    -- |  1  |  0   |  0   ||  0  |  0   |   0   |   -   || accept  | dec_err  |          |
+    -- |  1  |  -   |  0   ||  0  |  0   |   0   |   -   || accept  | dec_err  |          |
     -- |-----+------+------||-----+------+-------+-------||---------+----------+----------|
     -- |  -  |  -   |  -   ||  -  |  -   |   -   |   1   || accept  |          | push     |
     -- '----------------------------------------------------------------------------------'
     --
+$if r.write_tag_count
     variable w_defer : boolean := false;
+    variable w_dtag  : std_logic_vector($r.write_tag_width-1$ downto 0);
+$endif
+$if r.read_tag_count
     variable r_defer : boolean := false;
+    variable r_dtag  : std_logic_vector($r.read_tag_width-1$ downto 0);
+$endif
     variable w_block : boolean := false;
     variable r_block : boolean := false;
     variable w_nack  : boolean := false;
@@ -218,16 +226,26 @@ $   FIELD_VARIABLES
       r_req   := false;
       w_lreq  := false;
       r_lreq  := false;
+$if r.write_tag_count
       w_rreq  := false;
       w_rtag  := (others => '0');
+$endif
+$if r.read_tag_count
       r_rreq  := false;
       r_rtag  := (others => '0');
+$endif
       w_addr  := (others => '0');
       w_data  := (others => '0');
       w_strb  := (others => '0');
       r_addr  := (others => '0');
+$if r.write_tag_count
       w_defer := false;
+      w_dtag  := (others => '0');
+$endif
+$if r.read_tag_count
       r_defer := false;
+      r_dtag  := (others => '0');
+$endif
       w_block := false;
       r_block := false;
       w_nack  := false;
@@ -387,49 +405,118 @@ $endif
 
 $     FIELD_LOGIC
 
-      if not w_block then
-        if w_nack then
-          if w_rreq then
-          else
-          end if;
-        elsif w_ack then
-          if w_rreq then
-          else
-          end if;
-        else
-          if w_rreq then
-          elsif w_req and w_lreq then
-          end if;
-        end if;
-      end if;
+      -- Perform the write action dictated by the field logic.
+$if r.write_tag_count
+      if (w_rreq or w_req) and not w_block then
+$else
+      if w_req and not w_block then
+$endif
 
-
-      -- TODO: write stuff to:
-      bus_v.b.resp := AXI4L_RESP_OKAY;
-      bus_v.r.data := X"00000000";
-      bus_v.r.resp := AXI4L_RESP_OKAY;
-
-
-      -- If neither block nor valid was asserted for a requested write/read,
-      -- send a decode error.
-      if w_req and not w_block and bus_v.b.valid = '0' then
+        -- Send the appropriate write response.
         bus_v.b.valid := '1';
-        bus_v.b.resp := AXI4L_RESP_DECERR;
-      end if;
-      if r_req and not r_block and bus_v.r.valid = '0' then
-        bus_v.r.valid := '1';
-        bus_v.r.resp := AXI4L_RESP_DECERR;
-      end if;
+        if w_nack then
+          bus_v.b.resp := AXI4L_RESP_SLVERR;
+        elsif w_ack then
+          bus_v.b.resp := AXI4L_RESP_OKAY;
+        else
+          bus_v.b.resp := AXI4L_RESP_DECERR;
+        end if;
 
-      -- When a request is acknowledged, invalidate the holding registers that
-      -- stored the request to prepare them for the next one.
-      if bus_v.b.valid = '1' then
+$if not r.write_tag_count
+        -- Accept write requests by invalidating the request holding
+        -- registers.
         awl.valid := '0';
         wl.valid := '0';
       end if;
-      if bus_v.r.valid = '1' then
-        arl.valid := '0';
+$else
+        if w_rreq then
+
+          -- Complete deferred write by popping the tag FIFO.
+          w_tag_rptr := std_logic_vector(unsigned(w_tag_rptr) + 1);
+          w_tag_cnt := std_logic_vector(unsigned(w_tag_cnt) - 1);
+
+        else
+          assert w_req severity failure;
+
+          -- Accept write requests by invalidating the request holding
+          -- registers.
+          awl.valid := '0';
+          wl.valid := '0';
+
+        end if;
       end if;
+
+      -- Handle write deferral.
+      if w_defer then
+        assert w_req or w_lreq severity failure;
+
+        -- Defer the write: push the register tag into the FIFO...
+        w_tags(to_integer(unsigned(w_tag_wptr))) := w_dtag;
+        w_tag_wptr := std_logic_vector(unsigned(w_tag_wptr) + 1);
+        w_tag_cnt := std_logic_vector(unsigned(w_tag_cnt) + 1);
+
+        -- ...and accept the request.
+        awl.valid := '0';
+        wl.valid := '0';
+
+      end if;
+$endif
+
+      -- Perform the read action dictated by the field logic.
+$if r.read_tag_count
+      if (r_rreq or r_req) and not r_block then
+$else
+      if r_req and not r_block then
+$endif
+
+        -- Send the appropriate read response.
+        bus_v.r.valid := '1';
+        if r_nack then
+          bus_v.r.resp := AXI4L_RESP_SLVERR;
+        elsif r_ack then
+          bus_v.r.resp := AXI4L_RESP_OKAY;
+          bus_v.r.data := r_data;
+        else
+          bus_v.r.resp := AXI4L_RESP_DECERR;
+        end if;
+
+$if not r.read_tag_count
+        -- Accept read requests by invalidating the request holding
+        -- registers.
+        arl.valid := '0';
+
+      end if;
+$else
+        if r_rreq then
+
+          -- Complete deferred read by popping the tag FIFO.
+          r_tag_rptr := std_logic_vector(unsigned(r_tag_rptr) + 1);
+          r_tag_cnt := std_logic_vector(unsigned(r_tag_cnt) - 1);
+
+        else
+          assert r_req severity failure;
+
+          -- Accept read requests by invalidating the request holding
+          -- registers.
+          arl.valid := '0';
+
+        end if;
+      end if;
+
+      -- Handle read deferral.
+      if r_defer then
+        assert r_req or r_lreq severity failure;
+
+        -- Defer the read: push the register tag into the FIFO...
+        r_tags(to_integer(unsigned(r_tag_wptr))) := r_dtag;
+        r_tag_wptr := std_logic_vector(unsigned(r_tag_wptr) + 1);
+        r_tag_cnt := std_logic_vector(unsigned(r_tag_cnt) + 1);
+
+        -- ...and accept the request.
+        arl.valid := '0';
+
+      end if;
+$endif
 
       -- Mark the incoming channels as ready when their respective holding
       -- registers are empty.
