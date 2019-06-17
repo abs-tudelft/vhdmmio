@@ -67,11 +67,6 @@ class VhdMmio:
                 .format(type(RegisterFile)))
         self.register_files.append(register_file)
 
-        from .vhdl import _gen_switch_template
-        print(_gen_switch_template(32, [
-            0, 4, 8, 12, 16
-        ]))
-
     def generate(self):
         """Produces the output files requested by the previously loaded
         configuration using the previously loaded specification files."""
