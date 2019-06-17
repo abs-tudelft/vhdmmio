@@ -4,6 +4,120 @@ from .logic import FieldLogic
 from .logic_registry import field_logic
 from .accesscaps import AccessCapabilities
 from .utils import choice, switches, override, default
+from ..template import TemplateEngine
+
+_PACKAGE = '''
+@ Public types for $p$.
+$if xvw is not None and xvc is not None
+type $p$_value_array is array (natural range <>)@of std_logic_vector($vw-1$ downto 0);
+$endif
+'''
+
+_GENERICS = '''
+$if l.reset == 'generic'
+@ Reset value for $p$.
+$if xvw is None
+$if xvc is None
+$P$_RESET : std_logic := '0';
+$else
+$P$_RESET : std_logic_vector($vc-1$ downto 0) := (others => '0');
+$endif
+$else
+$if xvc is None
+$P$_RESET : std_logic_vector($vw-1$ downto 0) := (others => '0');
+$else
+$P$_RESET : $p$_value_array($vc-1$ downto 0) := (others => (others => '0'));
+$endif
+$endif
+$endif
+'''
+
+_PORTS = '''
+$if l.hw_write != 'disabled' or l.hw_read != 'disabled' or l.ctrl
+@ Signals for $p$.
+$endif
+$if l.ctrl
+$if xvc is None
+$p$_c : in $p$_ctrl_type;
+$else
+$p$_c : in $p$_ctrl_array($vc-1$ downto 0);
+$endif
+$endif
+$if l.hw_write == 'status'
+$if xvw is None
+$if xvc is None
+$p$_i : in std_logic := '0';
+$else
+$p$_i : in std_logic_vector($vc-1$ downto 0) := (others => '0');
+$endif
+$else
+$if xvc is None
+$p$_i : in std_logic_vector($vw-1$ downto 0) := (others => '0');
+$else
+$p$_i : in $p$_value_array($vc-1$ downto 0) := (others => (others => '0'));
+$endif
+$endif
+$else
+$if l.hw_write != 'disabled'
+$if xvc is None
+$p$_i : in $p$_in_type;
+$else
+$p$_i : in $p$_in_array($vc-1$ downto 0);
+$endif
+$endif
+$endif
+$if l.hw_read == 'simple'
+$if xvw is None
+$if xvc is None
+$p$_o : out std_logic;
+$else
+$p$_o : out std_logic_vector($vc-1$ downto 0);
+$endif
+$else
+$if xvc is None
+$p$_o : out std_logic_vector($vw-1$ downto 0);
+$else
+$p$_o : out $p$_value_array($vc-1$ downto 0);
+$endif
+$endif
+$else
+$if l.hw_read != 'disabled'
+$if xvc is None
+$p$_o : out $p$_out_type;
+$else
+$p$_o : out $p$_out_array($vc-1$ downto 0);
+$endif
+$endif
+$endif
+'''
+
+_VARIABLES = '''
+@ Internal types for $p$.
+type $p$_state_type is record
+  d : std_logic_vector($vw-1$ downto 0);
+  v : std_logic;
+end record;
+constant $P$_STATE_DEFAULT : $p$_state_type := (
+  d => (others => '0'),
+  v => '0'
+);
+type $p$_state_array@is array (natural range <>)@of $p$_state_type;
+
+@ State variable for $p$.
+variable $p$_r : $p$_state_array($vc-1$ downto 0)@:= (others => $P$_STATE_DEFAULT);
+'''
+
+_BEFORE_BUS = '''
+'''
+
+_READ = '''
+'''
+
+_WRITE = '''
+'''
+
+_AFTER_BUS = '''
+'''
 
 @field_logic('primitive')
 class PrimitiveField(FieldLogic):
@@ -211,6 +325,72 @@ class PrimitiveField(FieldLogic):
         generic, or `None` to reset the register to the invalid state."""
         return self._reset
 
+    def _expand_template(self, template, index=False):
+        """Expands the given template to a string without directives."""
+        tple = TemplateEngine()
+        if index is not False:
+            tple['i'] = index
+        tple['l'] = self
+        tple['f'] = self.field_descriptor
+        tple['p'] = self.field_descriptor.meta.name.lower()
+        tple['P'] = self.field_descriptor.meta.name.upper()
+        vw = self.field_descriptor.vector_width
+        tple['xvw'] = vw
+        if vw is None:
+            vw = 1
+        tple['vw'] = vw
+        vc = self.field_descriptor.vector_count
+        tple['xvc'] = vc
+        if vc is None:
+            vc = 1
+        tple['vc'] = vc
+        return tple.apply_str_to_str(template, postprocess=False)
+
+    def generate_vhdl_package(self):
+        """Generates the VHDL code block that is placed in the package header,
+        or returns `''` to indicate that no code is needed here."""
+        return self._expand_template(_PACKAGE)
+
+    def generate_vhdl_generics(self):
+        """Generates the VHDL code block that is placed in the port description
+        of the entity/component, or returns `''` to indicate that no code is
+        needed here."""
+        return self._expand_template(_GENERICS)
+
+    def generate_vhdl_ports(self):
+        """Generates the VHDL code block that is placed in the port description
+        of the entity/component, or returns `''` to indicate that no code is
+        needed here."""
+        return self._expand_template(_PORTS)
+
+    def generate_vhdl_variables(self):
+        """Generates the VHDL code block that is placed in the process header,
+        or returns `''` to indicate that no code is needed
+        here."""
+        return self._expand_template(_VARIABLES)
+
+    def generate_vhdl_before_bus(self):
+        """Generates the VHDL code block that is executed every cycle *before*
+        the bus logic, or returns `''` to indicate that no code is needed
+        here."""
+        return self._expand_template(_BEFORE_BUS)
+
+    def generate_vhdl_read(self, index):
+        """Generates the VHDL code block that is executed when the field is
+        read, or returns `''` to indicate that no code is needed here."""
+        return self._expand_template(_READ, index)
+
+    def generate_vhdl_write(self, index):
+        """Generates the VHDL code block that is executed when the field is
+        written, or returns `''` to indicate that no code is needed here."""
+        return self._expand_template(_WRITE, index)
+
+    def generate_vhdl_after_bus(self):
+        """Generates the VHDL code block that is executed every cycle *after*
+        the bus logic, or returns `''` to indicate that no code is needed
+        here."""
+        return self._expand_template(_AFTER_BUS)
+
 
 @field_logic('constant')
 class ConstantField(PrimitiveField):
@@ -345,6 +525,7 @@ class MmioToStreamField(PrimitiveField):
 
         super().__init__(field_descriptor, dictionary)
 
+
 @field_logic('control')
 class ControlField(PrimitiveField):
     """Your standard control register; read-write by the bus and readable by
@@ -363,6 +544,7 @@ class ControlField(PrimitiveField):
         })
 
         super().__init__(field_descriptor, dictionary)
+
 
 @field_logic('flag')
 class FlagField(PrimitiveField):
@@ -419,6 +601,7 @@ class ReverseFlagField(PrimitiveField):
 
         super().__init__(field_descriptor, dictionary)
 
+
 @field_logic('counter')
 class CounterField(PrimitiveField):
     """Event counter field. With the default configuration, the register is
@@ -444,6 +627,7 @@ class CounterField(PrimitiveField):
 
         super().__init__(field_descriptor, dictionary)
 
+
 @field_logic('volatile-counter')
 class VolatileCounterField(PrimitiveField):
     """Same as a regular counter, but the value is cleared immediately when the
@@ -464,6 +648,7 @@ class VolatileCounterField(PrimitiveField):
         })
 
         super().__init__(field_descriptor, dictionary)
+
 
 @field_logic('reverse-counter')
 class ReverseCounterField(PrimitiveField):

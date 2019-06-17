@@ -53,6 +53,18 @@ class FieldLogic(ReadWriteCapabilities):
         return self._field_descriptor.vector_count
 
     @staticmethod
+    def generate_vhdl_package():
+        """Generates the VHDL code block that is placed in the package header,
+        or returns `''` to indicate that no code is needed here."""
+        return ''
+
+    @staticmethod
+    def generate_vhdl_package_body():
+        """Generates the VHDL code block that is placed in the package body,
+        or returns `''` to indicate that no code is needed here."""
+        return ''
+
+    @staticmethod
     def generate_vhdl_generics():
         """Generates the VHDL code block that is placed in the generic
         description of the entity/component, or returns `''` to indicate that
@@ -125,16 +137,4 @@ class FieldLogic(ReadWriteCapabilities):
         """Generates the VHDL code block that is executed every cycle *after*
         the bus logic, or returns `''` to indicate that no code is needed
         here."""
-        return ''
-
-    @staticmethod
-    def generate_vhdl_package():
-        """Generates the VHDL code block that is placed in the package header,
-        or returns `''` to indicate that no code is needed here."""
-        return ''
-
-    @staticmethod
-    def generate_vhdl_package_body():
-        """Generates the VHDL code block that is placed in the package body,
-        or returns `''` to indicate that no code is needed here."""
         return ''

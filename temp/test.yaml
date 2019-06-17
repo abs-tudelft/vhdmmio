@@ -151,7 +151,8 @@ fields:
   name: test
 
 - address: 0x000C:7..0
-  type: status
+  type: mmio-to-stream
+  bus-write: enabled
   mnemonic: FOO
   name: foo
   repeat: 3

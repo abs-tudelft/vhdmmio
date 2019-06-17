@@ -10,6 +10,8 @@ use work.vhdmmio_pkg.all;
 
 package $r.meta.name$_pkg is
 
+$ PACKAGE
+
   -- Component declaration for $r.meta.name$.
   component $r.meta.name$ is
 $if defined('GENERICS')
@@ -36,8 +38,6 @@ $     PORTS
 
     );
   end component;
-
-$ PACKAGE
 
 end package $r.meta.name$_pkg;
 

@@ -163,15 +163,14 @@ def _generate_tag_decoder(tple, regfile, mode):
 def _generate_fields(tple, regfile):
     """Generates the logic for the fields in `regfile` and appends it to
     `TemplateEngine` `tple`."""
-    for register in regfile.registers:
-        for field in register.fields:
-            _append(tple, 'GENERICS', field.logic.generate_vhdl_generics())
-            _append(tple, 'PORTS', field.logic.generate_vhdl_ports())
-            _append(tple, 'FIELD_VARIABLES', field.logic.generate_vhdl_variables())
-            _append(tple, 'FIELD_LOGIC_BEFORE', field.logic.generate_vhdl_before_bus())
-            _append(tple, 'FIELD_LOGIC_AFTER', field.logic.generate_vhdl_after_bus())
-            _append(tple, 'PACKAGE', field.logic.generate_vhdl_package())
-            _append(tple, 'PACKAGE_BODY', field.logic.generate_vhdl_package_body())
+    for field_descriptor in regfile.field_descriptors:
+        _append(tple, 'GENERICS', field_descriptor.logic.generate_vhdl_generics())
+        _append(tple, 'PORTS', field_descriptor.logic.generate_vhdl_ports())
+        _append(tple, 'FIELD_VARIABLES', field_descriptor.logic.generate_vhdl_variables())
+        _append(tple, 'FIELD_LOGIC_BEFORE', field_descriptor.logic.generate_vhdl_before_bus())
+        _append(tple, 'FIELD_LOGIC_AFTER', field_descriptor.logic.generate_vhdl_after_bus())
+        _append(tple, 'PACKAGE', field_descriptor.logic.generate_vhdl_package())
+        _append(tple, 'PACKAGE_BODY', field_descriptor.logic.generate_vhdl_package_body())
 
     for mode in 'rw':
         _generate_address_decoder(tple, regfile, mode)
