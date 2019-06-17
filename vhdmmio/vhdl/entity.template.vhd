@@ -10,6 +10,17 @@ use work.vhdmmio_pkg.all;
 use work.$r.meta.name$_pkg.all;
 
 entity $r.meta.name$ is
+$if defined('GENERICS')
+  generic (
+
+$   GENERICS
+
+    -- This is just here to make generation easier; prevents errors when no
+    -- generics are needed.
+    SENTINEL_DO_NOT_USE : boolean := false
+
+  );
+$endif
   port (
     -- Clock sensitive to the rising edge and synchronous, active-high reset.
     clk   : in  std_logic;
@@ -415,8 +426,45 @@ $if r.secure
 $endif
       r_addr := arl.addr;
 
-$     FIELD_LOGIC
+$if defined('FIELD_LOGIC_BEFORE')
+      -------------------------------------------------------------------------
+      -- Generated field logic
+      -------------------------------------------------------------------------
+$     FIELD_LOGIC_BEFORE
+$endif
 
+      -------------------------------------------------------------------------
+      -- Bus read logic
+      -------------------------------------------------------------------------
+$     FIELD_LOGIC_READ
+
+$if r.read_tag_count
+      -- Handle deferred reads.
+      if r_rreq then
+$       FIELD_LOGIC_READ_TAG
+      end if;
+$endif
+
+      -------------------------------------------------------------------------
+      -- Bus write logic
+      -------------------------------------------------------------------------
+$     FIELD_LOGIC_WRITE
+
+$if r.write_tag_count
+      -- Handle deferred writes.
+$     FIELD_LOGIC_WRITE_TAG
+$endif
+
+$if defined('FIELD_LOGIC_AFTER')
+      -------------------------------------------------------------------------
+      -- Generated field logic
+      -------------------------------------------------------------------------
+$     FIELD_LOGIC_AFTER
+$endif
+
+      -------------------------------------------------------------------------
+      -- Boilerplate bus access logic
+      -------------------------------------------------------------------------
       -- Perform the write action dictated by the field logic.
 $if r.write_tag_count
       if (w_rreq or w_req) and not w_block then

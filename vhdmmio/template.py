@@ -59,7 +59,7 @@ class TemplateEngine:
 
     def __init__(self):
         super().__init__()
-        self._variables = {}
+        self._variables = {'defined': lambda x: bool(self._blocks.get(x, []))}
         self._blocks = {}
 
     def __setitem__(self, key, value):
@@ -155,19 +155,7 @@ class TemplateEngine:
         # directives.
         directives = self._split_directives(template)
 
-        # Handle conditional directives first, so we don't try to process
-        # anything within disabled conditional blocks.
-        #directives = self._process_conditionals(directives)
-
-        # Replace inline directives.
-        #directives = self._process_inline(directives)
-
-        # Handle block directives.
-        #directives = self._process_block(directives)
-
-        # Make sure no more directives remain.
-        #text = self._assert_no_more_directives(directives)
-
+        # Handle $ directives.
         markers = self._process_directives(directives)
         output = self._process_markers(markers)
 
