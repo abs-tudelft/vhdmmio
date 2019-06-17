@@ -246,6 +246,12 @@ class RegisterFile:
         return self._bus_width * n_blocks
 
     @property
+    def secure(self):
+        """Indicates whether this register file implements security features
+        based on the AXI4-lite `prot` field."""
+        return False # TODO
+
+    @property
     def field_descriptors(self):
         """Returns the collection of field descriptors that are part of this
         register file."""

@@ -85,8 +85,7 @@ class TemplateEngine:
         `code` must be a string or a list of strings, the latter case being
         equivalent with passing `'\n'.join(code)`. Regardless of the number of
         terminating newlines, the spacing between consecutive blocks is always
-        a single empty line and empty lines within a block are removed to help
-        with code readability."""
+        a single empty line."""
 
         # Preprocess the arguments to allow for different calling conventions.
         if isinstance(code, list):

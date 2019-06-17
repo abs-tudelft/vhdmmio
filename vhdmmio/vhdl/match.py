@@ -64,12 +64,12 @@ def match_template(num_bits, addresses, optimize=False):
             count += 1
         return count
 
-    def gen_template(hi, lo, address_prefix, address_suffix, addresses):
+    def gen_template(high, low, address_prefix, address_suffix, addresses):
         """Generates the template recusively.
 
-         - `hi`: the address bit index that the first character in the
+         - `high`: the address bit index that the first character in the
            `addresses` list maps to.
-         - `lo`: the address bit index that the last character in the
+         - `low`: the address bit index that the last character in the
            `addresses` list maps to.
          - `address_prefix`: previously-conditioned part of the address on
            the MSB side.
@@ -87,27 +87,27 @@ def match_template(num_bits, addresses, optimize=False):
         on both the MSB and LSB side, then chooses an appropriate VHDL
         construct to discriminate between the addresses. It can only do one
         of these patterns at a time, so it recursively calls itself with a
-        simplified list of addresses. Initially, `hi` and `lo` should be set
+        simplified list of addresses. Initially, `high` and `low` should be set
         to the high and low bit indices of the to-be-matched address,
         `address_prefix` and `address_suffix` should be empty strings, and
         `addresses` should contain all the to-be-matched addresses. As the
         function descends, the addresses in `addresses` become narrower (with
-        `hi` and `lo` updated accordingly), and the matched part of the address
+        `high` and `low` updated accordingly), and the matched part of the address
         is added to `address_prefix` and/or `address_suffix`, such that
         prefixing/suffixing those to the addresses in the list forms the
         original addresses. Recursion terminates when there are no more bits
         remaining to be discriminated."""
 
         # Some assertions to make sure that stuff isn't broken.
-        assert hi - lo + 1 + len(address_prefix) + len(address_suffix) == num_bits
+        assert high - low + 1 + len(address_prefix) + len(address_suffix) == num_bits
         if not addresses:
-            assert hi - lo + 1 == num_bits
+            assert high - low + 1 == num_bits
             return []
         for address in addresses:
-            assert len(address) == hi - lo + 1
+            assert len(address) == high - low + 1
 
         # End-of-recursion condition.
-        if hi < lo:
+        if high < low:
 
             # There should always be one empty address remaining in the address
             # list. One, because we should have matched all bits at this point
@@ -117,7 +117,7 @@ def match_template(num_bits, addresses, optimize=False):
             address = address_prefix + address_suffix
             if len(addresses) > 1:
                 raise ValueError('duplicate address %s' % address)
-            assert len(addresses[0]) == 0
+            assert not addresses[0]
             assert len(address) == num_bits
             return [
                 '-- $address$ = %s' % address,
@@ -134,7 +134,7 @@ def match_template(num_bits, addresses, optimize=False):
             if dont_care_count:
                 common = common[:dont_care_count]
                 return gen_template(
-                    hi - len(common), lo, address_prefix + common, address_suffix,
+                    high - len(common), low, address_prefix + common, address_suffix,
                     [a[len(common):] for a in addresses])
 
             # Handle the case where we have a common prefix of something that
@@ -147,14 +147,14 @@ def match_template(num_bits, addresses, optimize=False):
             assert fixed_count
             common = common[:fixed_count]
             recurse = gen_template(
-                hi - len(common), lo, address_prefix + common, address_suffix,
+                high - len(common), low, address_prefix + common, address_suffix,
                 [a[len(common):] for a in addresses])
             if optimize:
                 return recurse
             result = []
             result.append(
                 'if $address$(%d downto %d) = "%s" then'
-                % (hi, hi - len(common) + 1, common))
+                % (high, high - len(common) + 1, common))
             result.extend(('  ' + s for s in recurse))
             result.append('end if;')
             return result
@@ -170,7 +170,7 @@ def match_template(num_bits, addresses, optimize=False):
             if dont_care_count:
                 common = common[-dont_care_count:]
                 return gen_template(
-                    hi, lo + len(common), address_prefix, common + address_suffix,
+                    high, low + len(common), address_prefix, common + address_suffix,
                     [a[:-len(common)] for a in addresses])
 
             # Handle the case where we have a common suffix of something that
@@ -183,14 +183,14 @@ def match_template(num_bits, addresses, optimize=False):
             assert fixed_count
             common = common[-fixed_count:]
             recurse = gen_template(
-                hi, lo + len(common), address_prefix, common + address_suffix,
+                high, low + len(common), address_prefix, common + address_suffix,
                 [a[:-len(common)] for a in addresses])
             if optimize:
                 return recurse
             result = []
             result.append(
                 'if $address$(%d downto %d) = "%s" then'
-                % (lo + len(common) - 1, lo, common))
+                % (low + len(common) - 1, low, common))
             result.extend(('  ' + s for s in recurse))
             result.append('end if;')
             return result
@@ -215,28 +215,28 @@ def match_template(num_bits, addresses, optimize=False):
                 # that just does a scalar match.
                 if len(common) == 1:
                     recurse_zero = gen_template(
-                        hi - 1, lo, address_prefix + '0', address_suffix,
+                        high - 1, low, address_prefix + '0', address_suffix,
                         [a[1:] for a in addresses if a.startswith('0')])
                     recurse_one = gen_template(
-                        hi - 1, lo, address_prefix + '1', address_suffix,
+                        high - 1, low, address_prefix + '1', address_suffix,
                         [a[1:] for a in addresses if a.startswith('1')])
                     result = []
 
                     if recurse_one and recurse_one[0].startswith('if '):
-                        result.append('if $address$(%d) = \'0\' then' % hi)
+                        result.append('if $address$(%d) = \'0\' then' % high)
                         result.extend(('  ' + s for s in recurse_zero))
                         result.append('els' + recurse_one[0])
                         result.extend(recurse_one[1:])
                         return result
 
                     if recurse_zero and recurse_zero[0].startswith('if '):
-                        result.append('if $address$(%d) = \'1\' then' % hi)
+                        result.append('if $address$(%d) = \'1\' then' % high)
                         result.extend(('  ' + s for s in recurse_one))
                         result.append('els' + recurse_zero[0])
                         result.extend(recurse_zero[1:])
                         return result
 
-                    result.append('if $address$(%d) = \'0\' then' % hi)
+                    result.append('if $address$(%d) = \'0\' then' % high)
                     result.extend(('  ' + s for s in recurse_zero))
                     result.append('else')
                     result.extend(('  ' + s for s in recurse_one))
@@ -249,7 +249,7 @@ def match_template(num_bits, addresses, optimize=False):
                 result = []
                 result.append(
                     'case $address$(%d downto %d) is'
-                    % (hi, hi - len(common) + 1))
+                    % (high, high - len(common) + 1))
                 options = sorted(options)
                 for index, option in enumerate(options):
                     if optimize and index == len(options) - 1:
@@ -257,7 +257,7 @@ def match_template(num_bits, addresses, optimize=False):
                     else:
                         result.append('  when "%s" =>' % option)
                     result.extend(('    ' + s for s in gen_template(
-                        hi - len(common), lo, address_prefix + option, address_suffix,
+                        high - len(common), low, address_prefix + option, address_suffix,
                         [a[len(common):] for a in addresses if a.startswith(option)])))
                 if not optimize:
                     result.append('  when others =>')
@@ -269,11 +269,10 @@ def match_template(num_bits, addresses, optimize=False):
         raise ValueError(
             'addresses overlap at bit {0}: found both {1}-{2}{3} and '
             '{1}0{2}{3} and/or {1}1{2}{3}'.format(
-                hi, address_prefix, '#' * (hi - lo), address_suffix))
+                high, address_prefix, '#' * (high - low), address_suffix))
 
     # Fix the $ position of the block references and join the lines together to
     # finish the template.
     return '\n'.join((
         re.sub(r'^ ( +)\$', r'$\1', line)
         for line in gen_template(num_bits - 1, 0, '', '', addresses)))
-

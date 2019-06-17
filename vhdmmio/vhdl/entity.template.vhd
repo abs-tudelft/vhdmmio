@@ -86,9 +86,17 @@ $endif
     variable w_addr : std_logic_vector(31 downto 0);
     variable w_data : std_logic_vector($r.bus_width-1$ downto 0) := (others => '0');
     variable w_strb : std_logic_vector($r.bus_width-1$ downto 0) := (others => '0');
+$if r.secure
     variable w_prot : std_logic_vector(2 downto 0) := (others => '0'); -- reg
+$else
+    constant w_prot : std_logic_vector(2 downto 0) := (others => '0');
+$endif
     variable r_addr : std_logic_vector(31 downto 0);
+$if r.secure
     variable r_prot : std_logic_vector(2 downto 0) := (others => '0'); -- reg
+$else
+    constant r_prot : std_logic_vector(2 downto 0) := (others => '0');
+$endif
 
     -- Logical write data holding registers. For multi-word registers, write
     -- data is held in w_hold and w_hstb until the last subregister is written,
@@ -339,8 +347,8 @@ $if r.write_tag_count
         w_lreq := false;
 
       end if;
-
 $endif
+
 $if r.read_tag_count
       -- Handle outstanding read requests.
       r_rtag := r_tags(to_integer(unsigned(r_tag_rptr)));
@@ -363,9 +371,9 @@ $if r.read_tag_count
         r_lreq := false;
 
       end if;
-
 $endif
-$if 1
+
+$if r.secure
       -- Security: if the incoming request is interrupting a multi-word
       -- register access made by a higher-security master, block it until all
       -- outstanding requests are done and then send an error response.
@@ -387,20 +395,24 @@ $if 1
         r_lreq := false;
         r_req := false;
       end if;
-
 $endif
+
       -- Capture request inputs into more consistently named variables.
+$if r.secure
       if w_req then
         w_prot := awl.prot;
       end if;
+$endif
       w_addr := awl.addr;
       w_data := wl.data;
-      for bit in w_strb'range loop
-        w_strb(bit) := wl.strb(bit / 8);
+      for b in w_strb'range loop
+        w_strb(b) := wl.strb(b / 8);
       end loop;
+$if r.secure
       if r_req then
         r_prot := arl.prot;
       end if;
+$endif
       r_addr := arl.addr;
 
 $     FIELD_LOGIC
@@ -518,6 +530,25 @@ $else
       end if;
 $endif
 
+$if r.secure
+      -- If this was the end of a multi-word access, clear the holding
+      -- registers to prevent data leaks to less privileged masters.
+      if w_multi = '0' then
+        w_hold := (others => '0');
+        w_hstb := (others => '0');
+      end if;
+      if r_multi = '0' then
+        r_hold := (others => '0');
+      end if;
+$else
+      -- If we're at the end of a multi-word write, clear the write strobe
+      -- holding register to prevent previously written data from leaking into
+      -- later partial writes.
+      if w_multi = '0' then
+        w_hstb := (others => '0');
+      end if;
+$endif
+
       -- Mark the incoming channels as ready when their respective holding
       -- registers are empty.
       bus_v.aw.ready := not awl.valid;
@@ -548,8 +579,10 @@ $if r.read_tag_count
 $endif
         w_hstb     := (others => '0');
         w_hold     := (others => '0');
+$if r.secure
         w_prot     := (others => '0');
         r_prot     := (others => '0');
+$endif
         w_multi    := '0';
         r_multi    := '0';
         r_hold     := (others => '0');

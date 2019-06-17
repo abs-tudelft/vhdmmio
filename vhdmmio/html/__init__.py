@@ -1,8 +1,8 @@
-#
+"""Module for generating HTML documentation of the register files."""
 
+import os
 from markdown2 import Markdown
 from vhdmmio.core.bitrange import BitRange
-import os
 
 class HtmlGenerator:
 
@@ -87,7 +87,9 @@ class HtmlGenerator:
                         abbreviated = name[:width*2-1] + '…'
                     else:
                         abbreviated = name
-                    html.append('<code class="tooltip">%s<span class="tooltiptext">%s</span></code>' % (abbreviated, tooltip))
+                    html.append(
+                        '<code class="tooltip">%s<span class="tooltiptext">%s</span></code>' % (
+                            abbreviated, tooltip))
                 html.append('</td>')
             lines.append('\n'.join(html))
 
@@ -118,7 +120,8 @@ class HtmlGenerator:
                 block_body[0] = '<td rowspan="%d">%s</td>\n%s' % (
                     len(block_body), address, block_body[0])
                 body.extend(block_body)
-            body[0] += '\n<td rowspan="%d"><code>%s</code></td>' % (len(body), register.meta.mnemonic)
+            body[0] += '\n<td rowspan="%d"><code>%s</code></td>' % (
+                len(body), register.meta.mnemonic)
             for line in body:
                 lines.append('<tr>\n%s\n</tr>' % line)
 

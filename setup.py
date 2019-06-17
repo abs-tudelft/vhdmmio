@@ -43,7 +43,6 @@ setup(
     packages = [
         'vhdmmio',
         'vhdmmio.core',
-        'vhdmmio.core.logic',
         'vhdmmio.vhdl',
         'vhdmmio.html'
     ],

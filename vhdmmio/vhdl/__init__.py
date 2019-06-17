@@ -1,7 +1,11 @@
-import os, re
+"""Module for generating VHDL from the register file descriptions."""
+
+import os
+import re
 from vhdmmio.template import TemplateEngine
 
 class VhdlGenerator:
+    """Class for generating VHDL from the register file descriptions."""
 
     def __init__(self, regfiles, output_dir):
         for regfile in regfiles:

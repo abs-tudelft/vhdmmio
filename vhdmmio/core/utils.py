@@ -1,4 +1,4 @@
-"""Utility functions for `FieldLogic` implementations."""
+"""Utility functions for parsing user-friendly dictionary-based options."""
 
 def choice(dictionary, key, values):
     """Read/pop `key` from `dictionary`, checking that its value exists in

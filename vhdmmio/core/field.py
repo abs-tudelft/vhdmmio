@@ -3,7 +3,7 @@
 from .metadata import Metadata, ExpandedMetadata
 from .bitrange import BitRange
 from .register import Register
-from .accesscaps import ReadWriteCapabilities
+from .logic import FieldLogic
 
 class FieldDescriptor:
     """Class representing the description of a field or an array of fields, as
@@ -263,79 +263,3 @@ class Field:
 
     def __str__(self):
         return self.meta.name
-
-class field_logic:
-    """Decorator for child classes of `FieldLogic` that ensures that they're
-    registered correctly."""
-    #pylint: disable=C0103,W0212,R0903
-    def __init__(self, typ):
-        super().__init__()
-        assert isinstance(typ, str)
-        self._typ = typ
-
-    def __call__(self, cls):
-        assert issubclass(cls, FieldLogic)
-        assert self._typ not in FieldLogic._TYPE_LOOKUP
-        FieldLogic._TYPE_LOOKUP[self._typ] = cls
-        cls._TYPE_CODE = self._typ
-        return cls
-
-class FieldLogic(ReadWriteCapabilities):
-    """Base class for representing the hardware description of this register
-    and its interface to the user's logic."""
-
-    _TYPE_CODE = None
-    _TYPE_LOOKUP = {}
-
-    def __init__(self, field_descriptor=None, **kwargs):
-        super().__init__(**kwargs)
-        assert field_descriptor is not None
-        self._field_descriptor = field_descriptor
-
-    @staticmethod
-    def from_dict(field_descriptor, dictionary):
-        """Constructs a `FieldLogic` object from a dictionary. The key `'type'`
-        is used to select the subclass to use."""
-
-        # Make sure that the logic submodule is loaded; without this,
-        # _TYPE_LOOKUP may not have been populated yet. We shouldn't do this
-        # import at the top of this file though, because it would be a circular
-        # import.
-        import vhdmmio.core.logic.primitive #pylint: disable=W0611
-
-        typ = dictionary.pop('type', 'control')
-        cls = FieldLogic._TYPE_LOOKUP.get(typ, None)
-        if cls is None:
-            raise ValueError('unknown type code "%s"' % typ)
-        return cls(field_descriptor, dictionary)
-
-    def to_dict(self, dictionary):
-        """Returns a dictionary representation of this object."""
-        dictionary['type'] = self.type_code
-
-    @property
-    def type_code(self):
-        """Returns the type code of this field."""
-        return self._TYPE_CODE
-
-    @property
-    def field_descriptor(self):
-        """The `FieldDescriptor` object associated with this object."""
-        return self._field_descriptor
-
-    @property
-    def meta(self):
-        """Metadata for this group of fields."""
-        return self._field_descriptor.meta
-
-    @property
-    def vector_width(self):
-        """Size of each field described by this array in bits, or `None` if the
-        fields are single-bit."""
-        return self._field_descriptor.vector_width
-
-    @property
-    def vector_count(self):
-        """Number of fields described by this descriptor if it describes an
-        array, or `None` if this is a scalar field."""
-        return self._field_descriptor.vector_count
