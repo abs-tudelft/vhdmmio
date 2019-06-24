@@ -59,7 +59,7 @@ class TemplateEngine:
 
     def __init__(self):
         super().__init__()
-        self._variables = {'defined': lambda x: bool(self._blocks.get(x, []))}
+        self._variables = {}
         self._blocks = {}
 
     def __setitem__(self, key, value):
@@ -78,6 +78,13 @@ class TemplateEngine:
     def __iter__(self):
         """Iterates over the variables defined within the expression engine."""
         return iter(self._variables)
+
+    def _get_scope(self):
+        """Returns the dictionary of variables that should be available for
+        eval()-based directives."""
+        variables = self._variables.copy()
+        variables['defined'] = lambda x: bool(self._blocks.get(x, []))
+        return variables
 
     def append_block(self, key, code, *args):
         """Add a block of code to the given key.
@@ -337,7 +344,7 @@ class TemplateEngine:
                     condition = False
                 else:
                     try:
-                        condition = bool(eval(argument, self._variables)) #pylint: disable=W0123
+                        condition = bool(eval(argument, self._get_scope())) #pylint: disable=W0123
                     except (NameError, ValueError, TypeError, SyntaxError) as exc:
                         raise TemplateSyntaxError(
                             line_nr, 'error in $if expression: {}'.format(exc))
@@ -379,7 +386,7 @@ class TemplateEngine:
             # Handle inline directives.
             if not directive.startswith('$'):
                 try:
-                    result = str(eval(directive, self._variables)) #pylint: disable=W0123
+                    result = str(eval(directive, self._get_scope())) #pylint: disable=W0123
                 except (NameError, ValueError, TypeError, SyntaxError) as exc:
                     raise TemplateSyntaxError(
                         line_nr, 'error in inline expression: {}'.format(exc))
