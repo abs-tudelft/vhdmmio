@@ -109,37 +109,37 @@ class _Base():
         """Makes an input signal from this type. Returns a two-tuple of the
         signal declaration string excluding semicolon and the instantiated
         object."""
-        return self._instantiate('{name} : in {typ} := {default}', name, arg)
+        return self._instantiate('{name} : in {typ}@:= {default}', name, arg)
 
     def make_output(self, name, arg=None):
         """Makes an output signal from this type. Returns a two-tuple of the
         signal declaration string excluding semicolon and the instantiated
         object."""
-        return self._instantiate('{name} : out {typ} := {default}', name, arg)
+        return self._instantiate('{name} : out {typ}@:= {default}', name, arg)
 
     def make_signal(self, name, arg=None):
         """Makes an internal signal from this type. Returns a two-tuple of the
         signal declaration string excluding semicolon and the instantiated
         object."""
-        return self._instantiate('signal {name} : {typ} := {default}', name, arg)
+        return self._instantiate('signal {name} : {typ}@:= {default}', name, arg)
 
     def make_variable(self, name, arg=None):
         """Makes a variable from this type. Returns a two-tuple of the
         signal declaration string excluding semicolon and the instantiated
         object."""
-        return self._instantiate('variable {name} : {typ} := {default}', name, arg)
+        return self._instantiate('variable {name} : {typ}@:= {default}', name, arg)
 
     def make_constant(self, name, arg=None):
         """Makes a constant from this type. Returns a two-tuple of the
         signal declaration string excluding semicolon and the instantiated
         object."""
-        return self._instantiate('constant {name} : {typ} := {default}', name.upper(), arg)
+        return self._instantiate('constant {name} : {typ}@:= {default}', name.upper(), arg)
 
     def make_generic(self, name, arg=None):
         """Makes a generic from this type. Returns a two-tuple of the
         signal declaration string excluding semicolon and the instantiated
         object."""
-        return self._instantiate('{name} : {typ} := {default}', name.upper(), arg)
+        return self._instantiate('{name} : {typ}@:= {default}', name.upper(), arg)
 
 
 class StdLogic(_Base):
@@ -244,22 +244,25 @@ class SizedArray(_Base):
 
         `count_or_default` can take three kinds of values:
 
-         - `int`: the array has the given number of elements, which all default
-           to the element type's default using an `others` statement.
-         - `str`: the array type must be an `std_logic_vector`, which defaults
-           to the given bit string.
+         - `str` surrounded in double quotes: the array type must be an
+           `std_logic_vector`, which defaults to the given bit string.
+         - `int` or other `str`: the array has the given number of elements,
+           which all default to the element type's default using an `others`
+           statement.
          - an iterable or default values.
         """
         if not typ.incomplete:
             typ = Array(name, typ)
 
         self._default_def = None
-        if isinstance(count_or_default, int):
+        if (isinstance(count_or_default, str)
+                and count_or_default[0] == '"'
+                and count_or_default[-1] == '"'):
+            super().__init__(name, count_or_default)
+            self._count = len(count_or_default) - 2
+        elif isinstance(count_or_default, str) or isinstance(count_or_default, int):
             super().__init__(name, typ.default)
             self._count = count_or_default
-        elif isinstance(count_or_default, str):
-            super().__init__(name, '"%s"' % count_or_default)
-            self._count = len(count_or_default)
         else:
             count_or_default = list(count_or_default)
             self._count = len(count_or_default)
@@ -303,7 +306,7 @@ class SizedArray(_Base):
         defs = ['subtype %s is %s(%s);' % (
             self, self.array_type, self.array_type.get_range(self.count))]
         if self._default_def is not None:
-            defs.append('constant %s : %s := %s;' % (
+            defs.append('constant %s : %s@:= %s;' % (
                 self.default, self, self._default_def))
         return defs
 
@@ -442,14 +445,16 @@ class _Object:
         return self._name
 
     def __getitem__(self, index):
-        if not isinstance(self.typ, (Array, SizedArray)):
-            raise TypeError('%s is not an array' % self)
         if isinstance(index, tuple):
+            if not isinstance(self.typ, (Array, SizedArray)):
+                raise TypeError('%s is not an array' % self)
             offset, count = index
             rnge = self.typ.get_range(count, offset)
             return _Object(
                 '%s(%s)' % (self.name, rnge),
                 Slice(self.typ.element_type, count))
+        if not isinstance(self.typ, (Array, SizedArray)):
+            return self
         return _Object(
             '%s(%s)' % (self.name, index),
             self.typ.element_type)

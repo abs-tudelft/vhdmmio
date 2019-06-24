@@ -26,10 +26,10 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(types.std_logic_vector.get_range(8), '7 downto 0')
 
         self.assertEqual(
-            types.std_logic_vector.make_signal('test', '0101')[0],
-            'signal test : std_logic_vector(3 downto 0) := "0101"')
+            types.std_logic_vector.make_signal('test', '"0101"')[0],
+            'signal test : std_logic_vector(3 downto 0)@:= "0101"')
 
-        typ = types.SizedArray('test', types.std_logic_vector, '1111000011001010')
+        typ = types.SizedArray('test', types.std_logic_vector, '"1111000011001010"')
         self.assertEqual(typ.name, 'test')
         self.assertEqual(str(typ), 'test_type')
         self.assertEqual(len(typ), 16)
@@ -89,7 +89,7 @@ class TestVhdlTypes(TestCase):
 
         self.assertEqual(
             typ.make_signal('test', ['X"%02X"' % idx for idx in range(4)])[0],
-            'signal test : mem_array(0 to 3) := (0 => X"00",@1 => X"01",@2 => X"02",@3 => X"03")')
+            'signal test : mem_array(0 to 3)@:= (0 => X"00",@1 => X"01",@2 => X"02",@3 => X"03")')
 
         typ = types.SizedArray('mem', typ, ['X"%02X"' % idx for idx in range(4)])
         self.assertEqual(typ.name, 'mem')
@@ -97,7 +97,7 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(len(typ), 32)
         self.assertEqual(typ.get_defs(), [
             'subtype mem_type is mem_array(0 to 3);',
-            'constant MEM_RESET : mem_type := (0 => X"00",@1 => X"01",@2 => X"02",@3 => X"03");',
+            'constant MEM_RESET : mem_type@:= (0 => X"00",@1 => X"01",@2 => X"02",@3 => X"03");',
         ])
         self.assertEqual(list(typ.gather_types()), ['mem_ent_type', 'mem_array', 'mem_type'])
         self.assertEqual(typ.default, 'MEM_RESET')
@@ -110,7 +110,7 @@ class TestVhdlTypes(TestCase):
         with self.assertRaisesRegex(ValueError, 'name conflict'):
             record.append('a', types.std_logic)
         record.append('b', types.std_logic)
-        record.append('c', types.std_logic_vector, '0011')
+        record.append('c', types.std_logic_vector, '"0011"')
         record.append('d', types.std_logic, '1')
         record.append('e', byte_array, ['X"01"', 'X"02"', 'X"03"', 'X"04"'])
         self.assertEqual(record.name, 'test')
@@ -120,7 +120,7 @@ class TestVhdlTypes(TestCase):
             'subtype byte_type is std_logic_vector(7 downto 0);',
             'type byte_array is array (natural range <>) of byte_type;',
             'subtype test_e_type is byte_array(0 to 3);',
-            'constant TEST_E_RESET : test_e_type := (0 => X"01",@1 => X"02",@2 => X"03",@3 => X"04");',
+            'constant TEST_E_RESET : test_e_type@:= (0 => X"01",@1 => X"02",@2 => X"03",@3 => X"04");',
             'type test_type is record',
             '  a : byte_type;',
             '  b : std_logic;',
@@ -141,13 +141,13 @@ class TestVhdlTypes(TestCase):
             types.gather_defs(record, byte_type, byte_type)
         self.assertEqual(record.default, 'TEST_RESET')
 
-        self.assertEqual(record.make_input('test')[0], 'test : in test_type := TEST_RESET')
-        self.assertEqual(record.make_output('test')[0], 'test : out test_type := TEST_RESET')
-        self.assertEqual(record.make_signal('test')[0], 'signal test : test_type := TEST_RESET')
-        self.assertEqual(record.make_variable('test')[0], 'variable test : test_type := TEST_RESET')
-        self.assertEqual(record.make_constant('test')[0], 'constant TEST : test_type := TEST_RESET')
-        self.assertEqual(record.make_generic('test')[0], 'TEST : test_type := TEST_RESET')
-        self.assertEqual(record.make_generic('test', 'foo')[0], 'TEST : test_type := foo')
+        self.assertEqual(record.make_input('test')[0], 'test : in test_type@:= TEST_RESET')
+        self.assertEqual(record.make_output('test')[0], 'test : out test_type@:= TEST_RESET')
+        self.assertEqual(record.make_signal('test')[0], 'signal test : test_type@:= TEST_RESET')
+        self.assertEqual(record.make_variable('test')[0], 'variable test : test_type@:= TEST_RESET')
+        self.assertEqual(record.make_constant('test')[0], 'constant TEST : test_type@:= TEST_RESET')
+        self.assertEqual(record.make_generic('test')[0], 'TEST : test_type@:= TEST_RESET')
+        self.assertEqual(record.make_generic('test', 'foo')[0], 'TEST : test_type@:= foo')
 
         _, test = record.make_input('test')
         self.assertEqual(str(test), 'test')
@@ -168,4 +168,5 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(str(test.a['foo + bar', 5]), 'test.a((foo + bar) + 4 downto foo + bar)')
         self.assertEqual(str(test.a['foo', 'bar']), 'test.a(foo + bar - 1 downto foo)')
         with self.assertRaisesRegex(TypeError, 'not an array'):
-            test.b[0]
+            test.b[0, 2]
+        self.assertTrue(test.b[0] is test.b)

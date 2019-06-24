@@ -5,106 +5,28 @@ from .logic_registry import field_logic
 from .accesscaps import AccessCapabilities
 from .utils import choice, switches, override, default
 from ..template import TemplateEngine
+from ..vhdl.types import std_logic, std_logic_vector, SizedArray, Record, StdLogic, Array, gather_defs
 
 _PACKAGE = '''
-@ Public types for $p$.
-$if xvw is not None and xvc is not None
-type $p$_value_array is array (natural range <>)@of std_logic_vector($vw-1$ downto 0);
-$endif
 '''
 
 _GENERICS = '''
-$if l.reset == 'generic'
-@ Reset value for $p$.
-$if xvw is None
+@ Generics for $p$.
 $if xvc is None
-$P$_RESET : std_logic := '0';
+$P$_ENABLE : boolean := true;
 $else
-$P$_RESET : std_logic_vector($vc-1$ downto 0) := (others => '0');
-$endif
-$else
-$if xvc is None
-$P$_RESET : std_logic_vector($vw-1$ downto 0) := (others => '0');
-$else
-$P$_RESET : $p$_value_array($vc-1$ downto 0) := (others => (others => '0'));
-$endif
-$endif
+$P$_COUNT : natural range 0 to $vc$ := $vc$;
 $endif
 '''
 
 _PORTS = '''
-$if l.hw_write != 'disabled' or l.hw_read != 'disabled' or l.ctrl
-@ Signals for $p$.
-$endif
-$if l.ctrl
-$if xvc is None
-$p$_c : in $p$_ctrl_type;
-$else
-$p$_c : in $p$_ctrl_array($vc-1$ downto 0);
-$endif
-$endif
-$if l.hw_write == 'status'
-$if xvw is None
-$if xvc is None
-$p$_i : in std_logic := '0';
-$else
-$p$_i : in std_logic_vector($vc-1$ downto 0) := (others => '0');
-$endif
-$else
-$if xvc is None
-$p$_i : in std_logic_vector($vw-1$ downto 0) := (others => '0');
-$else
-$p$_i : in $p$_value_array($vc-1$ downto 0) := (others => (others => '0'));
-$endif
-$endif
-$else
-$if l.hw_write != 'disabled'
-$if xvc is None
-$p$_i : in $p$_in_type;
-$else
-$p$_i : in $p$_in_array($vc-1$ downto 0);
-$endif
-$endif
-$endif
-$if l.hw_read == 'simple'
-$if xvw is None
-$if xvc is None
-$p$_o : out std_logic;
-$else
-$p$_o : out std_logic_vector($vc-1$ downto 0);
-$endif
-$else
-$if xvc is None
-$p$_o : out std_logic_vector($vw-1$ downto 0);
-$else
-$p$_o : out $p$_value_array($vc-1$ downto 0);
-$endif
-$endif
-$else
-$if l.hw_read != 'disabled'
-$if xvc is None
-$p$_o : out $p$_out_type;
-$else
-$p$_o : out $p$_out_array($vc-1$ downto 0);
-$endif
-$endif
-$endif
 '''
 
 _VARIABLES = '''
-@ Internal types for $p$.
-type $p$_state_type is record
-  d : std_logic_vector($vw-1$ downto 0);
-  v : std_logic;
-end record;
-constant $P$_STATE_DEFAULT : $p$_state_type := (
-  d => (others => '0'),
-  v => '0'
-);
-type $p$_state_array@is array (natural range <>)@of $p$_state_type;
+$PRIVATE_TYPES
 
 @ State variable for $p$.
-variable $p$_r : $p$_state_array($vc-1$ downto 0)@:= (others => $P$_STATE_DEFAULT);
+$state_variable$;
 '''
 
 _BEFORE_BUS = '''
@@ -256,6 +178,44 @@ class PrimitiveField(FieldLogic):
             read_caps=read_caps,
             write_caps=write_caps)
 
+        prefix = field_descriptor.meta.name.lower()
+
+        tple = TemplateEngine()
+        tple['l'] = self
+        tple['f'] = self.field_descriptor
+        tple['p'] = prefix
+        tple['P'] = prefix.upper()
+        vw = self.field_descriptor.vector_width
+        tple['xvw'] = vw
+        if vw is None:
+            vw = 1
+        tple['vw'] = vw
+        vc = self.field_descriptor.vector_count
+        tple['xvc'] = vc
+        if vc is None:
+            vc = 1
+        tple['vc'] = vc
+
+        if tple['xvw'] is None:
+            self._value_type = std_logic;
+        else:
+            self._value_type = SizedArray(prefix + '_value', std_logic_vector, tple['xvw'])
+
+        self._state_type = Record(prefix + '_state');
+        self._state_type.append('d', self._value_type)
+        self._state_type.append('v', StdLogic(0))
+        if tple['xvc'] is None:
+            tple['state_variable'], self._state = self._state_type.make_variable(
+                prefix + '_state')
+        else:
+            self._state_type = Array(prefix + '_state', self._state_type)
+            tple['state_variable'], self._state = self._state_type.make_variable(
+                prefix + '_state', prefix.upper() + '_COUNT')
+
+        tple.append_block('PRIVATE_TYPES', gather_defs(self._state_type))
+
+        self._tple = tple
+
     def to_dict(self, dictionary):
         """Returns a dictionary representation of this object."""
         super().to_dict(dictionary)
@@ -327,24 +287,9 @@ class PrimitiveField(FieldLogic):
 
     def _expand_template(self, template, index=False):
         """Expands the given template to a string without directives."""
-        tple = TemplateEngine()
         if index is not False:
-            tple['i'] = index
-        tple['l'] = self
-        tple['f'] = self.field_descriptor
-        tple['p'] = self.field_descriptor.meta.name.lower()
-        tple['P'] = self.field_descriptor.meta.name.upper()
-        vw = self.field_descriptor.vector_width
-        tple['xvw'] = vw
-        if vw is None:
-            vw = 1
-        tple['vw'] = vw
-        vc = self.field_descriptor.vector_count
-        tple['xvc'] = vc
-        if vc is None:
-            vc = 1
-        tple['vc'] = vc
-        return tple.apply_str_to_str(template, postprocess=False)
+            self._tple['i'] = index
+        return self._tple.apply_str_to_str(template, postprocess=False)
 
     def generate_vhdl_package(self):
         """Generates the VHDL code block that is placed in the package header,
