@@ -197,11 +197,11 @@ class PrimitiveField(FieldLogic):
         tple['vc'] = vc
 
         if tple['xvw'] is None:
-            self._value_type = std_logic;
+            self._value_type = std_logic
         else:
             self._value_type = SizedArray(prefix + '_value', std_logic_vector, tple['xvw'])
 
-        self._state_type = Record(prefix + '_state');
+        self._state_type = Record(prefix + '_state')
         self._state_type.append('d', self._value_type)
         self._state_type.append('v', StdLogic(0))
         if tple['xvc'] is None:

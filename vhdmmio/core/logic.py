@@ -138,3 +138,8 @@ class FieldLogic(ReadWriteCapabilities):
         the bus logic, or returns `''` to indicate that no code is needed
         here."""
         return ''
+
+    @staticmethod
+    def generate_vhdl(generator):
+        # TODO
+        pass

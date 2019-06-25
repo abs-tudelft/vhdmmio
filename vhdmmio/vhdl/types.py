@@ -161,6 +161,48 @@ class StdLogic(_Base):
         return True
 
 
+class Natural(_Base):
+    """Representation of the `std_logic` primitive."""
+
+    def __init__(self, default=0):
+        """Constructs an `std_logic` representation with the given default
+        value."""
+        super().__init__('natural', str(default))
+
+    @staticmethod
+    def __len__():
+        """Returns the number of bits in this type."""
+        raise ValueError('naturals cannot be represented as bits')
+
+    @property
+    def primitive(self):
+        """Indicates whether this is a primitive type."""
+        return True
+
+
+class Boolean(_Base):
+    """Representation of the `std_logic` primitive."""
+
+    def __init__(self, default=False):
+        """Constructs an `std_logic` representation with the given default
+        value."""
+        if default is False:
+            default = 'false'
+        elif default is True:
+            default = 'true'
+        super().__init__('boolean', str(default))
+
+    @staticmethod
+    def __len__():
+        """Returns the number of bits in this type."""
+        raise ValueError('booleans cannot be represented as bits')
+
+    @property
+    def primitive(self):
+        """Indicates whether this is a primitive type."""
+        return True
+
+
 class Array(_Base):
     """Representation of an incomplete array type."""
 
@@ -260,7 +302,7 @@ class SizedArray(_Base):
                 and count_or_default[-1] == '"'):
             super().__init__(name, count_or_default)
             self._count = len(count_or_default) - 2
-        elif isinstance(count_or_default, str) or isinstance(count_or_default, int):
+        elif isinstance(count_or_default, (int, str)):
             super().__init__(name, typ.default)
             self._count = count_or_default
         else:
@@ -378,10 +420,13 @@ class Record(_Base):
             default = typ.default
         self._elements.append((name, typ, count, default))
 
-    @property
-    def elements(self):
-        """Returns the elements of this record as a dict."""
-        return {name: typ for name, typ, *_ in self._elements}
+    def get_element(self, name):
+        """Returns the type of the element going by the given name, or raises
+        a `ValueError` if the name does not exist.."""
+        for current_name, typ, *_ in self._elements:
+            if current_name == name:
+                return typ
+        raise ValueError('record does not have an element named %s' % name)
 
     def __len__(self):
         """Returns the number of bits in this type."""
@@ -423,13 +468,6 @@ class _Object:
         super().__init__()
         self._name = name
         self._typ = typ
-        if isinstance(typ, Record):
-            for element_name, element_type in typ.elements.items():
-                setattr(
-                    self, element_name,
-                    _Object(
-                        '%s.%s' % (name, element_name),
-                        element_type))
 
     @property
     def name(self):
@@ -443,6 +481,15 @@ class _Object:
 
     def __str__(self):
         return self._name
+
+    def __getattr__(self, name):
+        try:
+            typ = self.typ.get_element(name)
+        except ValueError:
+            typ = None
+        if typ is None:
+            raise AttributeError('record does not have an element named %s' % name)
+        return _Object('%s.%s' % (self.name, name), typ)
 
     def __getitem__(self, index):
         if isinstance(index, tuple):
@@ -474,3 +521,5 @@ def gather_defs(*types):
 
 std_logic = StdLogic() #pylint: disable=C0103
 std_logic_vector = StdLogicVector() #pylint: disable=C0103
+natural = Natural() #pylint: disable=C0103
+boolean = Boolean() #pylint: disable=C0103

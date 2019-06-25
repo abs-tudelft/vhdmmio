@@ -180,6 +180,12 @@ class FieldDescriptor:
         """Collection of fields described by this descriptor."""
         return self._fields
 
+    def __hash__(self):
+        return hash(self.meta.name)
+
+    def __eq__(self, other):
+        return self is other
+
 class Field:
     """Represents a single field."""
 
@@ -263,3 +269,9 @@ class Field:
 
     def __str__(self):
         return self.meta.name
+
+    def __hash__(self):
+        return hash(self.meta.name)
+
+    def __eq__(self, other):
+        return self is other

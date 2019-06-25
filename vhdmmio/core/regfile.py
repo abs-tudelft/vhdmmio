@@ -198,6 +198,21 @@ class RegisterFile:
                 vector += '1' * width
         return vector
 
+    def get_interrupt_strobe_mask(self):
+        """Returns the bit vector used to mask the interrupt flags every cycle.
+        0 means an interrupt is level-sensitive, 1 means an interrupt is
+        strobe-sensitive."""
+        vector = ''
+        for interrupt in reversed(self.interrupts):
+            width = interrupt.width
+            if width is None:
+                width = 1
+            if interrupt.can_clear:
+                vector += '1' * width
+            else:
+                vector += '0' * width
+        return vector
+
     @property
     def read_tag_count(self):
         """Returns the number of read deferral tags used by this register

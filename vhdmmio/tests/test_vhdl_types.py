@@ -15,6 +15,25 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(list(types.std_logic.gather_types()), [])
         self.assertEqual(types.std_logic.default, "'0'")
 
+    def test_boolean(self):
+        self.assertEqual(types.boolean.name, 'boolean')
+        self.assertEqual(str(types.boolean), 'boolean')
+        with self.assertRaises(ValueError):
+            len(types.boolean)
+        self.assertEqual(types.boolean.get_defs(), [])
+        self.assertEqual(list(types.boolean.gather_types()), [])
+        self.assertEqual(types.boolean.default, 'false')
+        self.assertEqual(types.Boolean(True).default, 'true')
+
+    def test_natural(self):
+        self.assertEqual(types.natural.name, 'natural')
+        self.assertEqual(str(types.natural), 'natural')
+        with self.assertRaises(ValueError):
+            len(types.natural)
+        self.assertEqual(types.natural.get_defs(), [])
+        self.assertEqual(list(types.natural.gather_types()), [])
+        self.assertEqual(types.natural.default, '0')
+
     def test_std_logic_vector(self):
         self.assertEqual(types.std_logic_vector.name, 'std_logic_vector')
         self.assertEqual(str(types.std_logic_vector), 'std_logic_vector')
@@ -169,4 +188,9 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(str(test.a['foo', 'bar']), 'test.a(foo + bar - 1 downto foo)')
         with self.assertRaisesRegex(TypeError, 'not an array'):
             test.b[0, 2]
-        self.assertTrue(test.b[0] is test.b)
+        self.assertEqual(str(test.b[0]), str(test.b))
+
+        with self.assertRaises(AttributeError):
+            self.assertEqual(str(test.f), 'test.f')
+        record.append('f', types.std_logic)
+        self.assertEqual(str(test.f), 'test.f')

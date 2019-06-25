@@ -234,6 +234,7 @@ $if r.interrupt_count > 0
     variable i_umsk : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$r.get_interrupt_unmask_reset()$"; -- reg
     variable i_flag : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$'0' * r.interrupt_count$"; -- reg
     variable i_enab : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$r.get_interrupt_enable_reset()$"; -- reg
+    variable i_req  : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$'0' * r.interrupt_count$";
 
 $endif
 $   FIELD_VARIABLES
@@ -272,6 +273,7 @@ $endif
       w_ack   := false;
       r_ack   := false;
       r_data  := (others => '0');
+      i_req   := (others => '0');
 
       -------------------------------------------------------------------------
       -- Finish up the previous cycle
@@ -301,16 +303,17 @@ $endif
       -------------------------------------------------------------------------
       -- Handle interrupts
       -------------------------------------------------------------------------
-      -- Assert the interrupt flags when the incoming strobe signals are
-      -- asserted and the respective enable bits are set. Flags that do not
-      -- have an accompanying field for clearing them are always overridden
-      -- with the incoming signal, flags that do have a software clear field
-      -- are OR'd.
 $if r.interrupt_count > 0
 $     IRQ_LOGIC
 
+      -- Always clear interrupt flags that cannot be cleared through a field.
+      i_flag := i_flag and "$r.get_interrupt_strobe_mask()$";
+
+      -- Assert interrupt flags that are being requested and are enabled.
+      i_flag := i_flag or (i_req and i_enab);
+
       -- Set the outgoing interrupt flag if any flag/mask combo is active.
-      bus_v.u.irq := or_reduce(i_umsk and i_flag);
+      bus_v.u.irq := or_reduce(i_flag and i_umsk);
 $else
       -- No incoming interrupts; request signal is always released.
       bus_v.u.irq := '0';

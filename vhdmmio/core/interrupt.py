@@ -166,3 +166,7 @@ class Interrupt:
             raise ValueError(
                 'illegal pend field is present for level-sensitive interrupt %s '
                 '(add a clear field to make it edge-sensitive)' % self.meta.name)
+
+    def generate_vhdl(self, generator):
+        # TODO
+        pass
