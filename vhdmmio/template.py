@@ -330,6 +330,7 @@ class TemplateEngine:
             # directives yet.
             if block_buffer is not None:
                 block_buffer.append(directive_tuple)
+                continue
 
             # Handle $if directive.
             if directive == '$if':

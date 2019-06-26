@@ -9,7 +9,7 @@ def match_template(num_bits, addresses, optimize=False):
     the bitmask indicates that the bit is to be used. If `optimize` is set,
     this function assumes that the action for any address not in the address
     list is don't care. The resulting template uses `$address$` for the
-    to-be-matched address, and block markers of the form `$ADDR_0x%x` for the
+    to-be-matched address, and block markers of the form `$ADDR_0x%X` for the
     to-be-inserted blocks."""
 
     def conv_address(address):

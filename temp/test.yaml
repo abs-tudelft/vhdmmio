@@ -100,7 +100,7 @@ fields:
 - register-name: CR1
   register-brief: SSP Control Register 1.
 
-  address: 0x0008:0
+  address: 0x0004:0
   type: control
   mnemonic: LBM
   name: loopback
@@ -110,7 +110,7 @@ fields:
     serial output (MOSI or MISO) rather than the serial input pin (MISO or MOSI
     respectively).
 
-- address: 0x0008:1
+- address: 0x0004:1
   mnemonic: SSE
   name: enable
   brief: SSP Enable.
@@ -120,7 +120,7 @@ fields:
     control information to the other SSP registers and interrupt controller
     registers, before setting this bit.
 
-- address: 0x0008:2
+- address: 0x0004:2
   type: control
   mnemonic: MS
   name: mode
@@ -132,7 +132,7 @@ fields:
     slave on the bus, driving MISO line and receiving SCLK, MOSI, and SSEL
     lines.
 
-- address: 0x0008:3
+- address: 0x0004:3
   type: control
   mnemonic: SOD
   name: output_disable

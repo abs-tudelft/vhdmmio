@@ -369,6 +369,21 @@ class TestTemplateEngine(TestCase):
             'expected',
         ]) + '\n')
 
+        self.assertEquals(engine.apply_str_to_str([
+            '$block a',
+            '$33$',
+            '$b',
+            '$endblock',
+            '$block b',
+            'expected',
+            '$endblock',
+            '$a',
+        ]), '\n'.join([
+            '33',
+            '',
+            'expected',
+        ]) + '\n')
+
         with self.assertRaisesRegexp(
             TemplateSyntaxError,
             r"on <unknown> line 2: block recursion limit reached"

@@ -64,6 +64,14 @@ class _Base():
         return False
 
     @staticmethod
+    def get_range(count, offset=0):
+        """Returns the code for a range of this array type of `count`
+        elements starting at `offset`. Whether the range is ascending
+        or descending depends on the type."""
+        high, low = _count_and_offset_to_high_and_low(count, offset)
+        return '%s to %s' % (low, high)
+
+    @staticmethod
     def __len__():
         """Returns the number of bits in this type."""
         raise NotImplementedError('base class for VHDL types does not have a bit count')
@@ -93,6 +101,11 @@ class _Base():
                 raise ValueError('type name conflict: %s' % self)
         return into
 
+    def make_object(self, name):
+        """Construct an object reference for an instantiation of this type with
+        the given name or identifier path."""
+        return _Object(name, self)
+
     def _instantiate(self, fmt, name, arg):
         typ = str(self)
         if self.incomplete:
@@ -103,7 +116,7 @@ class _Base():
             default = arg
         else:
             default = self.default
-        return fmt.format(name=name, default=str(default), typ=typ), _Object(name, self)
+        return fmt.format(name=name, default=str(default), typ=typ), self.make_object(name)
 
     def make_input(self, name, arg=None):
         """Makes an input signal from this type. Returns a two-tuple of the
@@ -154,6 +167,14 @@ class StdLogic(_Base):
     def __len__():
         """Returns the number of bits in this type."""
         return 1
+
+    @staticmethod
+    def get_range(count, offset=0):
+        """Returns the code for a range of this array type of `count`
+        elements starting at `offset`. Whether the range is ascending
+        or descending depends on the type."""
+        high, low = _count_and_offset_to_high_and_low(count, offset)
+        return '%s downto %s' % (high, low)
 
     @property
     def primitive(self):
@@ -221,6 +242,12 @@ class Array(_Base):
         """Returns the underlying element type."""
         return self._element_type
 
+    def get_range(self, *args, **kwargs):
+        """Returns the code for a range of this array type of `count`
+        elements starting at `offset`. Whether the range is ascending
+        or descending depends on the type."""
+        return self._element_type.get_range(*args, **kwargs)
+
     def __len__(self):
         """Returns the number of bits in this type."""
         raise ValueError('incomplete array does not have a bit count yet')
@@ -236,13 +263,6 @@ class Array(_Base):
         representing lines of code."""
         return ['type %s is array (natural range <>) of %s;' % (
             self, self.element_type)]
-
-    @staticmethod
-    def get_range(count, offset=0):
-        """Returns the code for a range of this array type of `count`
-        elements."""
-        high, low = _count_and_offset_to_high_and_low(count, offset)
-        return '%s to %s' % (low, high)
 
     def gather_types(self, into=None):
         """Gather all the types needed by this type into an ordered dict from
@@ -263,13 +283,6 @@ class StdLogicVector(Array):
         """Returns the type definition(s) for this type as a list of strings
         representing lines of code."""
         return []
-
-    @staticmethod
-    def get_range(count, offset=0):
-        """Returns the code for a range of this array type of `count`
-        elements."""
-        high, low = _count_and_offset_to_high_and_low(count, offset)
-        return '%s downto %s' % (high, low)
 
     @property
     def primitive(self):
@@ -335,7 +348,8 @@ class SizedArray(_Base):
 
     def get_range(self, *args, **kwargs):
         """Returns the code for a range of this array type of `count`
-        elements."""
+        elements starting at `offset`. Whether the range is ascending
+        or descending depends on the type."""
         return self._array_type.get_range(*args, **kwargs)
 
     def __len__(self):
