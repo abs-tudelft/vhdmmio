@@ -15,13 +15,10 @@ $if defined('GENERICS')
 
 $   GENERICS
 
-    -- This is just here to make generation easier; prevents errors when no
-    -- generics are needed.
-    SENTINEL_DO_NOT_USE : boolean := false
-
   );
 $endif
   port (
+
     -- Clock sensitive to the rising edge and synchronous, active-high reset.
     clk   : in  std_logic;
     reset : in  std_logic := '0';

@@ -5,8 +5,8 @@ import re
 from enum import Enum
 import yaml
 from .core.regfile import RegisterFile
-from .html import HtmlGenerator
-from .vhdl import VhdlGenerator
+from .html import generate as generate_html
+from .vhdl import generate as generate_vhdl
 
 class RunComplete(Exception):
     """Exception used by `VhdMmio` to report that the program should terminate
@@ -70,5 +70,5 @@ class VhdMmio:
     def generate(self):
         """Produces the output files requested by the previously loaded
         configuration using the previously loaded specification files."""
-        VhdlGenerator(self.register_files, 'temp/output')
-        HtmlGenerator(self.register_files, 'temp/output')
+        generate_vhdl(self.register_files, 'temp/output')
+        generate_html(self.register_files, 'temp/output')

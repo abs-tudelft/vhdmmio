@@ -5,41 +5,8 @@ from .logic_registry import field_logic
 from .accesscaps import AccessCapabilities
 from .utils import choice, switches, override, default
 from ..template import TemplateEngine
-from ..vhdl.types import std_logic, std_logic_vector, SizedArray, Record, StdLogic, Array, gather_defs
-
-_PACKAGE = '''
-'''
-
-_GENERICS = '''
-@ Generics for $p$.
-$if xvc is None
-$P$_ENABLE : boolean := true;
-$else
-$P$_COUNT : natural range 0 to $vc$ := $vc$;
-$endif
-'''
-
-_PORTS = '''
-'''
-
-_VARIABLES = '''
-$PRIVATE_TYPES
-
-@ State variable for $p$.
-$state_variable$;
-'''
-
-_BEFORE_BUS = '''
-'''
-
-_READ = '''
-'''
-
-_WRITE = '''
-'''
-
-_AFTER_BUS = '''
-'''
+from ..vhdl.types import (
+    std_logic, std_logic_vector, SizedArray, Record, StdLogic, Array, gather_defs)
 
 @field_logic('primitive')
 class PrimitiveField(FieldLogic):
@@ -185,16 +152,16 @@ class PrimitiveField(FieldLogic):
         tple['f'] = self.field_descriptor
         tple['p'] = prefix
         tple['P'] = prefix.upper()
-        vw = self.field_descriptor.vector_width
-        tple['xvw'] = vw
-        if vw is None:
-            vw = 1
-        tple['vw'] = vw
-        vc = self.field_descriptor.vector_count
-        tple['xvc'] = vc
-        if vc is None:
-            vc = 1
-        tple['vc'] = vc
+        width = self.field_descriptor.vector_width
+        tple['xvw'] = width
+        if width is None:
+            width = 1
+        tple['vw'] = width
+        count = self.field_descriptor.vector_count
+        tple['xvc'] = count
+        if count is None:
+            count = 1
+        tple['vc'] = count
 
         if tple['xvw'] is None:
             self._value_type = std_logic
@@ -285,56 +252,10 @@ class PrimitiveField(FieldLogic):
         generic, or `None` to reset the register to the invalid state."""
         return self._reset
 
-    def _expand_template(self, template, index=False):
-        """Expands the given template to a string without directives."""
-        if index is not False:
-            self._tple['i'] = index
-        return self._tple.apply_str_to_str(template, postprocess=False)
-
-    def generate_vhdl_package(self):
-        """Generates the VHDL code block that is placed in the package header,
-        or returns `''` to indicate that no code is needed here."""
-        return self._expand_template(_PACKAGE)
-
-    def generate_vhdl_generics(self):
-        """Generates the VHDL code block that is placed in the port description
-        of the entity/component, or returns `''` to indicate that no code is
-        needed here."""
-        return self._expand_template(_GENERICS)
-
-    def generate_vhdl_ports(self):
-        """Generates the VHDL code block that is placed in the port description
-        of the entity/component, or returns `''` to indicate that no code is
-        needed here."""
-        return self._expand_template(_PORTS)
-
-    def generate_vhdl_variables(self):
-        """Generates the VHDL code block that is placed in the process header,
-        or returns `''` to indicate that no code is needed
-        here."""
-        return self._expand_template(_VARIABLES)
-
-    def generate_vhdl_before_bus(self):
-        """Generates the VHDL code block that is executed every cycle *before*
-        the bus logic, or returns `''` to indicate that no code is needed
-        here."""
-        return self._expand_template(_BEFORE_BUS)
-
-    def generate_vhdl_read(self, index):
-        """Generates the VHDL code block that is executed when the field is
-        read, or returns `''` to indicate that no code is needed here."""
-        return self._expand_template(_READ, index)
-
-    def generate_vhdl_write(self, index):
-        """Generates the VHDL code block that is executed when the field is
-        written, or returns `''` to indicate that no code is needed here."""
-        return self._expand_template(_WRITE, index)
-
-    def generate_vhdl_after_bus(self):
-        """Generates the VHDL code block that is executed every cycle *after*
-        the bus logic, or returns `''` to indicate that no code is needed
-        here."""
-        return self._expand_template(_AFTER_BUS)
+    def generate_vhdl(self, generator):
+        """Generates the VHDL code for the associated field by updating the
+        given `vhdl.Generator` object."""
+        # TODO
 
 
 @field_logic('constant')

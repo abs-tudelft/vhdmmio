@@ -12,7 +12,7 @@ class TestVhdlInterface(TestCase):
 
     @staticmethod
     def gen_basic_interface(group, flatten):
-        iface = Interface('tns', group, flatten)
+        iface = Interface('tns', group, flatten, group, flatten)
 
         objs = [iface]
 

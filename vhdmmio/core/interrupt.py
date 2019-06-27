@@ -168,5 +168,6 @@ class Interrupt:
                 '(add a clear field to make it edge-sensitive)' % self.meta.name)
 
     def generate_vhdl(self, generator):
+        """Generates the VHDL code for this interrupt by updating the given
+        `vhdl.Generator` object."""
         # TODO
-        pass

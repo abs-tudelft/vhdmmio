@@ -5,7 +5,8 @@ from collections import OrderedDict
 from enum import Enum
 from ..template import TemplateEngine
 from .match import match_template
-from .types import Record, Array, SizedArray, Object
+from .types import Record, Array, SizedArray, Object, gather_defs
+from .interface import Interface
 
 _BUS_REQ_FIELD_TEMPLATE = """
 @ ${'r': 'Read', 'w': 'Write'}[dir]$ logic for $desc$
@@ -110,8 +111,6 @@ class _Decoder:
     def add_action(self, block, address, mask=0):
         """Registers the given code block for execution when the address
         input matches `address`, with any high bits in `mask` masked *out*."""
-        #if '12796' in block:
-            #raise ValueError('what')
         self._addresses.add((address, mask))
         self._tple.append_block('ADDR_0x%X' % address, block)
 
@@ -135,7 +134,7 @@ class _Decoder:
         template_engine.append_block(key, '@ ' + comment, block)
 
 
-class RegfileGenerator:
+class Generator:
     """VHDL generator for register files."""
 
     def __init__(self, regfile):
@@ -147,10 +146,8 @@ class RegfileGenerator:
         self._tple = TemplateEngine()
         self._tple['r'] = regfile
 
-        # Interface variables.
-        self._public_types = []
-        self._generic_decls = OrderedDict()
-        self._port_decls = OrderedDict()
+        # Interface builder.
+        self._interface = Interface(regfile.meta.name)
 
         # Address decoder builders.
         self._read_decoder = _Decoder('r_addr', 32)
@@ -187,6 +184,18 @@ class RegfileGenerator:
         self._write_tag_decoder.append_to_template(
             self._tple, 'FIELD_LOGIC_WRITE_TAG',
             'Deferred write tag decoder.')
+
+        # Add the interface to the main template engine.
+        for block in self._interface.generate('port'):
+            self._tple.append_block('PORTS', block)
+        for block in self._interface.generate('generic', end_with_semicolon=False):
+            self._tple.append_block('GENERICS', block)
+        typedefs = gather_defs(*self._interface.gather_types())
+        if typedefs:
+            self._tple.append_block(
+                'PACKAGE',
+                '@ Types used by the register file interface.',
+                '\n'.join(typedefs))
 
     def generate_files(self, output_directory):
         """Generates the files for this register file in the specified
@@ -233,84 +242,61 @@ class RegfileGenerator:
             register.meta.markdown_name,
             register.meta.markdown_brief)
 
-    def _add_interface(self, desc, name, typ, array, mode):
-        """Adds an interface (port or generic) to the generated entity. `desc`
-        must be a user-friendly string description of the interrupt or field
-        that the interface belongs to; it is used as a comment. `name` must be
-        a unique identifier within the entity for the interface. `typ` must be
-        a `types._Base`-derived type description for the interface. `array`
-        must be `None` if the interrupt/field is scalar, or the integral size
-        of the array. `mode` must be `'in'`, `'out'`, or `'generic'` to select
-        the interface type."""
+    def add_interrupt_port(self, interrupt, name, mode, typ, count=None):
+        """Registers a port for the given interrupt with the specified
+        (namespaced) name, mode (`'i'` for inputs or `'o'` for outputs), type
+        object from `.types`, and if the latter is an incomplete array, its
+        size. Returns an object that represents the interface, which must be
+        indexed by the interrupt index first (index is ignored if the interrupt
+        is scalar) to get the requested type. It can then be converted to a
+        string to get the VHDL representation."""
+        return self._interface.add(
+            interrupt.meta.name, self._describe_interrupt(interrupt), 'i', interrupt.width,
+            name, mode, typ, count,
+            interrupt.iface_opts.port_group, interrupt.iface_opts.port_flatten)
 
-        # If we need to make an array of signals/generics because the field or
-        # interrupt we're generating for is a vector, modify the type
-        # appropriately. If it is already an incomplete array, set its size
-        # in-place; if it's not, build an incomplete array type around it.
-        # If we don't want a vector but the user supplied an incomplete array,
-        # just make an array with one entry.
-        if array is not None and not typ.incomplete:
-            typ = Array(typ.name, typ)
-        if typ.incomplete:
-            if array is None:
-                array = 1
+    def add_interrupt_generic(self, interrupt, name, typ, count=None):
+        """Registers a generic for the given interrupt with the specified
+        (namespaced) name, type object from `.types`, and if the latter is
+        an incomplete array, its size. Returns an object that represents the
+        interface, which must be indexed by the interrupt index first (index is
+        ignored if the interrupt is scalar) to get the requested type. It can
+        then be converted to a string to get the VHDL representation."""
+        return self._interface.add(
+            interrupt.meta.name, self._describe_interrupt(interrupt), 'i', interrupt.width,
+            name, 'g', typ, count,
+            interrupt.iface_opts.generic_group, interrupt.iface_opts.generic_flatten)
 
-        # Store the type, so we can generate the requisite type definitions for
-        # it later.
-        self._public_types.append(typ)
-
-        # Construct the generic/signal declaration and its abstracted Python
-        # object representation for referring to it.
-        decl, ref = {
-            'generic': typ.make_generic,
-            'in': typ.make_input,
-            'out': typ.make_output,
-        }[mode](name, array)
-
-        # Construct the block comment from the block description and select the
-        # appropriate dictionary to append to.
-        if mode == 'generic':
-            comment = '@ Generics for %s' % desc
-            decl_dict = self._generic_decls
-        else:
-            comment = '@ Ports for %s' % desc
-            decl_dict = self._port_decls
-
-        # If there is no block with the specified comment yet, create one.
-        # Otherwise, append to the previously created block.
-        decls = decl_dict.get(comment, None)
-        if decls is None:
-            decl_dict[comment] = [decl]
-        else:
-            decls.append(decl)
-
-        return ref
-
-    def add_interrupt_interface(self, interrupt, name, typ, mode):
-        """Registers a port or generic for the given interrupt with the
-        specified (namespaced) name, VHDL type object (from `.types`), and
-        mode, which must be `'in'`, `'out'`, or `'generic'`. Returns a
-        pythonic object representing the interface (i.e., if the type is a
-        record, it has attributes for each record entry; if it is an array, it
-        can be indexed) that has a `__str__` function that converts to the VHDL
-        name."""
-        return self._add_interface(
-            self._describe_interrupt(interrupt),
-            'i_%s_%s' % (interrupt.meta.name, name),
-            typ, interrupt.width, mode)
-
-    def add_field_interface(self, field_descriptor, name, typ, mode):
-        """Registers a port or generic for the given field descriptor with the
-        specified (namespaced) name, VHDL type object (from `.types`), and
-        mode, which must be `'in'`, `'out'`, or `'generic'`. Returns a
-        pythonic object representing the interface (i.e., if the type is a
-        record, it has attributes for each record entry; if it is an array, it
-        can be indexed) that has a `__str__` function that converts to the VHDL
-        name."""
-        return self._add_interface(
+    def add_field_port(self, field_descriptor, name, mode, typ, count=None):
+        """Registers a port for the given field with the specified
+        (namespaced) name, mode (`'i'` for inputs or `'o'` for outputs), type
+        object from `.types`, and if the latter is an incomplete array, its
+        size. Returns an object that represents the interface, which must be
+        indexed by the field index first (index is ignored if the field
+        is scalar) to get the requested type. It can then be converted to a
+        string to get the VHDL representation."""
+        return self._interface.add(
+            field_descriptor.meta.name,
             self._describe_field_descriptor(field_descriptor),
-            'f_%s_%s' % (field_descriptor.meta.name, name),
-            typ, field_descriptor.vector_count, mode)
+            'f', field_descriptor.vector_count,
+            name, mode, typ, count,
+            field_descriptor.iface_opts.port_group,
+            field_descriptor.iface_opts.port_flatten)
+
+    def add_field_generic(self, field_descriptor, name, typ, count=None):
+        """Registers a generic for the given field with the specified
+        (namespaced) name, type object from `.types`, and if the latter is
+        an incomplete array, its size. Returns an object that represents the
+        interface, which must be indexed by the field index first (index is
+        ignored if the field is scalar) to get the requested type. It can
+        then be converted to a string to get the VHDL representation."""
+        return self._interface.add(
+            field_descriptor.meta.name,
+            self._describe_field_descriptor(field_descriptor),
+            'f', field_descriptor.vector_count,
+            name, 'g', typ, count,
+            field_descriptor.iface_opts.generic_group,
+            field_descriptor.iface_opts.generic_flatten)
 
     def _add_block(self, key, region, desc, block):
         if block is not None:
@@ -590,13 +576,11 @@ class RegfileGenerator:
                 self._write_decoder.add_action(block, address, mask)
 
 
-class VhdlGenerator:
-    """Class for generating VHDL from the register file descriptions."""
-
-    def __init__(self, regfiles, output_directory):
-        for regfile in regfiles:
-            RegfileGenerator(regfile).generate_files(output_directory)
-        with open(os.path.dirname(__file__) + os.sep + 'vhdmmio_pkg.vhd', 'r') as in_fd:
-            vhdmmio_pkg = in_fd.read()
-        with open(output_directory + os.sep + 'vhdmmio_pkg.vhd', 'w') as out_fd:
-            out_fd.write(vhdmmio_pkg)
+def generate(regfiles, output_directory):
+    """Generates the VHDL files for the given list of register files."""
+    for regfile in regfiles:
+        Generator(regfile).generate_files(output_directory)
+    with open(os.path.dirname(__file__) + os.sep + 'vhdmmio_pkg.vhd', 'r') as in_fd:
+        vhdmmio_pkg = in_fd.read()
+    with open(output_directory + os.sep + 'vhdmmio_pkg.vhd', 'w') as out_fd:
+        out_fd.write(vhdmmio_pkg)

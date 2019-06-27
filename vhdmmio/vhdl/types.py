@@ -671,6 +671,8 @@ def gather_defs(*types):
     all_types = None
     for typ in types:
         all_types = typ.gather_types(all_types)
+    if all_types is None:
+        return []
     defs = []
     for typ in all_types.values():
         defs.extend(typ.get_defs())

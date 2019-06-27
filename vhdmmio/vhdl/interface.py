@@ -6,11 +6,16 @@ from .types import Record, Array, SizedArray, Object, StdLogic, StdLogicVector
 class Interface:
     """Builder class for a VHDL entity description."""
 
-    def __init__(self, type_namespace, default_group=False, default_flatten='never'):
+    def __init__(
+            self, type_namespace,
+            default_port_grouping=False, default_port_flattening='never',
+            default_generic_grouping=False, default_generic_flattening='all'):
         super().__init__()
         self._type_namespace = type_namespace
-        self._default_group = default_group
-        self._default_flatten = default_flatten
+        self._default_port_grouping = default_port_grouping
+        self._default_port_flattening = default_port_flattening
+        self._default_generic_grouping = default_generic_grouping
+        self._default_generic_flattening = default_generic_flattening
 
         # (prefix, name) -> (comment, {descs}, OrderedDict: full_name -> (typ, count, mode))
         self._decls = OrderedDict()
@@ -162,12 +167,18 @@ class Interface:
         ```"""
 
         # Substitute defaults for group/flatten.
-        if group is None:
-            group = self._default_group
+        if sig_mode == 'g':
+            if group is None:
+                group = self._default_port_grouping
+            if flatten is None:
+                flatten = self._default_port_flattening
+        else:
+            if group is None:
+                group = self._default_generic_grouping
+            if flatten is None:
+                flatten = self._default_generic_flattening
         if group is False:
             group = None
-        if flatten is None:
-            flatten = self._default_flatten
 
         # Check input.
         if sig_cnt is None and sig_type.incomplete:
