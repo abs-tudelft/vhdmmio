@@ -1,30 +1,12 @@
 """Module with abstractions for VHDL types."""
 
-import re
 from collections import OrderedDict
+from .expressions import expr
 
 def _count_and_offset_to_high_and_low(count, offset):
+    high = expr(offset) + expr(count) - 1
     low = str(offset)
-    if isinstance(count, str) and not re.match('[a-zA-Z0-9_]+$', count):
-        count = '(%s)' % count
-    if isinstance(offset, str) and not re.match('[a-zA-Z0-9_]+$', offset):
-        offset = '(%s)' % offset
-    def static_offset(expression, offset):
-        if offset == 0:
-            return expression
-        if offset < 0:
-            return '%s - %d' % (expression, -offset)
-        return '%s + %d' % (expression, offset)
-    if isinstance(count, str) and isinstance(offset, str):
-        high = '%s + %s - 1' % (offset, count)
-    elif isinstance(count, str):
-        high = static_offset(count, offset - 1)
-    elif isinstance(offset, str):
-        high = static_offset(offset, count - 1)
-    else:
-        high = offset + count - 1
     return high, low
-
 
 class _Base():
     """Base class for abstracting VHDL types.
@@ -97,14 +79,14 @@ class _Base():
             prev = into.get(str(self), None)
             if prev is None:
                 into[str(self)] = self
-            elif prev is not self:
+            elif prev != self:
                 raise ValueError('type name conflict: %s' % self)
         return into
 
     def make_object(self, name):
         """Construct an object reference for an instantiation of this type with
         the given name or identifier path."""
-        return _Object(name, self)
+        return Object(name, self)
 
     def _instantiate(self, fmt, name, arg):
         typ = str(self)
@@ -153,6 +135,16 @@ class _Base():
         signal declaration string excluding semicolon and the instantiated
         object."""
         return self._instantiate('{name} : {typ}@:= {default}', name.upper(), arg)
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        if type(self) != type(other): #pylint: disable=C0123
+            return False
+        if self.name != other.name:
+            return False
+        return True
 
 
 class StdLogic(_Base):
@@ -242,12 +234,6 @@ class Array(_Base):
         """Returns the underlying element type."""
         return self._element_type
 
-    def get_range(self, *args, **kwargs):
-        """Returns the code for a range of this array type of `count`
-        elements starting at `offset`. Whether the range is ascending
-        or descending depends on the type."""
-        return self._element_type.get_range(*args, **kwargs)
-
     def __len__(self):
         """Returns the number of bits in this type."""
         raise ValueError('incomplete array does not have a bit count yet')
@@ -270,6 +256,13 @@ class Array(_Base):
         into = self.element_type.gather_types(into)
         return super().gather_types(into)
 
+    def __eq__(self, other):
+        if not super().__eq__(other):
+            return False
+        if self.element_type != other.element_type:
+            return False
+        return True
+
 
 class StdLogicVector(Array):
     """Representation of the `std_logic_vector` primitive."""
@@ -283,6 +276,14 @@ class StdLogicVector(Array):
         """Returns the type definition(s) for this type as a list of strings
         representing lines of code."""
         return []
+
+    @staticmethod
+    def get_range(count, offset=0):
+        """Returns the code for a range of this array type of `count`
+        elements starting at `offset`. Whether the range is ascending
+        or descending depends on the type."""
+        high, low = _count_and_offset_to_high_and_low(count, offset)
+        return '%s downto %s' % (high, low)
 
     @property
     def primitive(self):
@@ -307,7 +308,7 @@ class SizedArray(_Base):
          - an iterable or default values.
         """
         if not typ.incomplete:
-            typ = Array(name, typ)
+            typ = Array(typ.name, typ)
 
         self._default_def = None
         if (isinstance(count_or_default, str)
@@ -346,11 +347,19 @@ class SizedArray(_Base):
         """Returns the number of array elements in this array subtype."""
         return self._count
 
-    def get_range(self, *args, **kwargs):
+    @property
+    def default_def(self):
+        """Returns `None` if this type has a simple default value (inline), or
+        returns the complex default value otherwise. In the latter case,
+        `default` returns the name of the constant that the complex default
+        value is assigned to."""
+        return self._default_def
+
+    def get_range(self, count, offset=0):
         """Returns the code for a range of this array type of `count`
         elements starting at `offset`. Whether the range is ascending
         or descending depends on the type."""
-        return self._array_type.get_range(*args, **kwargs)
+        return self._array_type.get_range(count, offset)
 
     def __len__(self):
         """Returns the number of bits in this type."""
@@ -371,6 +380,17 @@ class SizedArray(_Base):
         name to type."""
         into = self.array_type.gather_types(into)
         return super().gather_types(into)
+
+    def __eq__(self, other):
+        if not super().__eq__(other):
+            return False
+        if self.array_type != other.array_type:
+            return False
+        if self.count != other.count:
+            return False
+        if self.default_def != other.default_def:
+            return False
+        return True
 
 
 class Slice:
@@ -442,6 +462,12 @@ class Record(_Base):
                 return typ
         raise ValueError('record does not have an element named %s' % name)
 
+    @property
+    def elements(self):
+        """Returns a tuple of (name, type, count, default) four-tuples
+        representing all the entries of this record."""
+        return tuple(self._elements)
+
     def __len__(self):
         """Returns the number of bits in this type."""
         return sum((
@@ -474,14 +500,93 @@ class Record(_Base):
             into = element_type.gather_types(into)
         return super().gather_types(into)
 
+    def __eq__(self, other):
+        if not super().__eq__(other):
+            return False
+        if self.elements != other.elements:
+            return False
+        return True
 
-class _Object:
-    """Base class for a VHDL object."""
 
-    def __init__(self, name, typ):
+class Object:
+    """Base class for representing a VHDL object."""
+
+    def __init__(self, name, typ, path=None, offset=None):
+        """Represents an object with the given VHDL name and the given type.
+
+        Normally, the array/record hierarchy present in the VHDL world (taken
+        from `typ`) is mimicked in the Python world. However, it sometimes
+        helps to abstract some of the VHDL structure away. This can be done
+        with the `path` and `offset` parameters.
+
+        The basic idea is that the `path` object instructs the object how to
+        construct the VHDL identifier path and array indices based on input in
+        the Python world. Currently, this input is restricted to indexation and
+        slicing, so it's not possible to emulate a record that does not exist
+        in VHDL.
+
+        Specifically, the `path` object must be a list with the following types
+        of entries:
+
+         - A string represents a record entry that exists in the VHDL world but
+           is hidden in the Python world. It is appended to the identifier path
+           when all preceding array indexations have been performed. The string
+           can also include array indexations of the record member if needed.
+         - A two-tuple of a scalar type and either an empty list of a list with
+           a single `None` entry represents an array that does not exist in the
+           VHDL world but is expected by the users of this Python object. The
+           indexation operator becomes no-op (it just strips the `path` entry
+           off), while slicing uses the `(<range> => <name>)` syntax. The
+           type's `get_range()` method is used to construct the range to get
+           the correct direction for the type.
+         - A two-tuple of an array type and a list of integers represents an
+           array that is both expected by Python code and is present in VHDL.
+           The integers in the list represent the sizes of each (remaining)
+           dimension of the array. Note that the array is always
+           one-dimensional in VHDL; the indices specified in the Python world
+           are simply multiply-added to the appropriate sizes to make the array
+           appear multidimensional. The `offset` parameter is used to track the
+           offset induced by previous indexations.
+
+        Any string path entries are suffixed to the name immediately, since
+        they don't require any operation from the user. It's also legal to
+        specify only a path (`name = None`) if `path` starts with such entries.
+        """
         super().__init__()
-        self._name = name
-        self._typ = typ
+        name_entries = []
+        if name is not None:
+            name_entries.append(name)
+        if path is None:
+            path = []
+        else:
+            path = list(path)
+        while path:
+            if not isinstance(path[0], str):
+                break
+            name_entries.append(path.pop(0))
+        if not name_entries:
+            raise ValueError('object does not have a name')
+        self._name = '.'.join(name_entries)
+        self._final_type = typ
+        if path:
+            self._ignore_index = False
+            (self._current_type, self._array_sizes), *self._path = path
+            if not self._array_sizes or self._array_sizes[0] is None:
+                self._array_sizes = []
+                self._ignore_index = True
+            self._abstracted = True
+        else:
+            self._current_type = typ
+            self._array_sizes = []
+            self._path = []
+            self._abstracted = False
+            self._ignore_index = not isinstance(typ, (Array, SizedArray))
+        if offset is None:
+            self._offset = expr()
+            self._multi_dim = False
+        else:
+            self._offset = expr(offset)
+            self._multi_dim = True
 
     @property
     def name(self):
@@ -491,34 +596,73 @@ class _Object:
     @property
     def typ(self):
         """Returns the type of this object."""
-        return self._typ
+        return self._current_type
+
+    @property
+    def abstracted(self):
+        """Returns whether this object is an abstraction of a VHDL object with
+        a different structure."""
+        return self._abstracted
 
     def __str__(self):
-        return self._name
+        if self._multi_dim:
+            size = 1
+            for dim in self._array_sizes:
+                size *= dim
+            return '%s(%s)' % (
+                self._name,
+                self.typ.get_range(size, self._offset))
+        return self.name
 
     def __getattr__(self, name):
+        if not isinstance(self._current_type, Record):
+            raise AttributeError('%s is not a record' % self)
         try:
             typ = self.typ.get_element(name)
         except ValueError:
             typ = None
         if typ is None:
             raise AttributeError('record does not have an element named %s' % name)
-        return _Object('%s.%s' % (self.name, name), typ)
+        return Object('%s.%s' % (self.name, name), typ)
 
     def __getitem__(self, index):
+        remaining_sizes = self._array_sizes[1:]
+        stride = 1
+        for dim in remaining_sizes:
+            stride *= dim
+
         if isinstance(index, tuple):
-            if not isinstance(self.typ, (Array, SizedArray)):
-                raise TypeError('%s is not an array' % self)
             offset, count = index
-            rnge = self.typ.get_range(count, offset)
-            return _Object(
-                '%s(%s)' % (self.name, rnge),
+
+            if self._ignore_index:
+                return Object(
+                    '(%s => %s)' % (self.typ.get_range(count), self.name),
+                    Slice(self.typ, count))
+
+            offset = self._offset + expr(offset) * stride
+            count = expr(count) * stride
+
+            return Object(
+                '%s(%s)' % (self.name, self.typ.get_range(count, offset)),
                 Slice(self.typ.element_type, count))
-        if not isinstance(self.typ, (Array, SizedArray)):
-            return self
-        return _Object(
-            '%s(%s)' % (self.name, index),
-            self.typ.element_type)
+
+        if self._ignore_index:
+            return Object(
+                self.name,
+                self._final_type,
+                self._path)
+
+        if remaining_sizes:
+            return Object(
+                self.name,
+                self._final_type,
+                [(self.typ, remaining_sizes)] + self._path,
+                self._offset + expr(index) * stride)
+
+        return Object(
+            '%s(%s)' % (self.name, self._offset + index),
+            self._final_type if self._abstracted else self.typ.element_type,
+            self._path)
 
 
 def gather_defs(*types):
