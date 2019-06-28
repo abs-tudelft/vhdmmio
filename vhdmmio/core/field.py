@@ -4,6 +4,7 @@ from .metadata import Metadata, ExpandedMetadata
 from .bitrange import BitRange
 from .register import Register
 from .logic import FieldLogic
+from ..vhdl.interface import InterfaceOptions
 
 class FieldDescriptor:
     """Class representing the description of a field or an array of fields, as
@@ -96,6 +97,12 @@ class FieldDescriptor:
                     Field(self._meta[index], self._bitranges[index], self._logic, self, index)
                     for index in range(self._vector_count)))
 
+            # Parse interface options.
+            iface_opts = kwargs.pop('interface', None)
+            if iface_opts is None:
+                iface_opts = {}
+            self._iface_opts = InterfaceOptions.from_dict(iface_opts)
+
             # Check for unknown keys.
             for key in kwargs:
                 raise ValueError('unexpected key in field description: %s' % key)
@@ -141,6 +148,11 @@ class FieldDescriptor:
         # Write type information.
         self._logic.to_dict(dictionary)
 
+        # Write interface options.
+        iface = self._iface_opts.to_dict()
+        if iface:
+            dictionary['interface'] = iface
+
         return dictionary
 
     @property
@@ -169,6 +181,12 @@ class FieldDescriptor:
     def logic(self):
         """Object logic description."""
         return self._logic
+
+    @property
+    def iface_opts(self):
+        """Returns an `InterfaceOptions` object, carrying the options for
+        generating the VHDL interface for this group of fields."""
+        return self._iface_opts
 
     @property
     def regfile(self):

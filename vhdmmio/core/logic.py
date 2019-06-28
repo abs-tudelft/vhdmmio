@@ -53,7 +53,7 @@ class FieldLogic(ReadWriteCapabilities):
         return self._field_descriptor.vector_count
 
     @staticmethod
-    def generate_vhdl(generator):
+    def generate_vhdl(_):
         """Generates the VHDL code for the associated field by updating the
         given `vhdl.Generator` object."""
         raise NotImplementedError('generate_vhdl() must be overridden')

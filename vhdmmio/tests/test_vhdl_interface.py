@@ -4,7 +4,7 @@ import tempfile
 from collections import OrderedDict
 
 import vhdmmio.vhdl.types as types
-from vhdmmio.vhdl.interface import Interface
+from vhdmmio.vhdl.interface import Interface, InterfaceOptions
 
 class TestVhdlInterface(TestCase):
 
@@ -12,7 +12,10 @@ class TestVhdlInterface(TestCase):
 
     @staticmethod
     def gen_basic_interface(group, flatten):
-        iface = Interface('tns', group, flatten, group, flatten)
+        options = InterfaceOptions(
+            port_group=group, port_flatten=flatten,
+            generic_group=group, generic_flatten=flatten)
+        iface = Interface('tns', options)
 
         objs = [iface]
 

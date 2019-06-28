@@ -1,6 +1,7 @@
 """Module for `Interrupt` objects."""
 
 from .metadata import Metadata
+from ..vhdl.interface import InterfaceOptions
 
 class Interrupt:
     """Class representing the description of an interrupt or vector of
@@ -48,6 +49,12 @@ class Interrupt:
             # Parse metadata again, now with the correct vector width.
             self._meta = Metadata.from_dict(self._width, kwargs)
 
+            # Parse interface options.
+            iface_opts = kwargs.pop('interface', None)
+            if iface_opts is None:
+                iface_opts = {}
+            self._iface_opts = InterfaceOptions.from_dict(iface_opts)
+
             # Check for unknown keys.
             for key in kwargs:
                 raise ValueError('unexpected key in interrupt description: %s' % key)
@@ -75,6 +82,11 @@ class Interrupt:
 
         # Write metadata.
         self._meta.to_dict(dictionary)
+
+        # Write interface options.
+        iface = self._iface_opts.to_dict()
+        if iface:
+            dictionary['interface'] = iface
 
         return dictionary
 
@@ -108,12 +120,13 @@ class Interrupt:
     @property
     def low(self):
         """Index of this interrupt's LSB in the internal IRQ vector."""
-        assert self._index is not None
-        return self._index
+        return self.index
 
     @property
     def high(self):
         """Index of this interrupt's MSB in the internal IRQ vector."""
+        if self._width is None:
+            return self.index
         assert self._index is not None
         return self._index + self._width - 1
 
@@ -143,6 +156,12 @@ class Interrupt:
         state."""
         return self._can_unmask
 
+    @property
+    def iface_opts(self):
+        """Returns an `InterfaceOptions` object, carrying the options for
+        generating the VHDL interface for this interrupt."""
+        return self._iface_opts
+
     def register_enable(self):
         """Registers that a field is present that can enable the interrupt."""
         self._can_enable = True
@@ -167,7 +186,13 @@ class Interrupt:
                 'illegal pend field is present for level-sensitive interrupt %s '
                 '(add a clear field to make it edge-sensitive)' % self.meta.name)
 
-    def generate_vhdl(self, generator):
+    def generate_vhdl(self, gen):
         """Generates the VHDL code for this interrupt by updating the given
         `vhdl.Generator` object."""
-        # TODO
+        req = gen.add_interrupt_port(self, 'request', 'i', None, self.width)[None]
+        if self.width is None:
+            gen.add_interrupt_logic(
+                self, 'i_req(%d) := %s;' % (self.index, req))
+        else:
+            gen.add_interrupt_logic(
+                self, 'i_req(%d downto %d) := %s;' % (self.high, self.low, req))

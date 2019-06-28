@@ -10,6 +10,10 @@ meta:
 
 bus-width: 32
 
+interface:
+  port-group: no
+  port-flatten: yes
+
 interrupts:
 
 - name: test

@@ -25,7 +25,7 @@ def switches(dictionary, key, values):
     switch_values = set(switch_values)
 
     for value in values:
-        switch = dictionary.pop('%s_%s' % (key, value), False)
+        switch = dictionary.pop('%s_%s' % (key, value.replace('-', '_')), False)
         if switch == 'enabled':
             switch = True
         elif switch == 'disabled':

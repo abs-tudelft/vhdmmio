@@ -5,8 +5,6 @@ from .logic_registry import field_logic
 from .accesscaps import AccessCapabilities
 from .utils import choice, switches, override, default
 from ..template import TemplateEngine
-from ..vhdl.types import (
-    std_logic, std_logic_vector, SizedArray, Record, StdLogic, Array, gather_defs)
 
 @field_logic('primitive')
 class PrimitiveField(FieldLogic):
@@ -145,44 +143,6 @@ class PrimitiveField(FieldLogic):
             read_caps=read_caps,
             write_caps=write_caps)
 
-        prefix = field_descriptor.meta.name.lower()
-
-        tple = TemplateEngine()
-        tple['l'] = self
-        tple['f'] = self.field_descriptor
-        tple['p'] = prefix
-        tple['P'] = prefix.upper()
-        width = self.field_descriptor.vector_width
-        tple['xvw'] = width
-        if width is None:
-            width = 1
-        tple['vw'] = width
-        count = self.field_descriptor.vector_count
-        tple['xvc'] = count
-        if count is None:
-            count = 1
-        tple['vc'] = count
-
-        if tple['xvw'] is None:
-            self._value_type = std_logic
-        else:
-            self._value_type = SizedArray(prefix + '_value', std_logic_vector, tple['xvw'])
-
-        self._state_type = Record(prefix + '_state')
-        self._state_type.append('d', self._value_type)
-        self._state_type.append('v', StdLogic(0))
-        if tple['xvc'] is None:
-            tple['state_variable'], self._state = self._state_type.make_variable(
-                prefix + '_state')
-        else:
-            self._state_type = Array(prefix + '_state', self._state_type)
-            tple['state_variable'], self._state = self._state_type.make_variable(
-                prefix + '_state', prefix.upper() + '_COUNT')
-
-        tple.append_block('PRIVATE_TYPES', gather_defs(self._state_type))
-
-        self._tple = tple
-
     def to_dict(self, dictionary):
         """Returns a dictionary representation of this object."""
         super().to_dict(dictionary)
@@ -252,10 +212,34 @@ class PrimitiveField(FieldLogic):
         generic, or `None` to reset the register to the invalid state."""
         return self._reset
 
-    def generate_vhdl(self, generator):
+    def generate_vhdl(self, gen):
         """Generates the VHDL code for the associated field by updating the
         given `vhdl.Generator` object."""
-        # TODO
+
+        tple = TemplateEngine()
+
+        def add_input(name, count=None):
+            tple[name] = gen.add_field_port(self.field_descriptor, name, 'i', None, count)
+        def add_output(name, count=None):
+            tple[name] = gen.add_field_port(self.field_descriptor, name, 'o', None, count)
+
+        # Generate interface.
+        if self.hw_write != 'disabled':
+            add_input('write_data', self.vector_width)
+            if self.hw_write != 'status':
+                add_input('write_enable')
+        ctrl_signals = ['validate', 'invalidate', 'clear', 'reset', 'increment', 'decrement']
+        for ctrl_signal in ctrl_signals:
+            if ctrl_signal in self._ctrl:
+                add_input(ctrl_signal)
+        bit_signals = ['bit_set', 'bit_clear', 'bit_toggle']
+        for bit_signal in bit_signals:
+            if bit_signal.replace('_', '-') in self._ctrl:
+                add_input(bit_signal, self.vector_width)
+        if self.hw_read != 'disabled':
+            add_output('data', self.vector_width)
+            if self.hw_read != 'simple':
+                add_output('valid')
 
 
 @field_logic('constant')

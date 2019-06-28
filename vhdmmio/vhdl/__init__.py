@@ -147,7 +147,7 @@ class Generator:
         self._tple['r'] = regfile
 
         # Interface builder.
-        self._interface = Interface(regfile.meta.name)
+        self._interface = Interface(regfile.meta.name, regfile.iface_opts)
 
         # Address decoder builders.
         self._read_decoder = _Decoder('r_addr', 32)
@@ -251,9 +251,9 @@ class Generator:
         is scalar) to get the requested type. It can then be converted to a
         string to get the VHDL representation."""
         return self._interface.add(
-            interrupt.meta.name, self._describe_interrupt(interrupt), 'i', interrupt.width,
+            interrupt.meta.name, self._describe_interrupt(interrupt), 'i', None,
             name, mode, typ, count,
-            interrupt.iface_opts.port_group, interrupt.iface_opts.port_flatten)
+            interrupt.iface_opts)
 
     def add_interrupt_generic(self, interrupt, name, typ, count=None):
         """Registers a generic for the given interrupt with the specified
@@ -263,9 +263,9 @@ class Generator:
         ignored if the interrupt is scalar) to get the requested type. It can
         then be converted to a string to get the VHDL representation."""
         return self._interface.add(
-            interrupt.meta.name, self._describe_interrupt(interrupt), 'i', interrupt.width,
+            interrupt.meta.name, self._describe_interrupt(interrupt), 'i', None,
             name, 'g', typ, count,
-            interrupt.iface_opts.generic_group, interrupt.iface_opts.generic_flatten)
+            interrupt.iface_opts)
 
     def add_field_port(self, field_descriptor, name, mode, typ, count=None):
         """Registers a port for the given field with the specified
@@ -280,8 +280,7 @@ class Generator:
             self._describe_field_descriptor(field_descriptor),
             'f', field_descriptor.vector_count,
             name, mode, typ, count,
-            field_descriptor.iface_opts.port_group,
-            field_descriptor.iface_opts.port_flatten)
+            field_descriptor.iface_opts)
 
     def add_field_generic(self, field_descriptor, name, typ, count=None):
         """Registers a generic for the given field with the specified
@@ -295,8 +294,7 @@ class Generator:
             self._describe_field_descriptor(field_descriptor),
             'f', field_descriptor.vector_count,
             name, 'g', typ, count,
-            field_descriptor.iface_opts.generic_group,
-            field_descriptor.iface_opts.generic_flatten)
+            field_descriptor.iface_opts)
 
     def _add_block(self, key, region, desc, block):
         if block is not None:
@@ -331,9 +329,10 @@ class Generator:
     def add_interrupt_logic(self, interrupt, logic):
         """Registers the code block for the logic of the specified interrupt.
         The generated block is executed every cycle. The block must indicate
-        whether the interrupt(s) is/are asserted by writing to the variable
-        expanded by `$irq$`. This is an `std_logic` for scalar interrupts, and
-        an `std_logic_vector` for vector interrupts. It is active high."""
+        whether the interrupt(s) is/are asserted by writing to the `i_req`
+        variable. This is an `std_logic_vector` shared between all interrupts;
+        it must be indexed using `interrupt.low` and `interrupt.high`. It is
+        active-high."""
         self._add_block(
             'IRQ_LOGIC', 'Interrupt logic',
             self._describe_interrupt(interrupt), logic)

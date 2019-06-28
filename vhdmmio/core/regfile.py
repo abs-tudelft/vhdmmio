@@ -4,6 +4,7 @@ from .metadata import Metadata, ExpandedMetadata
 from .field import FieldDescriptor
 from .register import Register
 from .interrupt import Interrupt
+from ..vhdl.interface import InterfaceOptions
 
 class RegisterFile:
     """Represents a register file."""
@@ -34,6 +35,12 @@ class RegisterFile:
             self._tag_depth_log2 = int.bit_length(max_outstanding) - 1
             if max_outstanding != 2**self._tag_depth_log2:
                 raise ValueError('maximum number of outstanding requests must be a power of 2')
+
+            # Parse interface options.
+            iface_opts = kwargs.pop('interface', None)
+            if iface_opts is None:
+                iface_opts = {}
+            self._iface_opts = InterfaceOptions.from_dict(iface_opts)
 
             # Read the interrupts.
             self._interrupts = tuple((
@@ -137,6 +144,11 @@ class RegisterFile:
         dictionary['meta'] = {}
         self._meta.to_dict(dictionary['meta'])
 
+        # Write interface options.
+        iface = self._iface_opts.to_dict()
+        if iface:
+            dictionary['interface'] = iface
+
         # Write interrupts.
         dictionary['interrupts'] = []
         for interrupt in self._interrupts:
@@ -158,6 +170,12 @@ class RegisterFile:
     def bus_width(self):
         """Returns the bus width for this register file."""
         return self._bus_width
+
+    @property
+    def iface_opts(self):
+        """Returns an `InterfaceOptions` object, carrying the default options
+        for generating the VHDL interface."""
+        return self._iface_opts
 
     @property
     def interrupts(self):
