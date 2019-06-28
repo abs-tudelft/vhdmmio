@@ -128,7 +128,7 @@ class FieldDescriptor:
         base = self._bitranges[0]
         if len(self._bitranges) == 1:
             dictionary['address'] = base.to_spec()
-        if self._field_repeat is None:
+        elif self._field_repeat is None:
             dictionary['address'] = [address.to_spec() for address in self._bitranges]
         else:
             dictionary['address'] = base.to_spec()

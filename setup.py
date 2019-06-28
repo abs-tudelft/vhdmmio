@@ -51,7 +51,7 @@ setup(
     install_requires = ['pyyaml', 'markdown2'],
 
     # Testing
-    tests_require = ['nose', 'coverage'],
+    tests_require = ['nose', 'coverage', 'vhdeps'],
     cmdclass = {'test': NoseTestCommand},
 
     # Setup dependencies
