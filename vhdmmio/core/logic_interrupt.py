@@ -1,4 +1,4 @@
-"""Module for primitive fields."""
+"""Module for interrupt fields."""
 
 from .logic import FieldLogic
 from .logic_registry import field_logic

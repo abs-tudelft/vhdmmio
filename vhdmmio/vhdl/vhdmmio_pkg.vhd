@@ -130,6 +130,8 @@ package vhdmmio_pkg is
     r     => AXI4LH_RESET
   );
 
+  type axi4l32_m2s_array is array (natural range <>) of axi4l32_m2s_type;
+
   -- Complete 32-bit AXI4-lite bus, slave to master direction.
   type axi4l32_s2m_type is record
     aw    : axi4lh_type;
@@ -149,6 +151,8 @@ package vhdmmio_pkg is
     u     => AXI4LU_RESET
   );
 
+  type axi4l32_s2m_array is array (natural range <>) of axi4l32_s2m_type;
+
   -- Complete 64-bit AXI4-lite bus, master to slave direction.
   type axi4l64_m2s_type is record
     aw    : axi4la_type;
@@ -165,6 +169,8 @@ package vhdmmio_pkg is
     ar    => AXI4LA_RESET,
     r     => AXI4LH_RESET
   );
+
+  type axi4l64_m2s_array is array (natural range <>) of axi4l64_m2s_type;
 
   -- Complete 64-bit AXI4-lite bus, slave to master direction.
   type axi4l64_s2m_type is record
@@ -184,5 +190,16 @@ package vhdmmio_pkg is
     r     => AXI4LR64_RESET,
     u     => AXI4LU_RESET
   );
+
+  type axi4l64_s2m_array is array (natural range <>) of axi4l64_s2m_type;
+
+  -- Arrays of primitive types, occasionally used by the register file
+  -- generator. Note that std_logic_array is defined just like
+  -- std_logic_vector; the difference is that the programmer can assume that
+  -- *_array types have ascending ranges, while std_logic_vector is used with
+  -- descending ranges.
+  type std_logic_array is array (natural range <>) of std_logic;
+  type boolean_array is array (natural range <>) of boolean;
+  type natural_array is array (natural range <>) of natural;
 
 end package vhdmmio_pkg;

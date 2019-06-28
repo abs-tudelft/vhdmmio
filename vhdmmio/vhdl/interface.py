@@ -322,7 +322,7 @@ class Interface:
             if group is not None:
                 new_name = '_'.join((obj_type, obj_name))
             if obj_cnt is not None:
-                new_type = Array(new_type.name, new_type)
+                new_type = Array(new_type.name, new_type, True)
             new_cnt = obj_cnt
 
             new_entry_name = sig_name
@@ -345,7 +345,7 @@ class Interface:
                         new_type = SizedArray(
                             '_'.join((self._type_namespace, obj_type, obj_name, sig_name)),
                             new_type, sig_cnt)
-                    new_type = Array(new_type.name, new_type)
+                    new_type = Array(new_type.name, new_type, True)
                     new_cnt = obj_cnt
                 else:
                     new_cnt = sig_cnt
@@ -363,7 +363,7 @@ class Interface:
                     if isinstance(new_type, StdLogic):
                         new_type = StdLogicVector(new_type.default[1])
                     elif not new_type.incomplete:
-                        new_type = Array(new_type.name, new_type)
+                        new_type = Array(new_type.name, new_type, True)
                     new_cnt = 1
                     for cur_cnt in [obj_cnt, sig_cnt]:
                         if cur_cnt is not None:

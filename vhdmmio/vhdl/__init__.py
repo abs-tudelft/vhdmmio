@@ -20,6 +20,11 @@ if $dir$_req then
 $ NORMAL
 end if;
 $endif
+$if defined('BOTH')
+if $dir$_req or $dir$_lreq then
+$ BOTH
+end if;
+$endif
 $endblock
 
 @ ${'r': 'Read', 'w': 'Write'}[dir]$ logic for $desc$
@@ -376,7 +381,7 @@ class Generator:
             block = tple.apply_str_to_str(template, postprocess=False)
             self._tple.append_block('FIELD_LOGIC_AFTER', block)
 
-    def _add_field_bus_logic(self, field_descriptor, direction, normal, lookahead, deferred):
+    def _add_field_bus_logic(self, field_descriptor, direction, normal, lookahead, both, deferred):
         """Implements `add_field_read_logic()` and `add_field_write_logic()`.
         They are distinguished through `direction`, which must be `'r'` or
         `'w'`."""
@@ -415,6 +420,8 @@ class Generator:
                 tple.append_block('NORMAL', '@ Regular access logic.', normal)
             if lookahead is not None:
                 tple.append_block('LOOKAHEAD', '@ Lookahead logic.', lookahead)
+            if both is not None:
+                tple.append_block('BOTH', '@ Access logic.', both)
             block = tple.apply_str_to_str(_BUS_REQ_FIELD_TEMPLATE, postprocess=False)
             decoder = {'r': self._read_decoder, 'w': self._write_decoder}[direction]
             decoder.add_action(block, address, mask)
@@ -431,7 +438,9 @@ class Generator:
                         desc, tple.apply_str_to_str(deferred, postprocess=False)),
                     tag)
 
-    def add_field_read_logic(self, field_descriptor, normal, lookahead=None, deferred=None):
+    def add_field_read_logic(
+            self, field_descriptor,
+            normal=None, lookahead=None, both=None, deferred=None):
         """Registers code blocks for handling bus reads for the given field.
         The blocks can make use of the template variable `$i$` for getting the
         index of the field that is being expanded. The generator ensures that
@@ -492,9 +501,11 @@ class Generator:
               are no other fields in the addressed register, a decode error is
               returned.
         """
-        self._add_field_bus_logic(field_descriptor, 'r', normal, lookahead, deferred)
+        self._add_field_bus_logic(field_descriptor, 'r', normal, lookahead, both, deferred)
 
-    def add_field_write_logic(self, field_descriptor, normal, lookahead=None, deferred=None):
+    def add_field_write_logic(
+            self, field_descriptor,
+            normal=None, lookahead=None, both=None, deferred=None):
         """Registers code blocks for handling bus writes for the given
         field. The blocks can make use of the template variable `$i$` for
         getting the index of the field that is being expanded. The generator
@@ -570,7 +581,7 @@ class Generator:
               are no other fields in the addressed register, a decode error is
               returned.
         """
-        self._add_field_bus_logic(field_descriptor, 'w', normal, lookahead, deferred)
+        self._add_field_bus_logic(field_descriptor, 'w', normal, lookahead, both, deferred)
 
     def _add_register_boilerplate(self, register, position):
         """Adds the boilerplate bus logic for the given register. `position`

@@ -216,12 +216,41 @@ class Boolean(_Base):
         return True
 
 
+class Axi4Lite(_Base):
+    """Representations of the `axi4l##_#s#_type` records defined in
+    `vhdmmio_pkg`."""
+
+    def __init__(self, direction, width=32):
+        """Constructs an AXI bus type."""
+        if direction not in ['m2s', 's2m']:
+            raise ValueError('direction must be m2s or s2m')
+        if width not in [32, 64]:
+            raise ValueError('width must be 32 or 64')
+        base = 'axi4l%d_%s' % (width, direction)
+        super().__init__(base, base.upper() + '_RESET')
+
+    @staticmethod
+    def __len__():
+        """Returns the number of bits in this type."""
+        raise ValueError('AXI records cannot be represented as bits')
+
+    @property
+    def primitive(self):
+        """Indicates whether this is a primitive type."""
+        return True
+
+    def __str__(self):
+        """Returns the name of this type, including suffix."""
+        return self.name + '_type'
+
+
 class Array(_Base):
     """Representation of an incomplete array type."""
 
-    def __init__(self, name, element_type):
+    def __init__(self, name, element_type, auto_generated=False):
         """Constructs an incomplete array type from the given element type."""
         super().__init__(name, '(others => %s)' % element_type.default)
+        self._auto_generated = auto_generated
         self._element_type = element_type
 
     @property
@@ -234,14 +263,17 @@ class Array(_Base):
         """Returns the underlying element type."""
         return self._element_type
 
+    @property
+    def primitive(self):
+        """Indicates whether this is a primitive type."""
+        return self._auto_generated and self._element_type.primitive
+
     def __len__(self):
         """Returns the number of bits in this type."""
         raise ValueError('incomplete array does not have a bit count yet')
 
     def __str__(self):
         """Returns the name of this type, including suffix."""
-        if self.primitive:
-            return self.name
         return self.name + '_array'
 
     def get_defs(self):
@@ -290,6 +322,10 @@ class StdLogicVector(Array):
         """Indicates whether this is a primitive type."""
         return True
 
+    def __str__(self):
+        """Returns the name of this type, including suffix."""
+        return self.name
+
 
 class SizedArray(_Base):
     """Representation of a complete (fixed-size) array type."""
@@ -308,7 +344,7 @@ class SizedArray(_Base):
          - an iterable or default values.
         """
         if not typ.incomplete:
-            typ = Array(typ.name, typ)
+            typ = Array(typ.name, typ, True)
 
         self._default_def = None
         if (isinstance(count_or_default, str)

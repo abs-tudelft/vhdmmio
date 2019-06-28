@@ -71,16 +71,25 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(array.default, "(others => '0')")
         self.assertEqual(array.get_range(8), '0 to 7')
 
+        typ = types.SizedArray('test', types.std_logic, 8)
+        self.assertEqual(typ.name, 'test')
+        self.assertEqual(str(typ), 'test_type')
+        self.assertEqual(len(typ), 8)
+        self.assertEqual(typ.get_defs(), [
+            'subtype test_type is std_logic_array(0 to 7);'
+        ])
+        self.assertEqual(list(typ.gather_types()), ['test_type'])
+        self.assertEqual(typ.default, '(others => \'0\')')
+
     def test_sized_std_logic_array(self):
         array = types.SizedArray('test', types.std_logic, 8)
         self.assertEqual(array.name, 'test')
         self.assertEqual(str(array), 'test_type')
         self.assertEqual(len(array), 8)
         self.assertEqual(types.gather_defs(array), [
-            'type std_logic_array is array (natural range <>) of std_logic;',
             'subtype test_type is std_logic_array(0 to 7);',
         ])
-        self.assertEqual(list(array.gather_types()), ['std_logic_array', 'test_type'])
+        self.assertEqual(list(array.gather_types()), ['test_type'])
         self.assertEqual(array.default, "(others => '0')")
 
     def test_memory(self):
@@ -120,6 +129,36 @@ class TestVhdlTypes(TestCase):
         ])
         self.assertEqual(list(typ.gather_types()), ['mem_ent_type', 'mem_array', 'mem_type'])
         self.assertEqual(typ.default, 'MEM_RESET')
+
+    def test_axi4lite(self):
+        typ = types.Axi4Lite('m2s', 32)
+        self.assertEqual(typ.name, 'axi4l32_m2s')
+        self.assertEqual(str(typ), 'axi4l32_m2s_type')
+        with self.assertRaises(ValueError):
+            len(typ)
+        self.assertEqual(typ.get_defs(), [])
+        self.assertEqual(list(typ.gather_types()), [])
+        self.assertEqual(typ.default, 'AXI4L32_M2S_RESET')
+        self.assertEqual(typ.get_range(8), '0 to 7')
+
+        typ = types.SizedArray('test', typ, 8)
+        self.assertEqual(typ.name, 'test')
+        self.assertEqual(str(typ), 'test_type')
+        with self.assertRaises(ValueError):
+            len(typ)
+        self.assertEqual(typ.get_defs(), [
+            'subtype test_type is axi4l32_m2s_array(0 to 7);'
+        ])
+        self.assertEqual(list(typ.gather_types()), ['test_type'])
+        self.assertEqual(typ.default, '(others => AXI4L32_M2S_RESET)')
+
+        self.assertEqual(types.Axi4Lite('s2m', 32).name, 'axi4l32_s2m')
+        self.assertEqual(types.Axi4Lite('m2s', 64).name, 'axi4l64_m2s')
+        self.assertEqual(types.Axi4Lite('s2m', 64).name, 'axi4l64_s2m')
+        with self.assertRaises(ValueError):
+            types.Axi4Lite('foo', 32)
+        with self.assertRaises(ValueError):
+            types.Axi4Lite('s2m', 24)
 
     def test_record(self):
         self.maxDiff = None

@@ -231,8 +231,6 @@ class TestVhdlInterface(TestCase):
         self.assertEqual('\n'.join(types.gather_defs(*iface.gather_types())), '\n'.join([
             'subtype tns_f_bar_data_type is std_logic_vector(7 downto 0);',
             'type tns_f_bar_data_array is array (natural range <>) of tns_f_bar_data_type;',
-            'type std_logic_array is array (natural range <>) of std_logic;',
-            'type boolean_array is array (natural range <>) of boolean;',
         ]))
         self.assertEqual(str(fd['a']['b']), 'f_foo_data(b)')
         self.assertEqual(str(fv['a']['b']), 'f_foo_valid')
@@ -257,7 +255,6 @@ class TestVhdlInterface(TestCase):
             'G_TEST_G : tns_g_test_g_type@:= TNS_G_TEST_G_RESET',
         ]))
         self.assertEqual('\n'.join(types.gather_defs(*iface.gather_types())), '\n'.join([
-            'type std_logic_array is array (natural range <>) of std_logic;',
             'type tns_g_test_i_type is record',
             '  f_foo_data : std_logic_vector(7 downto 0);',
             '  f_foo_valid : std_logic;',
@@ -280,7 +277,6 @@ class TestVhdlInterface(TestCase):
             '  f_bar_data => (others => (others => \'0\')),',
             '  f_bar_valid => (others => \'0\')',
             ');',
-            'type boolean_array is array (natural range <>) of boolean;',
             'type tns_g_test_g_type is record',
             '  f_foo_enable : boolean;',
             '  f_bar_enable : boolean_array(0 to 3);',
@@ -318,7 +314,6 @@ class TestVhdlInterface(TestCase):
             'F_BAR_ENABLE : boolean_array(0 to 3)@:= (others => false)',
         ]))
         self.assertEqual('\n'.join(types.gather_defs(*iface.gather_types())), '\n'.join([
-            'type boolean_array is array (natural range <>) of boolean;',
         ]))
         self.assertEqual(str(fd['a']['b']), 'f_foo_data(b)')
         self.assertEqual(str(fv['a']['b']), 'f_foo_valid')
@@ -363,7 +358,6 @@ class TestVhdlInterface(TestCase):
             '  f_bar_data => (others => \'0\'),',
             '  f_bar_valid => (others => \'0\')',
             ');',
-            'type boolean_array is array (natural range <>) of boolean;',
             'type tns_g_test_g_type is record',
             '  f_foo_enable : boolean;',
             '  f_bar_enable : boolean_array(0 to 3);',
