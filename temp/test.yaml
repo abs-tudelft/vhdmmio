@@ -300,14 +300,14 @@ fields:
   register-doc: |
     This register controls the factor by which the Prescaler divides the SSP
     peripheral clock SSP_PCLK to yield the prescaler clock that is, in turn,
-    divided by the SCR factor in SSP0CR0, to determine the bit clock.
+    divided by the SCR factor in CR0, to determine the bit clock.
 
-    *Important:* the SSP0CPSR value must be properly initialized or the SSP
+    *Important:* the CPSR value must be properly initialized or the SSP
     controller will not be able to transmit data correctly.
 
     In Slave mode, the SSP clock rate provided by the master must not exceed
     1/12 of the SSP peripheral clock selected in Table 26 or Table 28. The
-    content of the SSP0CPSR register is not relevant.
+    content of the CPSR register is not relevant.
 
     In master mode, CPSDVSRmin = 2 or larger (even numbers only).
 
@@ -333,7 +333,7 @@ fields:
     avoid confusion we will not use the word “masked”.
 
   address: 0x0014:0
-  type: interrupt-enable
+  type: interrupt-unmask
   interrupt: rx_overrun
   name: rorim
   brief: Receive overrun interrupt enable.
@@ -344,7 +344,7 @@ fields:
     by the new frame data when this occurs.
 
 - address: 0x0014:1
-  type: interrupt-enable
+  type: interrupt-unmask
   interrupt: rx_timeout
   name: rtim
   brief: Receive timeout interrupt enable.
@@ -356,7 +356,7 @@ fields:
     bits at PCLK / (CPSDVSR x [SCR+1]).
 
 - address: 0x0014:2
-  type: interrupt-enable
+  type: interrupt-unmask
   interrupt: rx_half_full
   name: rxim
   brief: Rx FIFO half-full interrupt enable.
@@ -365,7 +365,7 @@ fields:
     atleast half full.
 
 - address: 0x0014:3
-  type: interrupt-enable
+  type: interrupt-unmask
   interrupt: tx_half_empty
   name: txim
   brief: Tx FIFO half-empty interrupt enable.
@@ -373,3 +373,120 @@ fields:
     Software should set this bit to enable interrupt when the Tx FIFO is
     atleast half empty.
 
+- register-name: RIS
+  register-brief: SSP Raw Interrupt Status Register.
+  register-doc: |
+    This read-only register contains a 1 for each interrupt condition that is
+    asserted, regardless of whether or not the interrupt is enabled in the
+    IMSC.
+
+  address: 0x0018:0
+  type: interrupt-status
+  interrupt: rx_overrun
+  name: rorris
+  brief: Receive overrun raw interrupt status.
+  doc: |
+    This bit is 1 if another frame was completely received while the Rx FIFO
+    was full. The ARM spec implies that the preceding frame data is overwritten
+    by the new frame data when this occurs.
+
+- address: 0x0018:1
+  type: interrupt-status
+  interrupt: rx_timeout
+  name: rtris
+  brief: Receive timeout raw interrupt status.
+  doc: |
+    This bit is 1 if the Rx FIFO is not empty, and has not been read for a
+    time-out period. The time-out period is the same for master and slave modes
+    and is determined by the SSP bit rate: 32 bits at PCLK / (CPSDVSR x [SCR+1]).
+
+- address: 0x0018:2
+  type: interrupt-status
+  interrupt: rx_half_full
+  name: rxris
+  brief: Rx FIFO half-full raw interrupt status.
+  doc: |
+    This bit is 1 if the Rx FIFO is at least half full.
+
+- address: 0x0018:3
+  type: interrupt-status
+  interrupt: tx_half_empty
+  name: txris
+  brief: Tx FIFO half-empty raw interrupt status.
+  doc: |
+    This bit is 1 if the Tx FIFO is at least half empty.
+
+- register-name: MIS
+  register-brief: SSP Masked Interrupt Status Register.
+  register-doc: |
+    This read-only register contains a 1 for each interrupt condition that is
+    asserted, regardless of whether or not the interrupt is enabled in the
+    IMSC.
+
+  address: 0x001C:0
+  type: interrupt-flag
+  interrupt: rx_overrun
+  name: rormis
+  brief: Receive overrun masked interrupt status.
+  doc: |
+    This bit is 1 if another frame was completely received while the Rx FIFO
+    was full, and this interrupt is enabled.
+
+- address: 0x001C:1
+  type: interrupt-flag
+  interrupt: rx_timeout
+  name: rtmis
+  brief: Receive timeout masked interrupt status.
+  doc: |
+    This bit is 1 if the Rx FIFO is not empty, has not been read for a time-out
+    period, and this interrupt is enabled. The time-out period is the same for
+    master and slave modes and is  determined by the SSP bit rate: 32 bits at
+    PCLK / (CPSDVSR x [SCR+1]).
+
+- address: 0x001C:2
+  type: interrupt-flag
+  interrupt: rx_half_full
+  name: rxmis
+  brief: Rx FIFO half-full masked interrupt status.
+  doc: |
+    This bit is 1 if the Rx FIFO is at least half full, and this interrupt is
+    enabled.
+
+- address: 0x001C:3
+  type: interrupt-flag
+  interrupt: tx_half_empty
+  name: txmis
+  brief: Tx FIFO half-empty masked interrupt status.
+  doc: |
+    This bit is 1 if the Tx FIFO is at least half empty, and this interrupt is
+    enabled.
+
+- register-name: ICR
+  register-brief: SSP Interrupt Clear Register.
+  register-doc: |
+    Software can write one or more one(s) to this write-only register, to clear
+    the corresponding interrupt condition(s) in the SSP controller. Note that
+    the other two interrupt conditions can be cleared by writing or reading the
+    appropriate FIFO, or disabled by clearing the corresponding bit in IMSC.
+
+  address: 0x0020:0
+  type: interrupt-flag-cow
+  read: disabled
+  interrupt: rx_overrun
+  name: roric
+  brief: Receive overrun interrupt clear.
+  doc: |
+    Writing a 1 to this bit clears the “frame was received when Rx FIFO was
+    full” interrupt.
+
+- address: 0x0020:1
+  type: interrupt-flag-cow
+  read: disabled
+  interrupt: rx_timeout
+  name: rtic
+  brief: Receive timeout interrupt clear.
+  doc: |
+    Writing a 1 to this bit clears the Rx FIFO was not empty and has not been
+    read-bit for a time-out period interrupt. The time-out period is the same
+    for master and slave modes and is determined by the SSP bit rate: 32 bits
+    at PCLK / (CPSDVSR x [SCR+1]).

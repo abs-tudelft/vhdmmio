@@ -90,6 +90,7 @@ class TemplateEngine:
         eval()-based directives."""
         variables = self._variables.copy()
         variables['defined'] = lambda x: bool(self._blocks.get(x, []))
+        variables['re'] = re
         return variables
 
     def append_block(self, key, code, *args):

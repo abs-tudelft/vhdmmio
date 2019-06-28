@@ -44,7 +44,8 @@ class InterruptField(FieldLogic):
             'raw',          # Status-only view of the raw interrupt requests.
             'enable',       # Connects to the enable register (whether requests are passed through).
             'flag',         # Connects to the flag register (whether the interrupt is pending).
-            'unmask'])      # Connects to the unmask register (whether flags are passed through).
+            'unmask',       # Connects to the unmask register (whether flags are passed through).
+            'masked'])      # Status-only view of the flag register masked by the unmask register.
 
         # Configures the read behavior of the field.
         self._read = choice(dictionary, 'read', [
@@ -69,6 +70,9 @@ class InterruptField(FieldLogic):
 
         if self._function == 'raw' and self._write != 'disabled':
             raise ValueError('raw interrupt status can not be written')
+
+        if self._function == 'masked' and self._write != 'disabled':
+            raise ValueError('masked interrupt status can not be written')
 
         if self._read == 'clear' and self._function != 'flag':
             raise ValueError('clear-on-read is only sensible for flag fields')
@@ -173,11 +177,12 @@ class InterruptField(FieldLogic):
         tple = TemplateEngine()
         tple['l'] = self
         tple['v'] = {
-            'raw':    'i_req',
-            'enable': 'i_enab',
-            'flag':   'i_flag',
-            'unmask': 'i_umsk',
-        }[self.function] + '($i$ + %d)' % self.offset
+            'raw':    'i_req{0}',
+            'enable': 'i_enab{0}',
+            'flag':   'i_flag{0}',
+            'unmask': 'i_umsk{0}',
+            'masked': '(i_flag{0} and i_umsk{0})',
+        }[self.function].format('($i + {0} if isinstance(i, int) else "%s + {0}" % i$)'.format(self.offset))
 
         # Ignore some variables when expanding this template; they will be
         # expanded by the add_field_*_logic() functions.
@@ -294,9 +299,22 @@ class InterruptUnmaskField(InterruptField):
 
 @field_logic('interrupt-status')
 class InterruptStatusField(InterruptField):
+    """Field that allows the masked interrupt flag to be read."""
+
+    def __init__(self, field_descriptor, dictionary):
+        override(dictionary, {
+            'function': 'masked',
+            'read':     'enabled',
+            'write':    'disabled',
+        })
+
+        super().__init__(field_descriptor, dictionary)
+
+@field_logic('interrupt-raw')
+class InterruptRawField(InterruptField):
     """Field that allows the raw, incoming interrupt status to be read. Note
     that normally you want to read the flag register instead; use
-    interrupt-flag for that."""
+    interrupt-flag and/or interrupt-status for that."""
 
     def __init__(self, field_descriptor, dictionary):
         override(dictionary, {
