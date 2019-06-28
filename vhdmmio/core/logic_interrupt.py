@@ -182,7 +182,9 @@ class InterruptField(FieldLogic):
             'flag':   'i_flag{0}',
             'unmask': 'i_umsk{0}',
             'masked': '(i_flag{0} and i_umsk{0})',
-        }[self.function].format('($i + {0} if isinstance(i, int) else "%s + {0}" % i$)'.format(self.offset))
+        }[self.function].format(
+            '($i + {0} if isinstance(i, int) else "%s + {0}" % i$)'
+            .format(self.offset))
 
         # Ignore some variables when expanding this template; they will be
         # expanded by the add_field_*_logic() functions.

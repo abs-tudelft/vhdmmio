@@ -53,8 +53,25 @@ class RegisterFile:
                 self._interrupt_count += 1 if interrupt.width is None else interrupt.width
 
             # Read the fields.
-            self._field_descriptors = tuple((
-                FieldDescriptor.from_dict(self, d) for d in kwargs.pop('fields', [])))
+            field_descriptors = []
+            def merge_dict(dictionary, prototype):
+                for key, proto_value in prototype.items():
+                    if isinstance(proto_value, dict):
+                        if isinstance(dictionary.get(key, None), dict):
+                            merge_dict(dictionary[key], proto_value)
+                            continue
+                    dictionary[key] = proto_value
+            def process_field(dictionary, prototype):
+                subfields = dictionary.pop('subfields', None)
+                merge_dict(dictionary, prototype)
+                if subfields is None:
+                    field_descriptors.append(FieldDescriptor.from_dict(self, dictionary))
+                    return
+                for subfield in subfields:
+                    process_field(subfield, dictionary)
+            for dictionary in kwargs.pop('fields', []):
+                process_field(dictionary, {})
+            self._field_descriptors = tuple(field_descriptors)
 
             # Connect interrupt control fields to interrupts.
             for field_descriptor in self._field_descriptors:

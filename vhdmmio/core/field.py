@@ -20,12 +20,15 @@ class FieldDescriptor:
         try:
 
             # Parse address.
+            base = kwargs.pop('base', 0)
             address = kwargs.pop('address', None)
             if isinstance(address, list):
                 self._field_repeat = None
                 self._stride = None
                 self._field_stride = None
-                self._bitranges = [BitRange.from_spec(regfile.bus_width, spec) for spec in address]
+                self._bitranges = [
+                    BitRange.from_spec(regfile.bus_width, spec).move(base)
+                    for spec in address]
                 if not self._bitranges:
                     raise ValueError('at least one address must be specified')
                 if any(key in kwargs for key in [
@@ -38,7 +41,7 @@ class FieldDescriptor:
                 self._vector_count = len(self._bitranges)
 
             elif isinstance(address, (str, int)):
-                base = BitRange.from_spec(regfile.bus_width, address)
+                base = BitRange.from_spec(regfile.bus_width, address).move(base)
                 if 'repeat' in kwargs:
                     repeat = int(kwargs.pop('repeat', 1))
                     if repeat < 1:
