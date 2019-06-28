@@ -35,7 +35,7 @@ def switches(dictionary, key, values):
         if switch:
             switch_values.add(value)
 
-    return switch_values
+    return frozenset(switch_values)
 
 def override(dictionary, overrides):
     """Sets key-value pairs in `dictionary` based on `overrides`. Throws an

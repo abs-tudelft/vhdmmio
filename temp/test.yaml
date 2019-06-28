@@ -8,7 +8,9 @@ meta:
     the LPC1313 microcontroller (NXP UM10375) to serve as a real-world example
     of a register file description.
 
-bus-width: 32
+features:
+  bus-width: 32
+  optimize: yes
 
 interface:
   port-group: no

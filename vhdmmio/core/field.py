@@ -4,6 +4,7 @@ from .metadata import Metadata, ExpandedMetadata
 from .bitrange import BitRange
 from .register import Register
 from .logic import FieldLogic
+from .utils import switches
 from ..vhdl.interface import InterfaceOptions
 
 class FieldDescriptor:
@@ -88,6 +89,43 @@ class FieldDescriptor:
             else:
                 self._reg_meta = None
 
+            # Parse access privilege information.
+            def parse_deny(key):
+                deny = switches(kwargs, key, [
+                    'user',         # Deny access for unprivileged masters.
+                    'super',        # Deny access for privileged masters.
+                    'secure',       # Deny access for secure masters.
+                    'unsecure',     # Deny access for unsecure masters.
+                    'data',         # Deny data accesses.
+                    'instruction']) # Deny instruction accesses.)
+                if 'super' in deny and 'user' in deny:
+                    raise ValueError('cannot deny accesses from both user and superuser')
+                if 'secure' in deny and 'unsecure' in deny:
+                    raise ValueError('cannot deny both secure and unsecure accesses')
+                if 'data' in deny and 'instruction' in deny:
+                    raise ValueError('cannot deny both data and instruction accesses')
+                if 'user' in deny:
+                    prot = '1'
+                elif 'super' in deny:
+                    prot = '0'
+                else:
+                    prot = '-'
+                if 'secure' in deny:
+                    prot += '1'
+                elif 'unsecure' in deny:
+                    prot += '0'
+                else:
+                    prot += '-'
+                if 'data' in deny:
+                    prot += '1'
+                elif 'instruction' in deny:
+                    prot += '0'
+                else:
+                    prot += '-'
+                return deny, prot
+            self._deny_read, self._read_prot = parse_deny('read_deny')
+            self._deny_write, self._write_prot = parse_deny('write_deny')
+
             # Parse type information.
             self._logic = FieldLogic.from_dict(self, kwargs)
 
@@ -148,6 +186,12 @@ class FieldDescriptor:
         if self._reg_meta is not None:
             self._reg_meta.to_dict(dictionary, 'register-')
 
+        # Write privilege information.
+        if self._deny_read:
+            dictionary['deny-read'] = list(self._deny_read)
+        if self._deny_write:
+            dictionary['deny-write'] = list(self._deny_write)
+
         # Write type information.
         self._logic.to_dict(dictionary)
 
@@ -179,6 +223,30 @@ class FieldDescriptor:
         """Number of fields described by this descriptor if it describes an
         array, or `None` if this is a scalar field."""
         return self._vector_count
+
+    @property
+    def deny_read(self):
+        """Returns a frozen set of types of masters that will be denied read
+        access to the register (based on `prot`)."""
+        return self._deny_read
+
+    @property
+    def read_prot(self):
+        """Returns the bitstring that `ar_prot` must match for a read access to
+        be allowed."""
+        return self._read_prot
+
+    @property
+    def deny_write(self):
+        """Returns a frozen set of types of masters that will be denied write
+        access to the register (based on `prot`)."""
+        return self._deny_write
+
+    @property
+    def write_prot(self):
+        """Returns the bitstring that `aw_prot` must match for a write access
+        to be allowed."""
+        return self._write_prot
 
     @property
     def logic(self):

@@ -506,7 +506,7 @@ class PrimitiveField(FieldLogic):
     @property
     def ctrl(self):
         """Returns the set of ctrl options."""
-        return set(self._ctrl)
+        return self._ctrl
 
     def get_ctrl(self, key):
         """Returns whether the given key is part of the ctrl options."""

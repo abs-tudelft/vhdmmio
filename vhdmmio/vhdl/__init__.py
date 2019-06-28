@@ -9,7 +9,7 @@ from .types import Record, Array, SizedArray, Object, gather_defs
 from .interface import Interface
 
 _BUS_REQ_FIELD_TEMPLATE = """
-@ ${'r': 'Read', 'w': 'Write'}[dir]$ logic for $desc$
+$block HANDLE
 $if defined('LOOKAHEAD')
 if $dir$_lreq then
 $ LOOKAHEAD
@@ -18,6 +18,16 @@ $endif
 $if defined('NORMAL')
 if $dir$_req then
 $ NORMAL
+end if;
+$endif
+$endblock
+
+@ ${'r': 'Read', 'w': 'Write'}[dir]$ logic for $desc$
+$if prot == '---'
+$HANDLE
+$else
+if std_match($dir$_prot, "$prot$") then
+$ HANDLE
 end if;
 $endif
 """
@@ -150,10 +160,10 @@ class Generator:
         self._interface = Interface(regfile.meta.name, regfile.iface_opts)
 
         # Address decoder builders.
-        self._read_decoder = _Decoder('r_addr', 32)
-        self._read_tag_decoder = _Decoder('r_rtag', regfile.read_tag_width)
-        self._write_decoder = _Decoder('w_addr', 32)
-        self._write_tag_decoder = _Decoder('w_rtag', regfile.write_tag_width)
+        self._read_decoder = _Decoder('r_addr', 32, optimize=regfile.optimize)
+        self._read_tag_decoder = _Decoder('r_rtag', regfile.read_tag_width, optimize=True)
+        self._write_decoder = _Decoder('w_addr', 32, optimize=regfile.optimize)
+        self._write_tag_decoder = _Decoder('w_rtag', regfile.write_tag_width, optimize=True)
 
         # Generate code for interrupts.
         for interrupt in regfile.interrupts:
@@ -395,6 +405,10 @@ class Generator:
             tple['w_strobe'] = 'w_hstb(%s)' % rnge
             tple['desc'] = desc
             tple['dir'] = direction
+            if direction == 'r':
+                tple['prot'] = field_descriptor.read_prot
+            else:
+                tple['prot'] = field_descriptor.write_prot
 
             # Add the normal and lookahead blocks.
             if normal is not None:

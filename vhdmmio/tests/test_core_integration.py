@@ -124,22 +124,22 @@ class TestCoreIntegration(TestCase):
 
         self.assertEquals(self._test_valid({
             'meta': {'name': 'test'},
-            'bus-width': 32
+            'features': {'bus-width': 32}
         }).bus_width, 32)
 
         self.assertEquals(self._test_valid({
             'meta': {'name': 'test'},
-            'bus-width': 64
+            'features': {'bus-width': 64}
         }).bus_width, 64)
 
         self._test_invalid({
             'meta': {'name': 'test'},
-            'bus-width': 33
+            'features': {'bus-width': 33}
         }, ValueError, 'bus-width')
 
         self._test_invalid({
             'meta': {'name': 'test'},
-            'bus-width': 'hello'
+            'features': {'bus-width': 'hello'}
         }, ValueError)
 
     def test_repetition(self):

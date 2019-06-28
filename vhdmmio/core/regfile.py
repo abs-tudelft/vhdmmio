@@ -23,18 +23,31 @@ class RegisterFile:
 
         try:
 
+            # Parse features subdict.
+            features = kwargs.pop('features', {}).copy()
+
             # Parse bus width.
-            self._bus_width = int(kwargs.pop('bus_width', 32))
+            self._bus_width = int(features.pop('bus-width', 32))
             if self._bus_width not in (32, 64):
                 raise ValueError('bus-width must be 32 or 64')
 
             # Parse maximum outstanding request count.
-            max_outstanding = int(kwargs.pop('max_outstanding', 16))
-            if max_outstanding < 2:
+            self._max_outstanding = int(features.pop('max-outstanding', 16))
+            if self._max_outstanding < 2:
                 raise ValueError('maximum number of outstanding requests must be at least 2')
-            self._tag_depth_log2 = int.bit_length(max_outstanding) - 1
-            if max_outstanding != 2**self._tag_depth_log2:
+            self._tag_depth_log2 = int.bit_length(self._max_outstanding) - 1
+            if self._max_outstanding != 2**self._tag_depth_log2:
                 raise ValueError('maximum number of outstanding requests must be a power of 2')
+
+            # Parse security flag.
+            self._insecure = bool(features.pop('insecure', False))
+
+            # Parse address decoder optimization flag.
+            self._optimize = bool(features.pop('optimize', False))
+
+            # Check for unknown keys.
+            for key in features:
+                raise ValueError('unexpected key in register file features: %s' % key)
 
             # Parse interface options.
             iface_opts = kwargs.pop('interface', None)
@@ -116,6 +129,18 @@ class RegisterFile:
                     register.assign_read_tag(write_tag_format.format(self._write_tag_count))
                     self._write_tag_count += 1
 
+            # Determine whether any fields are sensitive to prot.
+            self._secure = False
+            for field_descriptor in self._field_descriptors:
+                if field_descriptor.read_prot != '---':
+                    self._secure = True
+                    break
+                if field_descriptor.write_prot != '---':
+                    self._secure = True
+                    break
+            if self._insecure:
+                self._secure = False
+
             # Check for overlapping registers. Note that this assumes that the
             # registers are ordered by address, which we do in the one-liner above.
             min_read = 0
@@ -172,6 +197,19 @@ class RegisterFile:
         # Write metadata.
         dictionary['meta'] = {}
         self._meta.to_dict(dictionary['meta'])
+
+        # Write features.
+        features = {}
+        if self._bus_width != 32:
+            features['bus-width'] = self._bus_width
+        if self._max_outstanding != 16:
+            features['max-outstanding'] = self._max_outstanding
+        if self._insecure:
+            features['insecure'] = True
+        if self._optimize:
+            features['optimize'] = True
+        if features:
+            dictionary['features'] = features
 
         # Write interface options.
         iface = self._iface_opts.to_dict()
@@ -319,7 +357,12 @@ class RegisterFile:
     def secure(self):
         """Indicates whether this register file implements security features
         based on the AXI4-lite `prot` field."""
-        return False # TODO
+        return self._secure
+
+    @property
+    def optimize(self):
+        """Indicates whether the address decoder can be optimized."""
+        return self._optimize
 
     @property
     def field_descriptors(self):

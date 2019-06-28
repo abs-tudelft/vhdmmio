@@ -18,7 +18,8 @@ meta:
     This memory map includes all standard types of primitive fields for
     vhdmmio testing purposes.
 
-bus-width: 32
+features:
+  bus-width: 32
 
 interface:
   port-group: reg
