@@ -79,6 +79,12 @@ class TemplateEngine:
         """Iterates over the variables defined within the expression engine."""
         return iter(self._variables)
 
+    def passthrough(self, *names):
+        """Pass expansion of the given variable names on to the next template
+        by assigning them to `$<name>$`."""
+        for name in names:
+            self[name] = '$%s$' % name
+
     def _get_scope(self):
         """Returns the dictionary of variables that should be available for
         eval()-based directives."""

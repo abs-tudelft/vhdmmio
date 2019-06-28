@@ -234,7 +234,7 @@ $if r.interrupt_count > 0
     variable i_req  : std_logic_vector($r.interrupt_count - 1$ downto 0) := "$'0' * r.interrupt_count$";
 
 $endif
-$   FIELD_VARIABLES
+$   DECLARATIONS
   begin
     if rising_edge(clk) then
 
@@ -270,7 +270,9 @@ $endif
       w_ack   := false;
       r_ack   := false;
       r_data  := (others => '0');
+$if r.interrupt_count > 0
       i_req   := (others => '0');
+$endif
 
       -------------------------------------------------------------------------
       -- Finish up the previous cycle

@@ -24,14 +24,14 @@ $endif
 
 _BUS_REQ_BOILERPLATE_TEMPLATE = """
 $block BEFORE_READ
+$endblock
+
+$block AFTER_READ
 $if cur_cnt > 1
 @ Read logic for block $blk$ of $desc$
 $else
 @ Read logic for $desc$
 $endif
-$endblock
-
-$block AFTER_READ
 if r_req then
   r_data := r_hold($bw*blk + bw-1$ downto $bw*blk$);
 $if cur_cnt > 1
@@ -366,60 +366,70 @@ class Generator:
             block = tple.apply_str_to_str(template, postprocess=False)
             self._tple.append_block('FIELD_LOGIC_AFTER', block)
 
-    def _add_field_bus_logic(self, field, direction, normal, lookahead, deferred):
+    def _add_field_bus_logic(self, field_descriptor, direction, normal, lookahead, deferred):
         """Implements `add_field_read_logic()` and `add_field_write_logic()`.
         They are distinguished through `direction`, which must be `'r'` or
         `'w'`."""
+        for index, field in enumerate(field_descriptor.fields):
 
-        # Determine the address that the regular field logic should be
-        # activated for.
-        register = field.register
-        address = register.address
-        if direction == 'w':
-            address += (1 << register.block_size) * (register.block_count - 1)
-        mask = (1 << register.block_size) - 1
+            # Determine the address that the regular field logic should be
+            # activated for.
+            register = field.register
+            address = register.address
+            if direction == 'w':
+                address += (1 << register.block_size) * (register.block_count - 1)
+            mask = (1 << register.block_size) - 1
 
-        # Describe the field for use in comments.
-        desc = self._describe_field(field)
+            # Describe the field for use in comments.
+            desc = self._describe_field(field)
 
-        # Add the normal and lookahead blocks.
-        tple = TemplateEngine()
-        tple['desc'] = desc
-        tple['dir'] = direction
-        if normal is not None:
-            tple.append_block('NORMAL', '@ Access logic.', normal)
-        if lookahead is not None:
-            tple.append_block('LOOKAHEAD', '@ Lookahead logic.', lookahead)
-        block = tple.apply_str_to_str(_BUS_REQ_FIELD_TEMPLATE, postprocess=False)
-        decoder = {'r': self._read_decoder, 'w': self._write_decoder}[direction]
-        decoder.add_action(block, address, mask)
+            # Create a template engine for processing the incoming blocks.
+            tple = TemplateEngine()
+            tple['i'] = index
+            if field.bitrange.is_vector():
+                rnge = '%d downto %d' % (field.bitrange.high_bit, field.bitrange.low_bit)
+            else:
+                rnge = '%d' % field.bitrange.low_bit
+            tple['r_data'] = 'r_hold(%s)' % rnge
+            tple['w_data'] = 'w_hold(%s)' % rnge
+            tple['w_strobe'] = 'w_hstb(%s)' % rnge
+            tple['desc'] = desc
+            tple['dir'] = direction
 
-        # Add the deferred block.
-        if deferred is not None:
-            tag = {'r': register.read_tag, 'w': register.write_tag}[direction]
-            assert tag is not None and tag.startswith('"') and tag.endswith('"')
-            tag = int(tag[1:-1], 2)
-            decoder = {'r': self._read_tag_decoder, 'w': self._write_tag_decoder}[direction]
-            decoder.add_action(
-                '@ Deferred %s logic for %s\n%s' % (
-                    {'r': 'read', 'w': 'write'}[direction],
-                    desc, deferred),
-                tag)
+            # Add the normal and lookahead blocks.
+            if normal is not None:
+                tple.append_block('NORMAL', '@ Regular access logic.', normal)
+            if lookahead is not None:
+                tple.append_block('LOOKAHEAD', '@ Lookahead logic.', lookahead)
+            block = tple.apply_str_to_str(_BUS_REQ_FIELD_TEMPLATE, postprocess=False)
+            decoder = {'r': self._read_decoder, 'w': self._write_decoder}[direction]
+            decoder.add_action(block, address, mask)
 
-    def add_field_read_logic(self, field, normal, lookahead=None, deferred=None):
+            # Add the deferred block.
+            if deferred is not None:
+                tag = {'r': register.read_tag, 'w': register.write_tag}[direction]
+                assert tag is not None and tag.startswith('"') and tag.endswith('"')
+                tag = int(tag[1:-1], 2)
+                decoder = {'r': self._read_tag_decoder, 'w': self._write_tag_decoder}[direction]
+                decoder.add_action(
+                    '@ Deferred %s logic for %s\n%s' % (
+                        {'r': 'read', 'w': 'write'}[direction],
+                        desc, tple.apply_str_to_str(deferred, postprocess=False)),
+                    tag)
+
+    def add_field_read_logic(self, field_descriptor, normal, lookahead=None, deferred=None):
         """Registers code blocks for handling bus reads for the given field.
-        Note that this function expects a `Field`, not a `FieldDescriptor`. The
-        generator ensures that the generated code is only executed when the
-        field is addressed, enabled, and the bus logic is performing the
-        following actions:
+        The blocks can make use of the template variable `$i$` for getting the
+        index of the field that is being expanded. The generator ensures that
+        the generated code is only executed when the field is addressed,
+        enabled, and the bus logic is performing the following actions:
 
          - `normal`: the bus is currently accessing the field, and the bus
            response buffers are ready to accept the read result. `r_prot` holds
            the protection flags for the read. The block can do the following
            things to interact with the bus:
 
-            - Set `r_ack` to `true` and the bits in `r_hold` designated by the
-              field's bitrange to the read result to acknowledge the request.
+            - Set `r_ack` to `true` and `$r_data$` to the read result.
             - Set `r_nack` to `true` to respond with a slave error.
             - Set `r_block` to `true` to stall, IF the `can_block` flag was
               set for the field's read capabilities. In this case, the block
@@ -458,8 +468,8 @@ class Generator:
            protection flags if it needs them. The block can do the following
            things to interact with the bus:
 
-            - Set `r_ack` to `true` and the bits in `r_hold` designated by the
-              field's bitrange to the read result to complete the transfer.
+            - Set `r_ack` to `true` and `$r_data$` to the read result to
+              complete the transfer.
             - Set `r_nack` to `true` to respond with a slave error.
             - Set `r_block` to `true` to stall, IF the `can_block` flag was
               set for the field's read capabilities. In this case, the block
@@ -468,31 +478,34 @@ class Generator:
               are no other fields in the addressed register, a decode error is
               returned.
         """
-        self._add_field_bus_logic(field, 'r', normal, lookahead, deferred)
+        self._add_field_bus_logic(field_descriptor, 'r', normal, lookahead, deferred)
 
-    def add_field_write_logic(self, field, normal, lookahead=None, deferred=None):
+    def add_field_write_logic(self, field_descriptor, normal, lookahead=None, deferred=None):
         """Registers code blocks for handling bus writes for the given
-        field. Note that this function expects a `Field`, not a
-        `FieldDescriptor`. The generator ensures that the generated code is
-        only executed when the register that the field belongs to is addressed,
-        enabled, and the bus logic is performing the following actions:
+        field. The blocks can make use of the template variable `$i$` for
+        getting the index of the field that is being expanded. The generator
+        ensures that the generated code is only executed when the register
+        that the field belongs to is addressed, enabled, and the bus logic is
+        performing the following actions:
 
          - `normal`: the bus is currently writing to the register that the
            field belongs to, and the bus response buffers are ready to accept
-           the write result. `w_hold` and `w_hstb` hold the data that is being
-           written to the register; the field should concern itself only with
-           the bits in these variables designated by the field's bitrange. The
-           variables carry the following significance:
+           the write result. `$w_data$` and `$w_strobe$` hold the data that is
+           being written. Both variables are `std_logic` or an appropriately
+           sized `std_logic_vector` for the field. They carry the following
+           significance:
 
-            - `w_hstb` low, `w_hold` low: bit was not written/was masked out.
-            - `w_hstb` high, `w_hold` low: bit was written zero.
-            - `w_hstb` high, `w_hold` high: bit was written one.
+            - `$w_strobe$` low, `$w_data$` low: bit was not written/was masked
+              out.
+            - `$w_strobe$` high, `$w_data$` low: bit was written zero.
+            - `$w_strobe$` high, `$w_data$` high: bit was written one.
 
-           Note that it is possible that none of the bits belonging to the
-           field were actually written; if the field wishes to honor the strobe
-           bits, it must do so manually. `w_prot` furthermore holds the
-           protection flags for the write. The block can do the following
-           things to interact with the bus:
+           `$w_strobe$` and `$w_data$` high is illegal; one can assume that the
+           data for a masked bit is always zero. Note that it is possible that
+           none of the bits belonging to the field were actually written; if
+           the field wishes to honor the strobe bits, it must do so manually.
+           `w_prot` furthermore holds the protection flags for the write. The
+           block can do the following things to interact with the bus:
 
             - Set `w_ack` to `true` to acknowledge the request.
             - Set `w_nack` to `true` to respond with a slave error.
@@ -512,7 +525,7 @@ class Generator:
            response logic is not ready for the result yet. This can happen
            because the response channels are still blocked or because this or
            another field deferred a previous request. It can be useful for
-           fields that have a long access time. `w_hold`, `w_hstb`, and
+           fields that have a long access time. `$w_data$`, `$w_strobe$`, and
            `w_prot` carry the same significance that they do for the `normal`
            block. The block can do the following things to interact with the
            bus:
@@ -543,7 +556,7 @@ class Generator:
               are no other fields in the addressed register, a decode error is
               returned.
         """
-        self._add_field_bus_logic(field, 'w', normal, lookahead, deferred)
+        self._add_field_bus_logic(field_descriptor, 'w', normal, lookahead, deferred)
 
     def _add_register_boilerplate(self, register, position):
         """Adds the boilerplate bus logic for the given register. `position`

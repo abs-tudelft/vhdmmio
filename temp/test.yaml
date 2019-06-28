@@ -160,11 +160,13 @@ fields:
   mnemonic: FOO
   name: foo
   repeat: 3
+  ctrl-reset: yes
 
 - register-name: TESTB
   register-brief: Multiword register test.
 
   address: 0x0018:63..0
-  type: control
+  type: stream-to-mmio
   mnemonic: TEST
   name: testb
+  ctrl-reset: yes

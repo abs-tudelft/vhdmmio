@@ -270,12 +270,20 @@ class RegisterFile:
 
     def get_max_logical_read_width(self):
         """Returns the width in bits of the largest readable register."""
-        n_blocks = max((r.block_count for r in self._registers if r.read_caps is not None))
+        n_blocks = max((
+            r.block_count
+            for r in self._registers
+            if r.read_caps is not None
+            ), default=1)
         return self._bus_width * n_blocks
 
     def get_max_logical_write_width(self):
         """Returns the width in bits of the largest writable register."""
-        n_blocks = max((r.block_count for r in self._registers if r.write_caps is not None))
+        n_blocks = max((
+            r.block_count
+            for r in self._registers
+            if r.write_caps is not None
+            ), default=1)
         return self._bus_width * n_blocks
 
     @property

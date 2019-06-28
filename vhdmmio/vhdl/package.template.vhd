@@ -19,10 +19,6 @@ $if defined('GENERICS')
 
 $     GENERICS
 
-      -- This is just here to make generation easier; prevents errors when no
-      -- generics are needed.
-      SENTINEL_DO_NOT_USE : boolean := false
-
     );
 $endif
     port (

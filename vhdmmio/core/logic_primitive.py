@@ -5,6 +5,302 @@ from .logic_registry import field_logic
 from .accesscaps import AccessCapabilities
 from .utils import choice, switches, override, default
 from ..template import TemplateEngine
+from ..vhdl.types import std_logic, std_logic_vector, Record, Array, gather_defs
+
+_LOGIC_PRE = """
+$if l.get_ctrl('invalidate')
+@ Handle invalidation control input.
+if $invalidate[i]$ = '1' then
+$if vec
+  $state[i].d$@:= (others => '0');
+$else
+  $state[i].d$@:= '0';
+$endif
+  $state[i].v$@:= '0';
+end if;
+$endif
+
+$if l.get_ctrl('clear')
+@ Handle clear control input.
+if $clear[i]$ = '1' then
+$if vec
+  $state[i].d$@:= (others => '0');
+$else
+  $state[i].d$@:= '0';
+$endif
+end if;
+$endif
+
+$if l.after_bus_write == 'invalidate'
+@ Handle post-write invalidation one cycle after the write occurs.
+if $state[i].inval$ = '1' then
+$if vec
+  $state[i].d$@:= (others => '0');
+$else
+  $state[i].d$@:= '0';
+$endif
+  $state[i].v$@:= '0';
+end if;
+$state[i].inval$@:= '0';
+$endif
+"""
+
+_LOGIC_READ = """
+$block AFTER_READ
+$if l.after_bus_read != 'nothing'
+@ Handle post-read operation: $l.after_bus_read$.
+$endif
+$if l.after_bus_read in ['invalidate', 'clear']
+$if vec
+$state[i].d$@:= (others => '0');
+$else
+$state[i].d$@:= '0';
+$endif
+$endif
+$if l.after_bus_read == 'invalidate'
+$state[i].v$@:= '0';
+$endif
+$if l.after_bus_read == 'increment'
+$if vec
+$state[i].d$@:= std_logic_vector(unsigned($state[i].d$) + 1);
+$else
+$state[i].d$@:= not $state[i].d$;
+$endif
+$endif
+$if l.after_bus_read == 'decrement'
+$if vec
+$state[i].d$@:= std_logic_vector(unsigned($state[i].d$) - 1);
+$else
+$state[i].d$@:= not $state[i].d$;
+$endif
+$endif
+$endblock
+
+$if l.bus_read != 'disabled'
+@ Read mode: $l.bus_read$.
+$endif
+$if l.bus_read == 'error'
+r_nack@:= true;
+$endif
+$if l.bus_read in ['enabled', 'valid-wait', 'valid-only']
+$r_data$@:= $state[i].d$;
+$if l.bus_read in ['valid-wait', 'valid-only']
+if $state[i].v$ = '1' then
+  r_ack@:= true;
+$ AFTER_READ
+else
+$if l.bus_read in ['valid-wait']
+  r_block@:= true;
+$else
+  r_nack@:= true;
+$endif
+end if;
+$else
+r_ack@:= true;
+$AFTER_READ
+$endif
+$endif
+"""
+
+_LOGIC_WRITE = """
+$block AFTER_WRITE
+$if l.after_bus_write != 'nothing'
+@ Handle post-write operation: $l.after_bus_write$.
+$endif
+$if l.after_bus_write == 'validate'
+$state[i].v$@:= '1';
+$endif
+$if l.after_bus_write == 'invalidate'
+$state[i].v$@:= '1';
+$state[i].inval$@:= '1';
+$endif
+$endblock
+
+$if l.bus_write != 'disabled'
+@ Write mode: $l.bus_write$.
+$endif
+$if l.bus_write == 'error'
+w_nack@:= true;
+$endif
+$if l.bus_write == 'invalid-wait'
+if $state[i].v$ = '1' then
+  w_block@:= true;
+else
+  $state[i].d$@:= $w_data$;
+  w_ack@:= true;
+$ AFTER_WRITE
+end if;
+$endif
+$if l.bus_write == 'invalid-only'
+if $state[i].v$ = '1' then
+  w_nack@:= true;
+else
+  $state[i].d$@:= $w_data$;
+  w_ack@:= true;
+$ AFTER_WRITE
+end if;
+$endif
+$if l.bus_write == 'enabled'
+$state[i].d$@:= $w_data$;
+w_ack@:= true;
+$AFTER_WRITE
+$endif
+$if l.bus_write == 'masked'
+$state[i].d$@:= ($state[i].d$ and not $w_strobe$)@or $w_data$;
+w_ack@:= true;
+$AFTER_WRITE
+$endif
+$if l.bus_write == 'accumulate'
+$if vec
+$state[i].d$@:= std_logic_vector(unsigned($state[i].d$)@+ unsigned($w_data$));
+$else
+$state[i].d$@:= $state[i].d$@xor $w_data$;
+$endif
+w_ack@:= true;
+$AFTER_WRITE
+$endif
+$if l.bus_write == 'subtract'
+$if vec
+$state[i].d$@:= std_logic_vector(unsigned($state[i].d$)@- unsigned($w_data$));
+$else
+$state[i].d$@:= $state[i].d$@xor $w_data$;
+$endif
+w_ack@:= true;
+$AFTER_WRITE
+$endif
+$if l.bus_write == 'bit-set'
+$state[i].d$@:= $state[i].d$@or $w_data$;
+w_ack@:= true;
+$AFTER_WRITE
+$endif
+$if l.bus_write == 'bit-clear'
+$state[i].d$@:= $state[i].d$@and not $w_data$;
+w_ack@:= true;
+$AFTER_WRITE
+$endif
+$if l.bus_write == 'bit-toggle'
+$state[i].d$@:= $state[i].d$@xor $w_data$;
+w_ack@:= true;
+$AFTER_WRITE
+$endif
+"""
+
+_LOGIC_POST = """
+$if l.hw_write not in 'disabled'
+@ Handle hardware write for field $l.field_descriptor.meta.name$: $l.hw_write$.
+$if l.after_hw_write != 'nothing'
+@ Also handle post-write operation: $l.after_hw_write$.
+$endif
+$if l.hw_write == 'status'
+$state[i].d$@:= $reset_data if isinstance(reset_data, str) else reset_data[i]$;
+$state[i].v$@:= '1';
+$else
+$if l.hw_write == 'invalid-only'
+if $write_enable[i]$ = '1' and $state[i].v$ = '0' then
+$else
+if $write_enable[i]$ = '1' then
+$endif
+$if l.hw_write in ['enabled', 'invalid-only']
+  $state[i].d$@:= $write_data[i]$;
+$endif
+$if l.hw_write == 'accumulate'
+$if vec
+  $state[i].d$@:= std_logic_vector(unsigned($state[i].d$)@+ unsigned($write_data[i]$));
+$else
+  $state[i].d$@:= $state[i].d$@xor $write_data[i]$;
+$endif
+$endif
+$if l.hw_write == 'subtract'
+$if vec
+  $state[i].d$@:= std_logic_vector(unsigned($state[i].d$)@- unsigned($write_data[i]$));
+$else
+  $state[i].d$@:= $state[i].d$@xor $write_data[i]$;
+$endif
+$endif
+$if l.hw_write == 'set'
+  $state[i].d$@:= $state[i].d$@or $write_data[i]$;
+$endif
+$if l.hw_write == 'reset'
+  $state[i].d$@:= $state[i].d$@and not $write_data[i]$;
+$endif
+$if l.hw_write == 'toggle'
+  $state[i].d$@:= $state[i].d$@xor $write_data[i]$;
+$endif
+$if l.after_hw_write == 'validate'
+  $state[i].v$@:= '1';
+$endif
+end if;
+$endif
+$endif
+
+$if l.get_ctrl('validate')
+@ Handle validation control input.
+if $validate[i]$ = '1' then
+  $state[i].v$@:= '1';
+end if;
+$endif
+
+$if l.get_ctrl('increment')
+@ Handle increment control input.
+if $increment[i]$ = '1' then
+$if vec
+  $state[i].d$@:= std_logic_vector(unsigned($state[i].d$) + 1);
+$else
+  $state[i].d$@:= not $state[i].d$;
+$endif
+end if;
+$endif
+
+$if l.get_ctrl('decrement')
+@ Handle decrement control input.
+if $decrement[i]$ = '1' then
+$if vec
+  $state[i].d$@:= std_logic_vector(unsigned($state[i].d$) - 1);
+$else
+  $state[i].d$@:= not $state[i].d$;
+$endif
+end if;
+$endif
+
+$if l.get_ctrl('bit_set')
+@ Handle bit set control input.
+$state[i].d$@:= $state[i].d$@or $bit_set[i]$;
+$endif
+
+$if l.get_ctrl('bit_clear')
+@ Handle bit clear control input.
+$state[i].d$@:= $state[i].d$@and not $bit_clear[i]$;
+$endif
+
+$if l.get_ctrl('bit_toggle')
+@ Handle bit toggle control input.
+$state[i].d$@:= $state[i].d$@and xor $bit_toggle[i]$;
+$endif
+
+$if l.hw_write != 'status'
+@ Handle reset for field $l.field_descriptor.meta.name$.
+$if l.get_ctrl('reset')
+@ This includes the optional per-field reset control signal.
+if reset = '1' or $reset[i]$ = '1' then
+$else
+if reset = '1' then
+$endif
+  $state[i].d$@:= $reset_data if isinstance(reset_data, str) else reset_data[i]$;
+  $state[i].v$@:= $reset_valid$;
+$if l.after_bus_write == 'invalidate'
+  $state[i].inval$@:= '0';
+$endif
+end if;
+$endif
+
+$if l.hw_read != 'disabled'
+@ Assign the read outputs for field $l.field_descriptor.meta.name$.
+$data[i]$ <= $state[i].d$;
+$if l.hw_read == 'enabled'
+$valid[i]$ <= $state[i].v$;
+$endif
+$endif
+"""
 
 @field_logic('primitive')
 class PrimitiveField(FieldLogic):
@@ -217,11 +513,15 @@ class PrimitiveField(FieldLogic):
         given `vhdl.Generator` object."""
 
         tple = TemplateEngine()
+        tple['l'] = self
+        tple['vec'] = self.field_descriptor.vector_width is not None
 
-        def add_input(name, count=None):
-            tple[name] = gen.add_field_port(self.field_descriptor, name, 'i', None, count)
-        def add_output(name, count=None):
-            tple[name] = gen.add_field_port(self.field_descriptor, name, 'o', None, count)
+        def add_input(name, width=None):
+            tple[name] = gen.add_field_port(self.field_descriptor, name, 'i', None, width)
+        def add_output(name, width=None):
+            tple[name] = gen.add_field_port(self.field_descriptor, name, 'o', None, width)
+        def add_generic(name, typ=None, width=None):
+            tple[name] = gen.add_field_generic(self.field_descriptor, name, typ, width)
 
         # Generate interface.
         if self.hw_write != 'disabled':
@@ -240,6 +540,70 @@ class PrimitiveField(FieldLogic):
             add_output('data', self.vector_width)
             if self.hw_read != 'simple':
                 add_output('valid')
+        if self.reset == 'generic':
+            add_generic('reset_data', None, self.vector_width)
+            tple['reset_valid'] = "'1'"
+        elif self.reset is None:
+            if self.vector_width is None:
+                tple['reset_data'] = "'0'"
+            else:
+                tple['reset_data'] = "(others => '0')"
+            tple['reset_valid'] = "'0'"
+        else:
+            if self.vector_width is None:
+                if self.reset:
+                    tple['reset_data'] = "'1'"
+                else:
+                    tple['reset_data'] = "'0'"
+            else:
+                fmt = ('"{:0%db}"' % self.vector_width)
+                tple['reset_data'] = fmt.format(self.reset & ((1 << self.vector_width) - 1))
+            tple['reset_valid'] = "'1'"
+
+        # Generate internal state.
+        state_name = 'f_%s_r' % self.field_descriptor.meta.name
+        state_record = Record(state_name)
+        if self.vector_width is not None:
+            state_record.append('d', std_logic_vector, self.vector_width)
+        else:
+            state_record.append('d', std_logic)
+        state_record.append('v', std_logic)
+        if self.after_bus_write == 'invalidate':
+            state_record.append('inval', std_logic)
+        state_array = Array(state_name, state_record)
+        count = 1
+        if self.vector_count is not None:
+            count = self.vector_count
+        state_decl, state_ob = state_array.make_variable(state_name, count)
+        tple['state'] = state_ob
+        state_defs = gather_defs(state_array)
+        state_defs.append(state_decl + ';')
+        gen.add_field_declarations(self.field_descriptor, private='\n'.join(state_defs))
+
+        # Ignore some variables when expanding this template; they will be
+        # expanded by the add_field_*_logic() functions.
+        tple.passthrough('i', 'r_data', 'w_data', 'w_strobe')
+
+        def expand(template):
+            expanded = tple.apply_str_to_str(template, postprocess=False)
+            if not expanded.strip():
+                expanded = None
+            return expanded
+
+        gen.add_field_interface_logic(
+            self.field_descriptor,
+            expand(_LOGIC_PRE),
+            expand(_LOGIC_POST))
+
+        if self.read_caps is not None:
+            gen.add_field_read_logic(
+                self.field_descriptor,
+                expand(_LOGIC_READ))
+
+        if self.write_caps is not None:
+            gen.add_field_write_logic(
+                self.field_descriptor,
+                expand(_LOGIC_WRITE))
 
 
 @field_logic('constant')
@@ -318,7 +682,7 @@ class LatchingField(PrimitiveField):
         })
 
         default(dictionary, {
-            'after-hw-write':   'validate'
+            'after_hw_write':   'validate'
         })
 
         super().__init__(field_descriptor, dictionary)
