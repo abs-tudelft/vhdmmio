@@ -56,6 +56,18 @@ class RegisterFile:
             self._field_descriptors = tuple((
                 FieldDescriptor.from_dict(self, d) for d in kwargs.pop('fields', [])))
 
+            # Connect interrupt control fields to interrupts.
+            for field_descriptor in self._field_descriptors:
+                if hasattr(field_descriptor.logic, 'irq_name'):
+                    irq_name = field_descriptor.logic.irq_name
+                    for interrupt in self._interrupts:
+                        if interrupt.meta.name == irq_name:
+                            field_descriptor.logic.interrupt = interrupt
+                            break
+                    else:
+                        raise ValueError('could not find interrupt named "%s" for field %s' % (
+                            irq_name, field_descriptor.meta.name))
+
             # Construct registers from the fields.
             reg_map = {}
             for field_descriptor in self._field_descriptors:

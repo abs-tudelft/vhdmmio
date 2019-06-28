@@ -116,9 +116,7 @@ $state[i].inval$@:= '1';
 $endif
 $endblock
 
-$if l.bus_write != 'disabled'
-@ Write mode: $l.bus_write$.
-$endif
+$block HANDLE_WRITE
 $if l.bus_write == 'error'
 w_nack@:= true;
 $endif
@@ -182,6 +180,18 @@ $if l.bus_write == 'bit-toggle'
 $state[i].d$@:= $state[i].d$@xor $w_data$;
 w_ack@:= true;
 $AFTER_WRITE
+$endif
+$endblock
+
+$if l.bus_write != 'disabled'
+@ Write mode: $l.bus_write$.
+$if l.get_ctrl('lock')
+if $lock[i]$ = '0' then
+$ HANDLE_WRITE
+end if;
+$else
+$HANDLE_WRITE
+$endif
 $endif
 """
 
@@ -374,6 +384,7 @@ class PrimitiveField(FieldLogic):
 
         # The following switches add an extra write port record.
         self._ctrl = switches(dictionary, 'ctrl', [
+            'lock',         # When asserted, disables the bus write logic.
             'validate',     # Adds a strobe signal that validates the register.
             'invalidate',   # Adds a strobe signal that invalidates the register.
             'clear',        # Adds a strobe signal that clears the register (sets value to 0).
@@ -528,7 +539,8 @@ class PrimitiveField(FieldLogic):
             add_input('write_data', self.vector_width)
             if self.hw_write != 'status':
                 add_input('write_enable')
-        ctrl_signals = ['validate', 'invalidate', 'clear', 'reset', 'increment', 'decrement']
+        ctrl_signals = [
+            'lock', 'validate', 'invalidate', 'clear', 'reset', 'increment', 'decrement']
         for ctrl_signal in ctrl_signals:
             if ctrl_signal in self._ctrl:
                 add_input(ctrl_signal)
