@@ -212,17 +212,17 @@ class Generator:
                 '@ Types used by the register file interface.',
                 '\n'.join(typedefs))
 
-    def generate_files(self, output_directory, with_coverage=False):
+    def generate_files(self, output_directory, annotate=False):
         """Generates the files for this register file in the specified
         directory."""
         self._tple.apply_file_to_file(
             os.path.dirname(__file__) + os.sep + 'entity.template.vhd',
             output_directory + os.sep + self._regfile.meta.name + '.vhd',
-            comment='-- ', with_coverage=with_coverage)
+            comment='-- ', annotate=annotate)
         self._tple.apply_file_to_file(
             os.path.dirname(__file__) + os.sep + 'package.template.vhd',
             output_directory + os.sep + self._regfile.meta.name + '_pkg.vhd',
-            comment='-- ', with_coverage=with_coverage)
+            comment='-- ', annotate=annotate)
 
     @staticmethod
     def _describe_interrupt(interrupt):
@@ -613,10 +613,10 @@ class Generator:
                 self._write_decoder.add_action(block, address, mask)
 
 
-def generate(regfiles, output_directory, with_coverage=False):
+def generate(regfiles, output_directory, annotate=False):
     """Generates the VHDL files for the given list of register files."""
     for regfile in regfiles:
-        Generator(regfile).generate_files(output_directory, with_coverage=with_coverage)
+        Generator(regfile).generate_files(output_directory, annotate=annotate)
     with open(os.path.dirname(__file__) + os.sep + 'vhdmmio_pkg.vhd', 'r') as in_fd:
         vhdmmio_pkg = in_fd.read()
     with open(output_directory + os.sep + 'vhdmmio_pkg.vhd', 'w') as out_fd:

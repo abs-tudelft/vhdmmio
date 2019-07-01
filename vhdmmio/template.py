@@ -3,7 +3,7 @@
 import re
 import inspect
 
-__all__ = ['TemplateEngine', 'TemplateSyntaxError']
+__all__ = ['TemplateEngine', 'TemplateSyntaxError', 'annotate_block']
 
 class TemplateEngine:
     """Simple templating engine.
@@ -156,7 +156,7 @@ class TemplateEngine:
             raise
 
     def apply_str_to_str(self, template, comment='# ', wrap=80,
-                         postprocess=True, with_coverage=False):
+                         postprocess=True, annotate=False):
         """Applies this template engine to the given template string, returning
         the result as a string. The `comment` keyword argument specifies the
         character sequence that leads comment lines; it defaults to '# ' for
@@ -180,7 +180,7 @@ class TemplateEngine:
 
         # Process @ directives to clean up the output.
         if postprocess:
-            output = self._process_wrapping(output, comment, wrap, with_coverage)
+            output = self._process_wrapping(output, comment, wrap, annotate)
 
         return output
 
@@ -204,12 +204,27 @@ class TemplateEngine:
 
         # Insert line number information.
         line_number = 1
+        directive_line_number = 1
+        directive_source = None
         for idx, item in enumerate(directives):
-            directive_line_number = line_number
+            if directive_source is None:
+                directive_line_number = line_number
             line_number += item.count('\n')
             if idx % 2 == 1:
                 directive = item
-                directives[idx] = (directive_line_number, directive)
+                directives[idx] = ((directive_source, directive_line_number), directive)
+            else:
+                source = re.findall(r'@![v\^]->[^\n]+\n', item)
+                if not source:
+                    continue
+                source = source[-1]
+                if source.startswith('@!^->'):
+                    directive_source = None
+                elif source.startswith('@!v->source='):
+                    directive_source, directive_line_number = source[12:].split(':')
+                    directive_line_number = int(directive_line_number)
+                else:
+                    assert False
 
         return directives
 
@@ -468,6 +483,10 @@ class TemplateEngine:
         # Buffer to output processed literals to.
         output_buffer = []
 
+        # State variables used to collapse empty lines and annotations.
+        empty_line = False
+        source_annotation = None
+
         for marker_or_literals in marker_buffer:
 
             # Handle markers.
@@ -480,28 +499,35 @@ class TemplateEngine:
 
                 raise AssertionError('unknown marker: {}'.format(indent))
 
-            # Handle literals.
+            # Handle blocks of literals. We process indentation markers and
+            # collapse multiple newlines and source markers into one to
+            # (hopefully) improve readability.
             for literal in marker_or_literals:
                 literal = literal.rstrip()
 
-                # If the line is non-empty, prefix indentation and output it.
-                if literal:
-                    literal = ' ' * indent + literal
-                    output_buffer.append(literal)
+                if not literal:
+                    empty_line = True
+                elif literal.startswith('@!'):
+                    source_annotation = literal
+                else:
+                    if output_buffer and empty_line:
+                        output_buffer.append('')
+                    if source_annotation is not None:
+                        output_buffer.append(source_annotation)
+                    output_buffer.append(' ' * indent + literal)
+                    empty_line = False
+                    source_annotation = None
 
-                # Append at most one empty line to the output.
-                elif output_buffer and output_buffer[-1]:
-                    output_buffer.append(literal)
+        # Make sure we output the source termination marker at the end, if any.
+        if source_annotation and source_annotation.startswith('!@^->'):
+            output_buffer.append(source_annotation)
 
         return '\n'.join(output_buffer)
 
-    def _process_wrapping(self, text, comment, wrap, with_coverage): #pylint disable=R0912
+    def _process_wrapping(self, text, comment, wrap, annotate): #pylint disable=R0912
         """Post-processes code by handling comment and wrapping markers."""
 
         output_lines = []
-
-        if with_coverage:
-            output_lines.append(comment.strip() + 'v->cover=None:None')
 
         # Since multiple subsequent lines of commented text should be
         # interpreted as a single paragraph before they're wrapped, we need to
@@ -517,9 +543,8 @@ class TemplateEngine:
         paragraph_buffer_leading = None
         paragraph_buffer_hanging = None
 
-        # Coverage annotation for the next real line of code.
-        coverage_annotation = None
-        in_coverage_annotation = False
+        # List of source annotations that have not been written yet.
+        annotations = []
 
         for line in text.split('\n'):
 
@@ -551,8 +576,9 @@ class TemplateEngine:
 
             elif line.startswith('@!'):
 
-                # Coverage info.
-                coverage_annotation = comment.strip() + line[2:]
+                # Source annotation.
+                if annotate:
+                    annotations.append(comment.strip() + line[2:])
                 continue
 
             elif line.startswith('@'):
@@ -572,6 +598,11 @@ class TemplateEngine:
             # paragraph, if any. If it is, or it starts a new block, buffer it
             # until we get a line that isn't a continuation of it.
             if line_is_text:
+
+                # Output source annotations before processing the comment.
+                output_lines.extend(annotations)
+                annotations = []
+
                 match = re.match(r'([-* ]*)(.*)$', line)
                 comment_indent = match.group(1)
                 line = match.group(2)
@@ -620,16 +651,10 @@ class TemplateEngine:
                     wrap))
                 paragraph_buffer = None
 
-            # What follows is an actual line of code. Output a coverage
-            # annotation first.
-            if with_coverage:
-                if coverage_annotation is None and in_coverage_annotation:
-                    output_lines.append(comment.strip() + 'v->cover=None:None')
-                    in_coverage_annotation = False
-                elif coverage_annotation is not None:
-                    output_lines.append(coverage_annotation)
-                    coverage_annotation = None
-                    in_coverage_annotation = True
+            # Output annotations after dumping the comment paragraph buffer,
+            # but before outputting the statement.
+            output_lines.extend(annotations)
+            annotations = []
 
             # Split the text into tokens split by single at signs. Also
             # handle escaping, which admittedly is a little awkward right now
@@ -697,15 +722,19 @@ class TemplateEngine:
 class TemplateSyntaxError(Exception):
     """Template syntax error class. Contains line number and source file
     information."""
-    def __init__(self, line_nr, message, filename=None):
+    def __init__(self, source, message, filename=None):
         super().__init__(message)
-        self._filename = filename
-        self._line_nr = line_nr
+        if isinstance(source, int):
+            self._filename = filename
+            self._line_nr = line_nr
+        else:
+            self._filename, self._line_nr = source
         self._message = message
 
     def set_filename(self, filename):
         """Sets the filename associated with this syntax error."""
-        self._filename = filename
+        if self._filename is None:
+            self._filename = filename
 
     def __str__(self):
         filename = self._filename
@@ -733,13 +762,8 @@ def annotate_block(template, fname=None, comment='#'):
     template = template.split('\n')
     annotated = []
     for line_no, line in enumerate(template):
-        ignore = line.startswith('$') and line.count('$') == 1
-        sline = line.strip()
-        ignore = ignore or not sline
-        ignore = ignore or sline.startswith('@')
-        ignore = ignore or sline.startswith(comment)
-        if not ignore:
-            annotated.append('@!v->cover=%s:%s' % (fname, line_no + offset))
+        annotated.append('@!v->source=%s:%s' % (fname, line_no + offset))
         annotated.append(line)
+    annotated.append('@!^->end')
 
     return '\n'.join(annotated)

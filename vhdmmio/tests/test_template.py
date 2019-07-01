@@ -32,12 +32,27 @@ class TestTemplateEngine(TestCase):
             '$endif',
         ])), [
             '',
-            (1, '$if a\n'),
+            ((None, 1), '$if a\n'),
             'good\na',
-            (3, '$a$'),
+            ((None, 3), '$a$'),
             'a\n',
-            (4, '$endif\n'),
+            ((None, 4), '$endif\n'),
             '',
+        ])
+
+        self.assertEquals(TemplateEngine._split_directives(annotate_block('\n'.join([
+            '$if a',
+            'good',
+            'a$a$a',
+            '$endif',
+        ]), fname='test')), [
+            '@!v->source=test:1\n',
+            (('test', 1), '$if a\n'),
+            '@!v->source=test:2\ngood\n@!v->source=test:3\na',
+            (('test', 3), '$a$'),
+            'a\n@!v->source=test:4\n',
+            (('test', 4), '$endif\n'),
+            '@!^->end\n',
         ])
 
         self.assertEquals(TemplateEngine._split_directives('\n'.join([
@@ -53,15 +68,15 @@ class TestTemplateEngine(TestCase):
             'good',
         ])), [
             'good\n',
-            (2, '$if a\n'),
+            ((None, 2), '$if a\n'),
             'good\n',
-            (4, '$else\n'),
+            ((None, 4), '$else\n'),
             'bad\n',
-            (6, '$else\n'),
+            ((None, 6), '$else\n'),
             'good again because why not\na',
-            (8, '$a$'),
+            ((None, 8), '$a$'),
             'a\n',
-            (9, '$endif\n'),
+            ((None, 9), '$endif\n'),
             'good\n',
         ])
 
