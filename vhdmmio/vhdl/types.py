@@ -220,13 +220,28 @@ class Axi4Lite(_Base):
     """Representations of the `axi4l##_#s#_type` records defined in
     `vhdmmio_pkg`."""
 
-    def __init__(self, direction, width=32):
+    def __init__(self, component, width=32):
         """Constructs an AXI bus type."""
-        if direction not in ['m2s', 's2m']:
-            raise ValueError('direction must be m2s or s2m')
+        component_map = {
+            'm2s':  'axi4l{width}_m2s',
+            's2m':  'axi4l{width}_s2m',
+            'req':  'axi4l{width}_m2s',
+            'resp': 'axi4l{width}_s2m',
+            'aw':   'axi4la',
+            'w':    'axi4lw{width}',
+            'b':    'axi4lb',
+            'ar':   'axi4la',
+            'r':    'axi4lr{width}',
+            'h':    'axi4lh',
+            'a':    'axi4la',
+            'u':    'axi4lu',
+        }
+        base = component_map.get(component, None)
+        if base is None:
+            raise ValueError('unknown component %s' % component)
         if width not in [32, 64]:
             raise ValueError('width must be 32 or 64')
-        base = 'axi4l%d_%s' % (width, direction)
+        base = base.format(width=width)
         super().__init__(base, base.upper() + '_RESET')
 
     @staticmethod
