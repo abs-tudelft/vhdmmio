@@ -6,6 +6,7 @@ include
 lib
 vhdmmio.egg-info
 .coverage
+coverage.xml
 .eggs
 .tox
 .venv
