@@ -1,5 +1,8 @@
 """Module for `RegisterFile` object."""
 
+import os
+import json
+import yaml
 from .metadata import Metadata, ExpandedMetadata
 from .field import FieldDescriptor
 from .register import Register
@@ -10,7 +13,17 @@ class RegisterFile:
     """Represents a register file."""
 
     def __init__(self, **kwargs):
-        """Constructs a register file from its YAML description."""
+        """Constructs a register file.
+
+        The named arguments to this function match the toplevel dictionaries
+        accepted in the YAML input format, except the dashes are replaced with
+        underscores to make them proper Python identifiers.
+
+        To load a register file from a YAML file or the associated dictionary,
+        use the `load()` function. You can also `save()` back to an equivalent
+        YAML file."""
+
+        self.output_directory = None
 
         # Parse metadata.
         meta = kwargs.pop('meta', None)
@@ -227,6 +240,65 @@ class RegisterFile:
             dictionary['fields'].append(field.to_dict())
 
         return dictionary
+
+    @classmethod
+    def load(cls, obj):
+        """Creates a `RegisterFile` object from one of the following:
+
+         - A YAML or JSON filename (if the file extension is `.json` JSON is
+           used, otherwise YAML is assumed);
+         - A file-like object reading a YAML file;
+         - A dictionary representation of the JSON or YAML file.
+
+        Returns the constructed `RegisterFile` if the input is valid."""
+
+        loader = yaml.safe_load if hasattr(yaml, 'safe_load') else yaml.load
+
+        if isinstance(obj, dict):
+            return cls.from_dict(obj)
+
+        if isinstance(obj, str):
+            if obj.lower().endswith('.json'):
+                loader = json.loads
+            with open(obj, 'r') as fil:
+                regfile = cls.from_dict(loader(fil.read()))
+            regfile.output_directory = os.path.dirname(obj)
+            return regfile
+
+        if hasattr(obj, 'read'):
+            return cls.from_dict(loader(obj.read()))
+
+        raise TypeError('unsupported input for load() API')
+
+    def save(self, obj=None):
+        """Serializes a `RegisterFile` in one of the following ways:
+
+         - If `obj` is a filename string, write the YAML (default) or JSON
+           (if the name ends in `.json`) representation to it;
+         - If `obj` is file-like, write the YAML representation into it;
+         - If `obj` is `None` or not provided, return the dictionary
+           representation."""
+
+        data = self.to_dict(None)
+
+        if obj is None:
+            return data
+
+        if isinstance(obj, str) and obj.lower().endswith('.json'):
+            data = json.dumps(data, sort_keys=True, indent=4)
+        else:
+            data = yaml.dump(data, default_flow_style=False)
+
+        if isinstance(obj, str):
+            with open(obj, 'w') as fil:
+                fil.write(data)
+            return None
+
+        if hasattr(obj, 'write'):
+            obj.write(data)
+            return None
+
+        raise TypeError('unsupported input for save() API')
 
     @property
     def meta(self):

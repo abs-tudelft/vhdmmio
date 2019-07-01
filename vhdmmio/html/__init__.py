@@ -170,9 +170,12 @@ def _bitfield_table(*registers):
     lines.append('</table>')
     return '\n'.join(lines)
 
-def generate(regfiles, output_dir):
+def generate(regfiles, output_directory=None):
     """Generates HTML documentation for the given register files."""
-    with open(output_dir + os.sep + 'index.html', 'w') as out_fd:
+    if output_directory is None:
+        output_directory = '.'
+    fname = output_directory + os.sep + 'index.html'
+    with open(fname, 'w') as out_fd:
         print(_HEADER, file=out_fd)
         markdowner = Markdown(extras=["tables"])
         for regfile in regfiles:
@@ -184,3 +187,4 @@ def generate(regfiles, output_dir):
                 for field in register.fields:
                     print(markdowner.convert(field.meta.to_markdown(3)), file=out_fd)
         print(_FOOTER, file=out_fd)
+    print('Wrote %s' % fname)

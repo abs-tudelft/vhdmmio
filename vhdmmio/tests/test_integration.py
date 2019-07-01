@@ -6,6 +6,7 @@ import yaml
 from vhdmmio.core.regfile import RegisterFile
 from vhdmmio.vhdl import generate as generate_vhdl
 from vhdmmio.html import generate as generate_html
+from vhdmmio import run_cli
 import vhdeps
 import difflib
 import copy
@@ -344,6 +345,7 @@ class TestIntegration(TestCase):
                 with tempfile.TemporaryDirectory() as tempdir:
                     generate_vhdl([regfile], tempdir)
                     generate_html([regfile], tempdir)
+                    run_cli(['-o', tempdir, 'pkg'])
                     run_a = ''
                     for name in sorted(os.listdir(tempdir)):
                         with open(tempdir + os.sep + name, 'r') as fil:
@@ -356,6 +358,7 @@ class TestIntegration(TestCase):
                 with tempfile.TemporaryDirectory() as tempdir:
                     generate_vhdl([regfile], tempdir)
                     generate_html([regfile], tempdir)
+                    run_cli(['-o', tempdir, 'pkg'])
                     run_b = ''
                     for name in sorted(os.listdir(tempdir)):
                         with open(tempdir + os.sep + name, 'r') as fil:

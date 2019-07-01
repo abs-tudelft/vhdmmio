@@ -726,7 +726,7 @@ class TemplateSyntaxError(Exception):
         super().__init__(message)
         if isinstance(source, int):
             self._filename = filename
-            self._line_nr = line_nr
+            self._line_nr = source
         else:
             self._filename, self._line_nr = source
         self._message = message
