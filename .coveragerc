@@ -1,6 +1,10 @@
 [report]
 omit =
     */tests/*
+    */template/coverage.py
 exclude_lines =
     raise AssertionError
     raise NotImplementedError
+
+[run]
+plugins = vhdmmio.template.coverage
