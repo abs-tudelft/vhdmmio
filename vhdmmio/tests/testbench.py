@@ -5,10 +5,10 @@ import os
 import sys
 from threading import Thread
 from tempfile import TemporaryDirectory
-from vhdmmio.template import TemplateEngine
+from vhdmmio.template import TemplateEngine, annotate_block
 import vhdeps
 
-_TEMPLATE = """
+_TEMPLATE = annotate_block("""
 -- pragma simulation timeout 1000 ms
 
 library ieee;
@@ -319,7 +319,7 @@ $endif
     wait;
   end process;
 end arch;
-"""
+""", comment='--')
 
 class _Signal:
     """Representation of a logical signal inside the testbench, part of either

@@ -3,21 +3,21 @@
 from .logic import FieldLogic
 from .logic_registry import field_logic
 from .accesscaps import AccessCapabilities
-from ..template import TemplateEngine
+from ..template import TemplateEngine, annotate_block
 
 # TODO: placeholder code
 
-_LOGIC_READ_REQUEST = """
-"""
+_LOGIC_READ_REQUEST = annotate_block("""
+""", comment='--')
 
-_LOGIC_READ_RESPONSE = """
-"""
+_LOGIC_READ_RESPONSE = annotate_block("""
+""", comment='--')
 
-_LOGIC_WRITE_REQUEST = """
-"""
+_LOGIC_WRITE_REQUEST = annotate_block("""
+""", comment='--')
 
-_LOGIC_WRITE_RESPONSE = """
-"""
+_LOGIC_WRITE_RESPONSE = annotate_block("""
+""", comment='--')
 
 @field_logic('axi')
 class AXIField(FieldLogic):

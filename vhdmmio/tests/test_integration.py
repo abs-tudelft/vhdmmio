@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, skipIf
 import os
 import tempfile
 import yaml
@@ -327,6 +327,7 @@ fields:
 
 class TestIntegration(TestCase):
 
+    @skipIf('ENABLE_LENGTHY' not in os.environ, '$ENABLE_LENGTHY not set')
     def test_integration(self):
         self.maxDiff = None
         for group in [False, 'reg']:

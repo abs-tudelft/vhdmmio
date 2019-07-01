@@ -3,12 +3,12 @@
 import os
 from collections import OrderedDict
 from enum import Enum
-from ..template import TemplateEngine
+from ..template import TemplateEngine, annotate_block
 from .match import match_template
 from .types import Record, Array, SizedArray, Object, gather_defs
 from .interface import Interface
 
-_BUS_REQ_FIELD_TEMPLATE = """
+_BUS_REQ_FIELD_TEMPLATE = annotate_block("""
 $block HANDLE
 $if defined('LOOKAHEAD')
 if $dir$_lreq then
@@ -35,9 +35,9 @@ if std_match($dir$_prot, "$prot$") then
 $ HANDLE
 end if;
 $endif
-"""
+""", comment='--')
 
-_BUS_REQ_BOILERPLATE_TEMPLATE = """
+_BUS_REQ_BOILERPLATE_TEMPLATE = annotate_block("""
 $block BEFORE_READ
 $endblock
 
@@ -105,7 +105,7 @@ $else
 $AFTER_WRITE
 $endif
 $endif
-"""
+""", comment='--')
 
 class _Decoder:
     """Builder class for address decoders."""
@@ -212,17 +212,17 @@ class Generator:
                 '@ Types used by the register file interface.',
                 '\n'.join(typedefs))
 
-    def generate_files(self, output_directory):
+    def generate_files(self, output_directory, with_coverage=False):
         """Generates the files for this register file in the specified
         directory."""
         self._tple.apply_file_to_file(
             os.path.dirname(__file__) + os.sep + 'entity.template.vhd',
             output_directory + os.sep + self._regfile.meta.name + '.vhd',
-            comment='-- ')
+            comment='-- ', with_coverage=with_coverage)
         self._tple.apply_file_to_file(
             os.path.dirname(__file__) + os.sep + 'package.template.vhd',
             output_directory + os.sep + self._regfile.meta.name + '_pkg.vhd',
-            comment='-- ')
+            comment='-- ', with_coverage=with_coverage)
 
     @staticmethod
     def _describe_interrupt(interrupt):
@@ -613,10 +613,10 @@ class Generator:
                 self._write_decoder.add_action(block, address, mask)
 
 
-def generate(regfiles, output_directory):
+def generate(regfiles, output_directory, with_coverage=False):
     """Generates the VHDL files for the given list of register files."""
     for regfile in regfiles:
-        Generator(regfile).generate_files(output_directory)
+        Generator(regfile).generate_files(output_directory, with_coverage=with_coverage)
     with open(os.path.dirname(__file__) + os.sep + 'vhdmmio_pkg.vhd', 'r') as in_fd:
         vhdmmio_pkg = in_fd.read()
     with open(output_directory + os.sep + 'vhdmmio_pkg.vhd', 'w') as out_fd:

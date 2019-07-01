@@ -4,10 +4,10 @@ from .logic import FieldLogic
 from .logic_registry import field_logic
 from .accesscaps import AccessCapabilities
 from .utils import choice, switches, override, default
-from ..template import TemplateEngine
+from ..template import TemplateEngine, annotate_block
 from ..vhdl.types import std_logic, std_logic_vector, Record, Array, gather_defs
 
-_LOGIC_PRE = """
+_LOGIC_PRE = annotate_block("""
 $if l.get_ctrl('invalidate')
 @ Handle invalidation control input.
 if $invalidate[i]$ = '1' then
@@ -43,9 +43,9 @@ $endif
 end if;
 $state[i].inval$@:= '0';
 $endif
-"""
+""", comment='--')
 
-_LOGIC_READ = """
+_LOGIC_READ = annotate_block("""
 $block AFTER_READ
 $if l.after_bus_read != 'nothing'
 @ Handle post-read operation: $l.after_bus_read$.
@@ -100,9 +100,9 @@ r_ack@:= true;
 $AFTER_READ
 $endif
 $endif
-"""
+""", comment='--')
 
-_LOGIC_WRITE = """
+_LOGIC_WRITE = annotate_block("""
 $block AFTER_WRITE
 $if l.after_bus_write != 'nothing'
 @ Handle post-write operation: $l.after_bus_write$.
@@ -193,9 +193,9 @@ $else
 $HANDLE_WRITE
 $endif
 $endif
-"""
+""", comment='--')
 
-_LOGIC_POST = """
+_LOGIC_POST = annotate_block("""
 $if l.hw_write not in 'disabled'
 @ Handle hardware write for field $l.field_descriptor.meta.name$: $l.hw_write$.
 $if l.after_hw_write != 'nothing'
@@ -310,7 +310,7 @@ $if l.hw_read == 'enabled'
 $valid[i]$ <= $state[i].v$;
 $endif
 $endif
-"""
+""", comment='--')
 
 @field_logic('primitive')
 class PrimitiveField(FieldLogic):

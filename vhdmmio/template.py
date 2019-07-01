@@ -1,6 +1,7 @@
 """Simple templating engine. See `TemplateEngine` class."""
 
 import re
+import inspect
 
 __all__ = ['TemplateEngine', 'TemplateSyntaxError']
 
@@ -144,14 +145,18 @@ class TemplateEngine:
         the result as a string. Extra arguments are passed to
         `apply_str_to_str()` and are documented there."""
         with open(template_filename, 'r') as template_file:
-            template = template_file.read()
+            template = annotate_block(
+                template_file.read(),
+                template_filename,
+                kwargs.get('comment', '#').strip())
         try:
             return self.apply_str_to_str(template, *args, **kwargs)
         except TemplateSyntaxError as exc:
             exc.set_filename(template_filename)
             raise
 
-    def apply_str_to_str(self, template, comment='# ', wrap=80, postprocess=True):
+    def apply_str_to_str(self, template, comment='# ', wrap=80,
+                         postprocess=True, with_coverage=False):
         """Applies this template engine to the given template string, returning
         the result as a string. The `comment` keyword argument specifies the
         character sequence that leads comment lines; it defaults to '# ' for
@@ -175,7 +180,7 @@ class TemplateEngine:
 
         # Process @ directives to clean up the output.
         if postprocess:
-            output = self._process_wrapping(output, comment, wrap)
+            output = self._process_wrapping(output, comment, wrap, with_coverage)
 
         return output
 
@@ -490,10 +495,13 @@ class TemplateEngine:
 
         return '\n'.join(output_buffer)
 
-    def _process_wrapping(self, text, comment, wrap): #pylint disable=R0912
+    def _process_wrapping(self, text, comment, wrap, with_coverage): #pylint disable=R0912
         """Post-processes code by handling comment and wrapping markers."""
 
         output_lines = []
+
+        if with_coverage:
+            output_lines.append(comment.strip() + 'v->cover=None:None')
 
         # Since multiple subsequent lines of commented text should be
         # interpreted as a single paragraph before they're wrapped, we need to
@@ -508,6 +516,10 @@ class TemplateEngine:
         paragraph_buffer = None
         paragraph_buffer_leading = None
         paragraph_buffer_hanging = None
+
+        # Coverage annotation for the next real line of code.
+        coverage_annotation = None
+        in_coverage_annotation = False
 
         for line in text.split('\n'):
 
@@ -536,6 +548,12 @@ class TemplateEngine:
 
                 # Strip the '@@' sequence.
                 line = line[2:]
+
+            elif line.startswith('@!'):
+
+                # Coverage info.
+                coverage_annotation = comment.strip() + line[2:]
+                continue
 
             elif line.startswith('@'):
 
@@ -601,6 +619,17 @@ class TemplateEngine:
                     paragraph_buffer,
                     wrap))
                 paragraph_buffer = None
+
+            # What follows is an actual line of code. Output a coverage
+            # annotation first.
+            if with_coverage:
+                if coverage_annotation is None and in_coverage_annotation:
+                    output_lines.append(comment.strip() + 'v->cover=None:None')
+                    in_coverage_annotation = False
+                elif coverage_annotation is not None:
+                    output_lines.append(coverage_annotation)
+                    coverage_annotation = None
+                    in_coverage_annotation = True
 
             # Split the text into tokens split by single at signs. Also
             # handle escaping, which admittedly is a little awkward right now
@@ -683,3 +712,34 @@ class TemplateSyntaxError(Exception):
         if filename is None:
             filename = '<unknown>'
         return 'on {} line {}: {}'.format(filename, self._line_nr, self._message)
+
+
+def annotate_block(template, fname=None, comment='#'):
+    """Annotates template source file + line number to every non-directive line
+    of the given template. If `fname` is `None`, the filename and line number
+    offset is taken from the caller of this function."""
+    comment = comment.strip()
+
+    if fname is None:
+        previous_frame = inspect.currentframe().f_back
+        (fname, offset, _, _, _) = inspect.getframeinfo(previous_frame)
+        # inspect returns the last line of a statement. We assume that blocks
+        # are defined as a """ multiline string, so we need to subtract the
+        # number of newlines in the block.
+        offset -= template.count('\n')
+    else:
+        offset = 1
+
+    template = template.split('\n')
+    annotated = []
+    for line_no, line in enumerate(template):
+        ignore = line.startswith('$') and line.count('$') == 1
+        sline = line.strip()
+        ignore = ignore or not sline
+        ignore = ignore or sline.startswith('@')
+        ignore = ignore or sline.startswith(comment)
+        if not ignore:
+            annotated.append('@!v->cover=%s:%s' % (fname, line_no + offset))
+        annotated.append(line)
+
+    return '\n'.join(annotated)

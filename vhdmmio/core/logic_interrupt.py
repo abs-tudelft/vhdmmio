@@ -4,18 +4,18 @@ from .logic import FieldLogic
 from .logic_registry import field_logic
 from .accesscaps import AccessCapabilities
 from .utils import choice, override, default
-from ..template import TemplateEngine
+from ..template import TemplateEngine, annotate_block
 
-_LOGIC_READ = """
+_LOGIC_READ = annotate_block("""
 @ Read mode: $l.read$.
 $r_data$ := $v$;
 $if l.read == 'clear'
 $v$ := '0';
 $endif
 r_ack := true;
-"""
+""", comment='--')
 
-_LOGIC_WRITE = """
+_LOGIC_WRITE = annotate_block("""
 @ Write mode: $l.write$.
 $if l.write == 'enabled'
 $v$ := ($v$ and not $w_strobe$) or $w_data$;
@@ -26,7 +26,7 @@ $endif
 $if l.write == 'set'
 $v$ := $v$ or $w_data$;
 $endif
-"""
+""", comment='--')
 
 @field_logic('interrupt')
 class InterruptField(FieldLogic):
