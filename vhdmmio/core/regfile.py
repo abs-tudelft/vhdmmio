@@ -126,7 +126,7 @@ class RegisterFile:
                     register.assign_read_tag(read_tag_format.format(self._read_tag_count))
                     self._read_tag_count += 1
                 if register.write_caps is not None and register.write_caps.can_defer:
-                    register.assign_read_tag(write_tag_format.format(self._write_tag_count))
+                    register.assign_write_tag(write_tag_format.format(self._write_tag_count))
                     self._write_tag_count += 1
 
             # Determine whether any fields are sensitive to prot.

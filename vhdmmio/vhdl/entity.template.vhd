@@ -67,7 +67,7 @@ $if r.write_tag_count
 
     -- Write tag FIFO.
     type w_tag_array is array (natural range <>) of std_logic_vector($r.write_tag_width-1$ downto 0);
-    variable w_tags     : w_tag_array(0 to $2**r.tag_depth_log2$-1); -- mem
+    variable w_tags     : w_tag_array(0 to $2**r.tag_depth_log2-1$); -- mem
     variable w_tag_wptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
     variable w_tag_rptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
     variable w_tag_cnt  : std_logic_vector($r.tag_depth_log2$ downto 0) := (others => '0'); -- reg;
@@ -81,7 +81,7 @@ $if r.read_tag_count
 
     -- Read tag FIFO.
     type r_tag_array is array (natural range <>) of std_logic_vector($r.read_tag_width-1$ downto 0);
-    variable r_tags     : r_tag_array(0 to $2**r.tag_depth_log2$-1); -- mem
+    variable r_tags     : r_tag_array(0 to $2**r.tag_depth_log2-1$); -- mem
     variable r_tag_wptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
     variable r_tag_rptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
     variable r_tag_cnt  : std_logic_vector($r.tag_depth_log2$ downto 0) := (others => '0'); -- reg;
