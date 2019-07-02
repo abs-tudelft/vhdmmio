@@ -186,9 +186,9 @@ class AXIField(FieldLogic):
 
         # Generate interface.
         tple['m2s'] = gen.add_field_port(
-            self.field_descriptor, 'm2s', 'o', Axi4Lite('m2s', self.vector_width))
+            self.field_descriptor, 'o', 'o', Axi4Lite('m2s', self.vector_width))
         tple['s2m'] = gen.add_field_port(
-            self.field_descriptor, 's2m', 'i', Axi4Lite('s2m', self.vector_width))
+            self.field_descriptor, 'i', 'i', Axi4Lite('s2m', self.vector_width))
 
         # Generate internal state.
         state_name = 'f_%s_r' % self.field_descriptor.meta.name
