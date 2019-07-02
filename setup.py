@@ -46,6 +46,7 @@ setup(
         'vhdmmio.vhdl',
         'vhdmmio.html'
     ],
+    entry_points = {'console_scripts': ['vhdmmio=vhdmmio:run_cli']},
 
     # Install dependencies
     install_requires = ['pyyaml', 'markdown2'],
