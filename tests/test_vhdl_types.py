@@ -1,13 +1,13 @@
-from unittest import TestCase
-import os
-import tempfile
-from collections import OrderedDict
+"""Unit tests for the VHDL type abstraction classes."""
 
+from unittest import TestCase
 import vhdmmio.vhdl.types as types
 
 class TestVhdlTypes(TestCase):
+    """Unit tests for the VHDL type abstraction classes."""
 
     def test_std_logic(self):
+        """test abstraction for VHDL std_logic"""
         self.assertEqual(types.std_logic.name, 'std_logic')
         self.assertEqual(str(types.std_logic), 'std_logic')
         self.assertEqual(len(types.std_logic), 1)
@@ -16,6 +16,7 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(types.std_logic.default, "'0'")
 
     def test_boolean(self):
+        """test abstraction for VHDL boolean"""
         self.assertEqual(types.boolean.name, 'boolean')
         self.assertEqual(str(types.boolean), 'boolean')
         with self.assertRaises(ValueError):
@@ -26,6 +27,7 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(types.Boolean(True).default, 'true')
 
     def test_natural(self):
+        """test abstraction for VHDL natural"""
         self.assertEqual(types.natural.name, 'natural')
         self.assertEqual(str(types.natural), 'natural')
         with self.assertRaises(ValueError):
@@ -35,6 +37,7 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(types.natural.default, '0')
 
     def test_std_logic_vector(self):
+        """test abstraction for VHDL std_logic_vector"""
         self.assertEqual(types.std_logic_vector.name, 'std_logic_vector')
         self.assertEqual(str(types.std_logic_vector), 'std_logic_vector')
         with self.assertRaises(ValueError):
@@ -59,6 +62,7 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(typ.default, '"1111000011001010"')
 
     def test_std_logic_array(self):
+        """test abstraction for VHDL std_logic_array"""
         array = types.Array('test', types.std_logic)
         self.assertEqual(array.name, 'test')
         self.assertEqual(str(array), 'test_array')
@@ -82,6 +86,7 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(typ.default, '(others => \'0\')')
 
     def test_sized_std_logic_array(self):
+        """test abstraction for sized std_logic arrays"""
         array = types.SizedArray('test', types.std_logic, 8)
         self.assertEqual(array.name, 'test')
         self.assertEqual(str(array), 'test_type')
@@ -93,6 +98,7 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(array.default, "(others => '0')")
 
     def test_memory(self):
+        """test abstraction of VHDL types needed for a memory"""
         typ = types.SizedArray('mem_ent', types.StdLogicVector('U'), 8)
         self.assertEqual(typ.name, 'mem_ent')
         self.assertEqual(str(typ), 'mem_ent_type')
@@ -131,6 +137,7 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(typ.default, 'MEM_RESET')
 
     def test_axi4lite(self):
+        """test abstractions for AXI4-lite VHDL types"""
         typ = types.Axi4Lite('m2s', 32)
         self.assertEqual(typ.name, 'axi4l32_m2s')
         self.assertEqual(str(typ), 'axi4l32_m2s_type')
@@ -161,7 +168,8 @@ class TestVhdlTypes(TestCase):
             types.Axi4Lite('s2m', 24)
 
     def test_record(self):
-        self.maxDiff = None
+        """test abstractions for VHDL records"""
+        self.maxDiff = None #pylint: disable=C0103
         byte_type = types.SizedArray('byte', types.std_logic_vector, 8)
         byte_array = types.Array('byte', byte_type)
         record = types.Record('test', ('a', byte_type))
@@ -178,7 +186,8 @@ class TestVhdlTypes(TestCase):
             'subtype byte_type is std_logic_vector(7 downto 0);',
             'type byte_array is array (natural range <>) of byte_type;',
             'subtype test_e_type is byte_array(0 to 3);',
-            'constant TEST_E_RESET : test_e_type@:= (0 => X"01",@1 => X"02",@2 => X"03",@3 => X"04");',
+            'constant TEST_E_RESET : test_e_type@:= '
+            '(0 => X"01",@1 => X"02",@2 => X"03",@3 => X"04");',
             'type test_type is record',
             '  a : byte_type;',
             '  b : std_logic;',
@@ -231,32 +240,33 @@ class TestVhdlTypes(TestCase):
         self.assertEqual(str(test.b[0]), str(test.b))
 
         with self.assertRaises(AttributeError):
-            test.a.a
+            test.a.a #pylint: disable=W0104
         with self.assertRaises(AttributeError):
-            test.f
+            test.f #pylint: disable=W0104
         record.append('f', types.std_logic)
         self.assertEqual(str(test.f), 'test.f')
 
     def test_abstracted_object(self):
+        """test abstractions for VHDL objects"""
         data_typ = types.std_logic_vector
         foo_typ = types.Record('foo', ('data', data_typ, 8))
         foo_arr = types.Array('foo', foo_typ)
         bar_typ = types.Record('bar', ('foo', foo_arr, 4))
         obj = types.Object('bar', data_typ, ['foo', (foo_arr, [4]), 'data'])
 
-        self.assertEqual(str(obj), str('bar.foo'))
+        self.assertEqual(str(obj), 'bar.foo')
         self.assertEqual(obj.typ, foo_arr)
         self.assertTrue(obj.abstracted)
-        self.assertEqual(str(obj[0, 2]), str('bar.foo(0 to 1)'))
-        self.assertEqual(str(obj['a', 'b']), str('bar.foo(a to a + b - 1)'))
-        self.assertEqual(str(obj[1]), str('bar.foo(1).data'))
-        self.assertEqual(str(obj['a']), str('bar.foo(a).data'))
+        self.assertEqual(str(obj[0, 2]), 'bar.foo(0 to 1)')
+        self.assertEqual(str(obj['a', 'b']), 'bar.foo(a to a + b - 1)')
+        self.assertEqual(str(obj[1]), 'bar.foo(1).data')
+        self.assertEqual(str(obj['a']), 'bar.foo(a).data')
         self.assertEqual(obj[1].typ, data_typ)
         self.assertFalse(obj[1].abstracted)
-        self.assertEqual(str(obj[1][0, 4]), str('bar.foo(1).data(3 downto 0)'))
-        self.assertEqual(str(obj['a']['b', 'c']), str('bar.foo(a).data(b + c - 1 downto b)'))
-        self.assertEqual(str(obj[1][5]), str('bar.foo(1).data(5)'))
-        self.assertEqual(str(obj['a']['b']), str('bar.foo(a).data(b)'))
+        self.assertEqual(str(obj[1][0, 4]), 'bar.foo(1).data(3 downto 0)')
+        self.assertEqual(str(obj['a']['b', 'c']), 'bar.foo(a).data(b + c - 1 downto b)')
+        self.assertEqual(str(obj[1][5]), 'bar.foo(1).data(5)')
+        self.assertEqual(str(obj['a']['b']), 'bar.foo(a).data(b)')
         self.assertEqual(obj[1][5].typ.name, types.std_logic.name)
         self.assertFalse(obj[1][5].abstracted)
 
@@ -264,38 +274,39 @@ class TestVhdlTypes(TestCase):
         bar_typ = types.Record('bar', ('foo_data', data_typ, 32))
         obj = types.Object('bar', types.std_logic, ['foo_data', (data_typ, [4, 8])])
 
-        self.assertEqual(str(obj), str('bar.foo_data'))
+        self.assertEqual(str(obj), 'bar.foo_data')
         self.assertEqual(obj.typ, data_typ)
         self.assertTrue(obj.abstracted)
-        self.assertEqual(str(obj[0, 2]), str('bar.foo_data(15 downto 0)'))
-        self.assertEqual(str(obj['a', 'b']), str('bar.foo_data(8*a + 8*b - 1 downto 8*a)'))
-        self.assertEqual(str(obj[1]), str('bar.foo_data(15 downto 8)'))
-        self.assertEqual(str(obj['a']), str('bar.foo_data(8*a + 7 downto 8*a)'))
+        self.assertEqual(str(obj[0, 2]), 'bar.foo_data(15 downto 0)')
+        self.assertEqual(str(obj['a', 'b']), 'bar.foo_data(8*a + 8*b - 1 downto 8*a)')
+        self.assertEqual(str(obj[1]), 'bar.foo_data(15 downto 8)')
+        self.assertEqual(str(obj['a']), 'bar.foo_data(8*a + 7 downto 8*a)')
         self.assertEqual(obj[1].typ, data_typ)
         self.assertTrue(obj[1].abstracted)
-        self.assertEqual(str(obj[1][0, 4]), str('bar.foo_data(11 downto 8)'))
-        self.assertEqual(str(obj['a']['b', 'c']), str('bar.foo_data(8*a + b + c - 1 downto 8*a + b)'))
-        self.assertEqual(str(obj[1][5]), str('bar.foo_data(13)'))
-        self.assertEqual(str(obj['a']['b']), str('bar.foo_data(8*a + b)'))
+        self.assertEqual(str(obj[1][0, 4]), 'bar.foo_data(11 downto 8)')
+        self.assertEqual(str(obj['a']['b', 'c']), 'bar.foo_data(8*a + b + c - 1 downto 8*a + b)')
+        self.assertEqual(str(obj[1][5]), 'bar.foo_data(13)')
+        self.assertEqual(str(obj['a']['b']), 'bar.foo_data(8*a + b)')
         self.assertEqual(obj[1][5].typ.name, types.std_logic.name)
         self.assertFalse(obj[1][5].abstracted)
 
         data_typ = types.std_logic_vector
         bar_typ = types.Record('bar', ('foo_data', data_typ, 8))
-        obj = types.Object(None, types.std_logic, ['bar', 'foo_data', (bar_typ, None), (data_typ, [8])])
+        obj = types.Object(None, types.std_logic, [
+            'bar', 'foo_data', (bar_typ, None), (data_typ, [8])])
 
-        self.assertEqual(str(obj), str('bar.foo_data'))
+        self.assertEqual(str(obj), 'bar.foo_data')
         self.assertEqual(obj.typ, bar_typ)
         self.assertTrue(obj.abstracted)
-        self.assertEqual(str(obj[0, 2]), str('(0 to 1 => bar.foo_data)'))
-        self.assertEqual(str(obj['a', 'b']), str('(0 to b - 1 => bar.foo_data)'))
-        self.assertEqual(str(obj[1]), str('bar.foo_data'))
-        self.assertEqual(str(obj['a']), str('bar.foo_data'))
+        self.assertEqual(str(obj[0, 2]), '(0 to 1 => bar.foo_data)')
+        self.assertEqual(str(obj['a', 'b']), '(0 to b - 1 => bar.foo_data)')
+        self.assertEqual(str(obj[1]), 'bar.foo_data')
+        self.assertEqual(str(obj['a']), 'bar.foo_data')
         self.assertEqual(obj[1].typ, data_typ)
         self.assertTrue(obj[1].abstracted)
-        self.assertEqual(str(obj[1][0, 4]), str('bar.foo_data(3 downto 0)'))
-        self.assertEqual(str(obj['a']['b', 'c']), str('bar.foo_data(b + c - 1 downto b)'))
-        self.assertEqual(str(obj[1][5]), str('bar.foo_data(5)'))
-        self.assertEqual(str(obj['a']['b']), str('bar.foo_data(b)'))
+        self.assertEqual(str(obj[1][0, 4]), 'bar.foo_data(3 downto 0)')
+        self.assertEqual(str(obj['a']['b', 'c']), 'bar.foo_data(b + c - 1 downto b)')
+        self.assertEqual(str(obj[1][5]), 'bar.foo_data(5)')
+        self.assertEqual(str(obj['a']['b']), 'bar.foo_data(b)')
         self.assertEqual(obj[1][5].typ.name, types.std_logic.name)
         self.assertFalse(obj[1][5].abstracted)

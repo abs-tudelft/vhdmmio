@@ -1,31 +1,36 @@
+"""Module for unit-testing vhdmmio.template."""
+
 from unittest import TestCase
 import os
 import tempfile
 
-import vhdmmio
-from vhdmmio.template import *
+from vhdmmio.template import TemplateEngine, TemplateSyntaxError, annotate_block
 
 class TestTemplateEngine(TestCase):
+    """Unit-tests for vhdmmio.template."""
 
     def test_var_get_set(self):
+        """test template variable access"""
         engine = TemplateEngine()
-        self.assertEquals(sorted(engine), [])
+        self.assertEqual(sorted(engine), [])
         engine['a'] = 'a'
         engine['b'] = 3
-        self.assertEquals(engine['a'], 'a')
-        self.assertEquals(engine['b'], 3)
-        self.assertEquals(sorted(engine), ['a', 'b'])
+        self.assertEqual(engine['a'], 'a')
+        self.assertEqual(engine['b'], 3)
+        self.assertEqual(sorted(engine), ['a', 'b'])
         engine['a'] = 'b'
-        self.assertEquals(engine['a'], 'b')
-        self.assertEquals(engine['b'], 3)
+        self.assertEqual(engine['a'], 'b')
+        self.assertEqual(engine['b'], 3)
         del engine['a']
         with self.assertRaises(Exception):
-            engine['a']
-        self.assertEquals(sorted(engine), ['b'])
-        self.assertEquals(engine['b'], 3)
+            engine['a'] #pylint: disable=W0104
+        self.assertEqual(sorted(engine), ['b'])
+        self.assertEqual(engine['b'], 3)
 
     def test_split_directives(self):
-        self.assertEquals(TemplateEngine._split_directives('\n'.join([
+        """test template directive splitting"""
+        #pylint: disable=W0212
+        self.assertEqual(TemplateEngine._split_directives('\n'.join([
             '$if a',
             'good',
             'a$a$a',
@@ -40,7 +45,7 @@ class TestTemplateEngine(TestCase):
             '',
         ])
 
-        self.assertEquals(TemplateEngine._split_directives(annotate_block('\n'.join([
+        self.assertEqual(TemplateEngine._split_directives(annotate_block('\n'.join([
             '$if a',
             'good',
             'a$a$a',
@@ -55,7 +60,7 @@ class TestTemplateEngine(TestCase):
             '@!^->end\n',
         ])
 
-        self.assertEquals(TemplateEngine._split_directives('\n'.join([
+        self.assertEqual(TemplateEngine._split_directives('\n'.join([
             'good',
             '$if a',
             'good',
@@ -81,10 +86,11 @@ class TestTemplateEngine(TestCase):
         ])
 
     def test_conditionals(self):
+        """test template condition directives"""
         engine = TemplateEngine()
 
         engine['a'] = True
-        self.assertEquals(engine.apply_str_to_str([
+        self.assertEqual(engine.apply_str_to_str([
             'good',
             '$if a',
             'good',
@@ -104,7 +110,7 @@ class TestTemplateEngine(TestCase):
         ]) + '\n')
 
         engine['a'] = False
-        self.assertEquals(engine.apply_str_to_str([
+        self.assertEqual(engine.apply_str_to_str([
             'good',
             '$if a',
             'bad',
@@ -121,9 +127,9 @@ class TestTemplateEngine(TestCase):
             'good',
         ]) + '\n')
 
-        for a in range(4):
-            engine['a'] = a
-            self.assertEquals(engine.apply_str_to_str([
+        for i in range(4):
+            engine['a'] = i
+            self.assertEqual(engine.apply_str_to_str([
                 '$if a < 2',
                 '$if a < 1',
                 '0',
@@ -137,13 +143,12 @@ class TestTemplateEngine(TestCase):
                 '3',
                 '$endif',
                 '$endif',
-            ]), '{}\n'.format(a))
+            ]), '{}\n'.format(i))
 
         del engine['a']
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 2: error in \$if expression: name 'a' is not defined"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 2: error in \$if expression: name 'a' is not defined"):
             engine.apply_str_to_str([
                 'good',
                 '$if a',
@@ -151,10 +156,9 @@ class TestTemplateEngine(TestCase):
                 '$endif',
             ])
 
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 2: \$if without expression"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 2: \$if without expression"):
             engine.apply_str_to_str([
                 'good',
                 '$if',
@@ -162,28 +166,25 @@ class TestTemplateEngine(TestCase):
                 '$endif',
             ])
 
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 1: \$else without \$if"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 1: \$else without \$if"):
             engine.apply_str_to_str([
                 '$else',
             ])
 
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 3: \$endif without \$if"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 3: \$endif without \$if"):
             engine.apply_str_to_str([
                 '$if True',
                 '$endif',
                 '$endif',
             ])
 
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 3: \$if without \$endif"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 3: \$if without \$endif"):
             engine.apply_str_to_str([
                 '$if True',
                 '$endif',
@@ -192,19 +193,17 @@ class TestTemplateEngine(TestCase):
                 '$endif',
             ])
 
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 2: unexpected argument for \$endif"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 2: unexpected argument for \$endif"):
             engine.apply_str_to_str([
                 '$if True',
                 '$endif a',
             ])
 
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 2: unexpected argument for \$else"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 2: unexpected argument for \$else"):
             engine.apply_str_to_str([
                 '$if True',
                 '$else a',
@@ -212,25 +211,26 @@ class TestTemplateEngine(TestCase):
             ])
 
     def test_inline(self):
+        """test template inline expansion"""
         engine = TemplateEngine()
 
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 1: error in inline expression:"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 1: error in inline expression:"):
             engine.apply_str_to_str('error = $a$')
 
-        self.assertEquals(engine.apply_str_to_str('$$'), '$\n')
+        self.assertEqual(engine.apply_str_to_str('$$'), '$\n')
 
-        self.assertEquals(engine.apply_str_to_str('$"*"*10$'), '**********\n')
+        self.assertEqual(engine.apply_str_to_str('$"*"*10$'), '**********\n')
 
         engine['a'] = 3
-        self.assertEquals(engine.apply_str_to_str('$33*a$'), '99\n')
+        self.assertEqual(engine.apply_str_to_str('$33*a$'), '99\n')
 
     def test_block_and_formatting(self):
-        self.maxDiff = None
+        """test template formatting"""
+        self.maxDiff = None #pylint: disable=C0103
 
-        TEST = [
+        test = [
             '@ hello!',
             "@ I'm a bit of test code.",
             '@    I should be a new block.',
@@ -268,12 +268,12 @@ class TestTemplateEngine(TestCase):
         ]
 
         engine = TemplateEngine()
-        engine.append_block('TEST', TEST)
+        engine.append_block('TEST', test)
         engine.append_block('TEST', '')
         engine.append_block('TEST', '@ second block!\nhello\n\n', '', 'there')
         engine.append_block('STUFF', ['@ a bunch of other stuff goes here'])
 
-        self.assertEquals(engine.apply_str_to_str([
+        self.assertEqual(engine.apply_str_to_str([
             '$STUFF',
             '$ STUFF',
             '$   STUFF',
@@ -288,14 +288,14 @@ class TestTemplateEngine(TestCase):
 
         engine.reset_block('STUFF')
 
-        self.assertEquals(engine.apply_str_to_str([
+        self.assertEqual(engine.apply_str_to_str([
             '$STUFF',
             '$ STUFF',
             '$   STUFF',
             '$NOTHING',
         ]), '\n')
 
-        self.assertEquals(engine.apply_str_to_str([
+        self.assertEqual(engine.apply_str_to_str([
             '$ TEST',
             '@ comment at the end',
         ]), '\n'.join([
@@ -313,18 +313,18 @@ class TestTemplateEngine(TestCase):
             '  #',
             '      # This comment should be indented.',
             '  this big line of code should not wrap. '
-              'this big line of code should not wrap. '
-              'this big line of code should not wrap. '
-              'this big line of code should not wrap. '
-              'this big line of code should not wrap.',
+            'this big line of code should not wrap. '
+            'this big line of code should not wrap. '
+            'this big line of code should not wrap. '
+            'this big line of code should not wrap.',
             '  this big line of code can wrap here and here and here.',
             '      this big line of code can wrap here and here and here.',
             "      here's an at and a wrapping marker: @ this big line of code can wrap here",
             '      and here and here.',
             '  # this big line of code should not wrap. '
-              'this big line of code should not wrap '
-              'this big line of code should not wrap '
-              'this big line of code should not wrap',
+            'this big line of code should not wrap '
+            'this big line of code should not wrap '
+            'this big line of code should not wrap',
             '  # this big line of code can wrap here and here and here.',
             '  #     this big line of code can wrap here and here and here.',
             "  #     here's an at and a wrapping marker: @",
@@ -340,11 +340,11 @@ class TestTemplateEngine(TestCase):
         ]) + '\n')
 
     def test_unknown_directive(self):
+        """test template unknown directive error"""
         engine = TemplateEngine()
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 2: unknown directive: \$i"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 2: unknown directive: \$i"):
             engine.apply_str_to_str([
                 '$test',
                 '$i am wrong',
@@ -352,9 +352,10 @@ class TestTemplateEngine(TestCase):
             ])
 
     def test_block_definitions(self):
+        """test template block definition directives"""
         engine = TemplateEngine()
         engine.append_block('TEST', 'programmatic block', 'second line')
-        self.assertEquals(engine.apply_str_to_str([
+        self.assertEqual(engine.apply_str_to_str([
             '$TEST',
             '$block TEST',
             'template block',
@@ -372,7 +373,7 @@ class TestTemplateEngine(TestCase):
             '    second line, indented',
         ]) + '\n')
 
-        self.assertEquals(engine.apply_str_to_str([
+        self.assertEqual(engine.apply_str_to_str([
             '$block a',
             '$b',
             '$endblock',
@@ -384,7 +385,7 @@ class TestTemplateEngine(TestCase):
             'expected',
         ]) + '\n')
 
-        self.assertEquals(engine.apply_str_to_str([
+        self.assertEqual(engine.apply_str_to_str([
             '$block a',
             '$33$',
             '$b',
@@ -399,10 +400,9 @@ class TestTemplateEngine(TestCase):
             'expected',
         ]) + '\n')
 
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 2: block recursion limit reached"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 2: block recursion limit reached"):
             engine.apply_str_to_str([
                 '$block a',
                 '$a',
@@ -410,42 +410,39 @@ class TestTemplateEngine(TestCase):
                 '$a',
             ])
 
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 1: \$block without key"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 1: \$block without key"):
             engine.apply_str_to_str([
                 '$block',
                 '$endblock',
             ])
 
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 2: unexpected argument for \$endblock"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 2: unexpected argument for \$endblock"):
             engine.apply_str_to_str([
                 '$block a',
                 '$endblock a',
             ])
 
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 1: \$endblock without \$block"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 1: \$endblock without \$block"):
             engine.apply_str_to_str([
                 '$endblock',
             ])
 
-        with self.assertRaisesRegexp(
-            TemplateSyntaxError,
-            r"on <unknown> line 1: \$block without \$endblock"
-        ):
+        with self.assertRaisesRegex(
+                TemplateSyntaxError,
+                r"on <unknown> line 1: \$block without \$endblock"):
             engine.apply_str_to_str([
                 '$block a',
             ])
 
 
     def test_files(self):
+        """test template file I/O"""
         engine = TemplateEngine()
 
         with tempfile.TemporaryDirectory() as base:
@@ -458,7 +455,7 @@ class TestTemplateEngine(TestCase):
             engine.apply_file_to_file(template_filename, output_filename)
 
             with open(output_filename, 'r') as output_file:
-                self.assertEquals(output_file.read(), 'test\n')
+                self.assertEqual(output_file.read(), 'test\n')
 
         with tempfile.TemporaryDirectory() as base:
             template_filename = base + os.sep + 'input_file_name.tpl'
@@ -467,10 +464,9 @@ class TestTemplateEngine(TestCase):
             with open(template_filename, 'w') as template_file:
                 template_file.write('$bad directive')
 
-            with self.assertRaisesRegexp(
-                TemplateSyntaxError,
-                r"input_file_name\.tpl line 1: unknown directive: \$bad"
-            ):
+            with self.assertRaisesRegex(
+                    TemplateSyntaxError,
+                    r"input_file_name\.tpl line 1: unknown directive: \$bad"):
                 engine.apply_file_to_file(template_filename, output_filename)
 
             self.assertFalse(os.path.isfile(output_filename))
@@ -481,16 +477,4 @@ class TestTemplateEngine(TestCase):
             engine.apply_str_to_file('test', output_filename)
 
             with open(output_filename, 'r') as output_file:
-                self.assertEquals(output_file.read(), 'test\n')
-
-    #def test_real_input(self):
-        #engine = TemplateEngine()
-        #engine['NAME'] = 'test_mmio'
-        #engine['DATA_WIDTH'] = 32
-        #engine['N_IRQ'] = 3
-        #engine['IRQ_MASK_RESET'] = '"111"'
-        #engine['IRQ_ENAB_RESET'] = '"1___11"'
-        #filename = os.path.dirname(vhdmmio.__file__) + os.sep + 'vhdl' + os.sep + 'entity.template.vhd'
-        #output = engine.apply_file_to_str(filename, '-- ')
-        #self.assertFalse('$' in output)
-        #self.assertTrue('"1___11"' in output)
+                self.assertEqual(output_file.read(), 'test\n')

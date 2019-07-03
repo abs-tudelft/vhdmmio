@@ -1,15 +1,15 @@
+"""Module for some integration tests."""
+
 from unittest import TestCase, skipIf
 import os
 import tempfile
+import difflib
 import yaml
-
+import vhdeps
+from vhdmmio import run_cli
 from vhdmmio.core.regfile import RegisterFile
 from vhdmmio.vhdl import generate as generate_vhdl
 from vhdmmio.html import generate as generate_html
-from vhdmmio import run_cli
-import vhdeps
-import difflib
-import copy
 
 _TEST_YAML = """
 meta:
@@ -327,10 +327,12 @@ fields:
 """
 
 class TestIntegration(TestCase):
+    """Module for some integration tests."""
 
     @skipIf('ENABLE_LENGTHY' not in os.environ, '$ENABLE_LENGTHY not set')
     def test_integration(self):
-        self.maxDiff = None
+        """exhaustively test creation of all primitive field types"""
+        self.maxDiff = None #pylint: disable=C0103
         for group in [False, 'reg']:
             for flatten in ['all', 'record', 'never']:
                 if hasattr(yaml, 'safe_load'):
@@ -345,7 +347,7 @@ class TestIntegration(TestCase):
                 with tempfile.TemporaryDirectory() as tempdir:
                     generate_vhdl([regfile], tempdir)
                     generate_html([regfile], tempdir)
-                    run_cli(['-o', tempdir, 'pkg'])
+                    run_cli(['-P', tempdir])
                     run_a = ''
                     for name in sorted(os.listdir(tempdir)):
                         with open(tempdir + os.sep + name, 'r') as fil:
@@ -358,7 +360,7 @@ class TestIntegration(TestCase):
                 with tempfile.TemporaryDirectory() as tempdir:
                     generate_vhdl([regfile], tempdir)
                     generate_html([regfile], tempdir)
-                    run_cli(['-o', tempdir, 'pkg'])
+                    run_cli(['-P', tempdir])
                     run_b = ''
                     for name in sorted(os.listdir(tempdir)):
                         with open(tempdir + os.sep + name, 'r') as fil:
@@ -366,4 +368,4 @@ class TestIntegration(TestCase):
 
                 if run_a != run_b:
                     print('\n'.join(difflib.ndiff(run_a.split('\n'), run_b.split('\n'))))
-                    self.assertTrue(False)
+                    self.fail()

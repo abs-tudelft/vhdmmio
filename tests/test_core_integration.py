@@ -1,81 +1,87 @@
-from unittest import TestCase
-import os
-import re
-import tempfile
+"""Integration tests for the vhdmmio.core module"""
 
-import vhdmmio
+from unittest import TestCase
 from vhdmmio.core.regfile import RegisterFile
 
-class MatchError(Exception):
+class _MatchError(Exception):
+    """Error message for a dictionary match error."""
     def __init__(self, stack, msg, *args):
         super().__init__('.'.join(stack) + ': ' + msg % args)
 
-def _match_partial(actual, expected, stack=[]):
+def _match_partial(actual, expected, stack=None):
+    """Helper functions for partial matching of nested dictionaries/lists."""
+    if stack is None:
+        stack = []
+
     if isinstance(expected, dict):
         if not isinstance(actual, dict):
-            raise MatchError(stack, 'not a dict: %s', actual)
+            raise _MatchError(stack, 'not a dict: %s', actual)
         for key, expected_value in expected.items():
             _match_partial(actual.get(key, None), expected_value, stack + [key])
 
     elif isinstance(expected, set):
         if not isinstance(actual, list):
-            raise MatchError(stack, 'not a list: %s', actual)
+            raise _MatchError(stack, 'not a list: %s', actual)
         for expected_value in expected:
             for idx, actual_value in enumerate(actual):
                 try:
                     _match_partial(actual_value, expected_value, stack + [str(idx)])
                     break
-                except MatchError:
+                except _MatchError:
                     pass
             else:
-                raise MatchError(stack, 'no match found for %s', expected_value)
+                raise _MatchError(stack, 'no match found for %s', expected_value)
 
     elif isinstance(expected, list):
         if not isinstance(actual, list):
-            raise MatchError(stack, 'not a list: %s', actual)
+            raise _MatchError(stack, 'not a list: %s', actual)
         idx = 0
         for expected_value in expected:
             match_found = False
-            while not match_found and i < len(actual):
+            while not match_found and idx < len(actual):
                 try:
                     _match_partial(actual_value, expected_value, stack + [str(idx)])
                     match_found = True
-                except MatchError:
+                except _MatchError:
                     pass
                 idx += 1
             if not match_found:
-                raise MatchError(stack, 'no match found for %s', expected_value)
+                raise _MatchError(stack, 'no match found for %s', expected_value)
 
     elif isinstance(expected, tuple):
         if not isinstance(actual, list):
-            raise MatchError(stack, 'not a list: %s', actual)
+            raise _MatchError(stack, 'not a list: %s', actual)
         idx = -1
+        actual_value = None
         for idx, (actual_value, expected_value) in enumerate(zip(actual, expected)):
             _match_partial(actual_value, expected_value, stack + [str(idx)])
         if idx < len(expected) - 1:
-            raise MatchError(stack + [str(idx+1)], 'does not exist')
-        elif idx < len(actual) - 1:
-            raise MatchError(stack + [str(idx+1)], 'unexpected output: %s', actual_value[idx+1])
+            raise _MatchError(stack + [str(idx+1)], 'does not exist')
+        if idx < len(actual) - 1:
+            raise _MatchError(stack + [str(idx+1)], 'unexpected output: %s', actual_value[idx+1])
 
     elif hasattr(expected, 'match') and hasattr(expected, 'findall'):
         # probably a regex matcher...
         if not expected.match(str(expected)):
-            raise MatchError(stack, 'failed to match: ', expected)
+            raise _MatchError(stack, 'failed to match: ', expected)
 
     elif actual != expected:
-        raise MatchError(stack, 'incorrect value: ', expected)
+        raise _MatchError(stack, 'incorrect value: ', expected)
+
 
 class TestCoreIntegration(TestCase):
+    """Integration tests for the vhdmmio.core module"""
 
     def _test_valid(self, input_dict, exact=None, partial=None, regs=None):
+        """Tests a valid register file dictionary."""
         regfile = RegisterFile.from_dict(input_dict)
         output_dict = regfile.to_dict()
-        self.maxDiff = None
-        self.assertEquals(RegisterFile.from_dict(output_dict).to_dict(), output_dict)
+        self.maxDiff = None #pylint: disable=C0103
+        self.assertEqual(RegisterFile.from_dict(output_dict).to_dict(), output_dict)
 
         # Exact matching.
         if exact is not None:
-            self.assertEquals(output_dict, exact)
+            self.assertEqual(output_dict, exact)
 
         # Partial matching.
         if partial is not None:
@@ -83,22 +89,23 @@ class TestCoreIntegration(TestCase):
 
         # Register matching.
         if regs is not None:
-            self.assertEquals(len(regfile.registers), len(regs), 'number of registers')
+            self.assertEqual(len(regfile.registers), len(regs), 'number of registers')
             for reg_idx, (act_reg, exp_reg) in enumerate(zip(regfile.registers, regs)):
-                self.assertEquals(len(act_reg.fields), len(exp_reg),
-                                  'number of fields in register %d' % reg_idx)
+                self.assertEqual(len(act_reg.fields), len(exp_reg),
+                                 'number of fields in register %d' % reg_idx)
                 for field_idx, (act_field, exp_field) in enumerate(zip(act_reg.fields, exp_reg)):
                     exp_name, exp_bitrange, exp_index = exp_field
-                    self.assertEquals(act_field.meta.name, exp_name,
-                                      'field %d.%d name' % (reg_idx, field_idx))
-                    self.assertEquals(act_field.bitrange.to_spec(), exp_bitrange,
-                                      'field %d.%d bitrange' % (reg_idx, field_idx))
-                    self.assertEquals(act_field.index, exp_index,
-                                      'field %d.%d index' % (reg_idx, field_idx))
+                    self.assertEqual(act_field.meta.name, exp_name,
+                                     'field %d.%d name' % (reg_idx, field_idx))
+                    self.assertEqual(act_field.bitrange.to_spec(), exp_bitrange,
+                                     'field %d.%d bitrange' % (reg_idx, field_idx))
+                    self.assertEqual(act_field.index, exp_index,
+                                     'field %d.%d index' % (reg_idx, field_idx))
 
         return regfile
 
     def _test_invalid(self, input_dict, exception, regex=None):
+        """Tests an invalid register file dictionary."""
         if regex is None:
             checker = self.assertRaises(exception)
         else:
@@ -107,6 +114,7 @@ class TestCoreIntegration(TestCase):
             RegisterFile.from_dict(input_dict)
 
     def test_empty(self):
+        """test constructing an empty register file"""
         self._test_valid({
             'meta': {'name': 'test'},
         }, partial={
@@ -115,19 +123,21 @@ class TestCoreIntegration(TestCase):
         }, regs=[])
 
     def test_missing_meta(self):
+        """test constructing a register file from an empty dict"""
         self._test_invalid({}, (ValueError, TypeError), 'missing')
 
     def test_bus_width(self):
-        self.assertEquals(self._test_valid({
+        """test register file bus width"""
+        self.assertEqual(self._test_valid({
             'meta': {'name': 'test'}
         }).bus_width, 32)
 
-        self.assertEquals(self._test_valid({
+        self.assertEqual(self._test_valid({
             'meta': {'name': 'test'},
             'features': {'bus-width': 32}
         }).bus_width, 32)
 
-        self.assertEquals(self._test_valid({
+        self.assertEqual(self._test_valid({
             'meta': {'name': 'test'},
             'features': {'bus-width': 64}
         }).bus_width, 64)
@@ -143,6 +153,7 @@ class TestCoreIntegration(TestCase):
         }, ValueError)
 
     def test_repetition(self):
+        """test field repetition"""
         self._test_valid({
             'meta': {'name': 'test'},
             'fields': [
@@ -198,6 +209,7 @@ class TestCoreIntegration(TestCase):
         }, ValueError, 'cannot combine automatic repetition with multiple addresses')
 
     def test_strided_repetition(self):
+        """test strided field repetition"""
         self._test_valid({
             'meta': {'name': 'test'},
             'fields': [

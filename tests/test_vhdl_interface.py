@@ -1,17 +1,18 @@
-from unittest import TestCase
-import os
-import tempfile
-from collections import OrderedDict
+"""Unit tests for the VHDL entity interface generator."""
 
+from unittest import TestCase
 import vhdmmio.vhdl.types as types
 from vhdmmio.vhdl.interface import Interface, InterfaceOptions
 
 class TestVhdlInterface(TestCase):
+    """Unit tests for the VHDL entity interface generator."""
 
     maxDiff = None
 
     @staticmethod
     def gen_basic_interface(group, flatten):
+        """Generates a simple interface with the given grouping and
+        flattening."""
         options = InterfaceOptions(
             port_group=group, port_flatten=flatten,
             generic_group=group, generic_flatten=flatten)
@@ -48,7 +49,9 @@ class TestVhdlInterface(TestCase):
         return tuple(objs)
 
     def test_ungrouped_unflattened(self):
-        iface, fd, fv, fr, fe, bd, bv, br, be = self.gen_basic_interface(False, 'never')
+        """test ungrouped, unflattened interface generation"""
+        result = self.gen_basic_interface(False, 'never')
+        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface for field foo: a scalar field.',
             'f_foo_i : in tns_f_foo_i_type@:= TNS_F_FOO_I_RESET;',
@@ -58,7 +61,8 @@ class TestVhdlInterface(TestCase):
             'f_bar_o : out tns_f_bar_o_array(0 to 3)@:= (others => TNS_F_BAR_O_RESET);',
             'f_bar_i : in tns_f_bar_i_array(0 to 3)@:= (others => TNS_F_BAR_I_RESET);',
         ]))
-        self.assertEqual('\n\n'.join(iface.generate('generic', end_with_semicolon=False)), '\n'.join([
+        result = iface.generate('generic', end_with_semicolon=False)
+        self.assertEqual('\n\n'.join(result), '\n'.join([
             '@ Interface for field foo: a scalar field.',
             'F_FOO_G : tns_f_foo_g_type@:= TNS_F_FOO_G_RESET;',
             '',
@@ -110,15 +114,19 @@ class TestVhdlInterface(TestCase):
             ');',
             'type tns_f_bar_g_array is array (natural range <>) of tns_f_bar_g_type;',
         ]))
-        self.assertEqual(str(fd['a']['b']), 'f_foo_i.data(b)')
-        self.assertEqual(str(fv['a']['b']), 'f_foo_i.valid')
-        self.assertEqual(str(fr['a']['b']), 'f_foo_o.ready')
-        self.assertEqual(str(bd['a']['b']), 'f_bar_o(a).data(b)')
-        self.assertEqual(str(bv['a']['b']), 'f_bar_o(a).valid')
-        self.assertEqual(str(br['a']['b']), 'f_bar_i(a).ready')
+        self.assertEqual(str(foo_d['a']['b']), 'f_foo_i.data(b)')
+        self.assertEqual(str(foo_v['a']['b']), 'f_foo_i.valid')
+        self.assertEqual(str(foo_r['a']['b']), 'f_foo_o.ready')
+        self.assertEqual(str(foo_e['a']['b']), 'F_FOO_G.enable')
+        self.assertEqual(str(bar_d['a']['b']), 'f_bar_o(a).data(b)')
+        self.assertEqual(str(bar_v['a']['b']), 'f_bar_o(a).valid')
+        self.assertEqual(str(bar_r['a']['b']), 'f_bar_i(a).ready')
+        self.assertEqual(str(bar_e['a']['b']), 'F_BAR_G(a).enable')
 
     def test_grouped_unflattened(self):
-        iface, fd, fv, fr, fe, bd, bv, br, be = self.gen_basic_interface('test', 'never')
+        """test grouped, unflattened interface generation"""
+        result = self.gen_basic_interface('test', 'never')
+        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface group for:',
             '@  - field bar: a vector field.',
@@ -126,7 +134,8 @@ class TestVhdlInterface(TestCase):
             'g_test_i : in tns_g_test_i_type@:= TNS_G_TEST_I_RESET;',
             'g_test_o : out tns_g_test_o_type@:= TNS_G_TEST_O_RESET;',
         ]))
-        self.assertEqual('\n\n'.join(iface.generate('generic', end_with_semicolon=False)), '\n'.join([
+        result = iface.generate('generic', end_with_semicolon=False)
+        self.assertEqual('\n\n'.join(result), '\n'.join([
             '@ Interface group for:',
             '@  - field bar: a vector field.',
             '@  - field foo: a scalar field.',
@@ -201,15 +210,19 @@ class TestVhdlInterface(TestCase):
             '  f_bar => (others => TNS_F_BAR_G_RESET)',
             ');',
         ]))
-        self.assertEqual(str(fd['a']['b']), 'g_test_i.f_foo.data(b)')
-        self.assertEqual(str(fv['a']['b']), 'g_test_i.f_foo.valid')
-        self.assertEqual(str(fr['a']['b']), 'g_test_o.f_foo.ready')
-        self.assertEqual(str(bd['a']['b']), 'g_test_o.f_bar(a).data(b)')
-        self.assertEqual(str(bv['a']['b']), 'g_test_o.f_bar(a).valid')
-        self.assertEqual(str(br['a']['b']), 'g_test_i.f_bar(a).ready')
+        self.assertEqual(str(foo_d['a']['b']), 'g_test_i.f_foo.data(b)')
+        self.assertEqual(str(foo_v['a']['b']), 'g_test_i.f_foo.valid')
+        self.assertEqual(str(foo_r['a']['b']), 'g_test_o.f_foo.ready')
+        self.assertEqual(str(foo_e['a']['b']), 'G_TEST_G.f_foo.enable')
+        self.assertEqual(str(bar_d['a']['b']), 'g_test_o.f_bar(a).data(b)')
+        self.assertEqual(str(bar_v['a']['b']), 'g_test_o.f_bar(a).valid')
+        self.assertEqual(str(bar_r['a']['b']), 'g_test_i.f_bar(a).ready')
+        self.assertEqual(str(bar_e['a']['b']), 'G_TEST_G.f_bar(a).enable')
 
     def test_ungrouped_flattened_records(self):
-        iface, fd, fv, fr, fe, bd, bv, br, be = self.gen_basic_interface(False, 'record')
+        """test ungrouped, record-flattened interface generation"""
+        result = self.gen_basic_interface(False, 'record')
+        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface for field foo: a scalar field.',
             'f_foo_data : in std_logic_vector(7 downto 0)@:= (others => \'0\');',
@@ -221,7 +234,8 @@ class TestVhdlInterface(TestCase):
             'f_bar_valid : out std_logic_array(0 to 3)@:= (others => \'0\');',
             'f_bar_ready : in std_logic_array(0 to 3)@:= (others => \'0\');',
         ]))
-        self.assertEqual('\n\n'.join(iface.generate('generic', end_with_semicolon=False)), '\n'.join([
+        result = iface.generate('generic', end_with_semicolon=False)
+        self.assertEqual('\n\n'.join(result), '\n'.join([
             '@ Interface for field foo: a scalar field.',
             'F_FOO_ENABLE : boolean@:= false;',
             '',
@@ -232,15 +246,19 @@ class TestVhdlInterface(TestCase):
             'subtype tns_f_bar_data_type is std_logic_vector(7 downto 0);',
             'type tns_f_bar_data_array is array (natural range <>) of tns_f_bar_data_type;',
         ]))
-        self.assertEqual(str(fd['a']['b']), 'f_foo_data(b)')
-        self.assertEqual(str(fv['a']['b']), 'f_foo_valid')
-        self.assertEqual(str(fr['a']['b']), 'f_foo_ready')
-        self.assertEqual(str(bd['a']['b']), 'f_bar_data(a)(b)')
-        self.assertEqual(str(bv['a']['b']), 'f_bar_valid(a)')
-        self.assertEqual(str(br['a']['b']), 'f_bar_ready(a)')
+        self.assertEqual(str(foo_d['a']['b']), 'f_foo_data(b)')
+        self.assertEqual(str(foo_v['a']['b']), 'f_foo_valid')
+        self.assertEqual(str(foo_r['a']['b']), 'f_foo_ready')
+        self.assertEqual(str(foo_e['a']['b']), 'F_FOO_ENABLE')
+        self.assertEqual(str(bar_d['a']['b']), 'f_bar_data(a)(b)')
+        self.assertEqual(str(bar_v['a']['b']), 'f_bar_valid(a)')
+        self.assertEqual(str(bar_r['a']['b']), 'f_bar_ready(a)')
+        self.assertEqual(str(bar_e['a']['b']), 'F_BAR_ENABLE(a)')
 
     def test_grouped_flattened_records(self):
-        iface, fd, fv, fr, fe, bd, bv, br, be = self.gen_basic_interface('test', 'record')
+        """test grouped, record-flattened interface generation"""
+        result = self.gen_basic_interface('test', 'record')
+        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface group for:',
             '@  - field bar: a vector field.',
@@ -248,7 +266,8 @@ class TestVhdlInterface(TestCase):
             'g_test_i : in tns_g_test_i_type@:= TNS_G_TEST_I_RESET;',
             'g_test_o : out tns_g_test_o_type@:= TNS_G_TEST_O_RESET;',
         ]))
-        self.assertEqual('\n\n'.join(iface.generate('generic', end_with_semicolon=False)), '\n'.join([
+        result = iface.generate('generic', end_with_semicolon=False)
+        self.assertEqual('\n\n'.join(result), '\n'.join([
             '@ Interface group for:',
             '@  - field bar: a vector field.',
             '@  - field foo: a scalar field.',
@@ -286,15 +305,19 @@ class TestVhdlInterface(TestCase):
             '  f_bar_enable => (others => false)',
             ');',
         ]))
-        self.assertEqual(str(fd['a']['b']), 'g_test_i.f_foo_data(b)')
-        self.assertEqual(str(fv['a']['b']), 'g_test_i.f_foo_valid')
-        self.assertEqual(str(fr['a']['b']), 'g_test_o.f_foo_ready')
-        self.assertEqual(str(bd['a']['b']), 'g_test_o.f_bar_data(a)(b)')
-        self.assertEqual(str(bv['a']['b']), 'g_test_o.f_bar_valid(a)')
-        self.assertEqual(str(br['a']['b']), 'g_test_i.f_bar_ready(a)')
+        self.assertEqual(str(foo_d['a']['b']), 'g_test_i.f_foo_data(b)')
+        self.assertEqual(str(foo_v['a']['b']), 'g_test_i.f_foo_valid')
+        self.assertEqual(str(foo_r['a']['b']), 'g_test_o.f_foo_ready')
+        self.assertEqual(str(foo_e['a']['b']), 'G_TEST_G.f_foo_enable')
+        self.assertEqual(str(bar_d['a']['b']), 'g_test_o.f_bar_data(a)(b)')
+        self.assertEqual(str(bar_v['a']['b']), 'g_test_o.f_bar_valid(a)')
+        self.assertEqual(str(bar_r['a']['b']), 'g_test_i.f_bar_ready(a)')
+        self.assertEqual(str(bar_e['a']['b']), 'G_TEST_G.f_bar_enable(a)')
 
     def test_ungrouped_flattened(self):
-        iface, fd, fv, fr, fe, bd, bv, br, be = self.gen_basic_interface(False, 'all')
+        """test ungrouped, array-flattened interface generation"""
+        result = self.gen_basic_interface(False, 'all')
+        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface for field foo: a scalar field.',
             'f_foo_data : in std_logic_vector(7 downto 0)@:= (others => \'0\');',
@@ -306,7 +329,8 @@ class TestVhdlInterface(TestCase):
             'f_bar_valid : out std_logic_vector(3 downto 0)@:= (others => \'0\');',
             'f_bar_ready : in std_logic_vector(3 downto 0)@:= (others => \'0\');',
         ]))
-        self.assertEqual('\n\n'.join(iface.generate('generic', end_with_semicolon=False)), '\n'.join([
+        result = iface.generate('generic', end_with_semicolon=False)
+        self.assertEqual('\n\n'.join(result), '\n'.join([
             '@ Interface for field foo: a scalar field.',
             'F_FOO_ENABLE : boolean@:= false;',
             '',
@@ -315,15 +339,19 @@ class TestVhdlInterface(TestCase):
         ]))
         self.assertEqual('\n'.join(types.gather_defs(*iface.gather_types())), '\n'.join([
         ]))
-        self.assertEqual(str(fd['a']['b']), 'f_foo_data(b)')
-        self.assertEqual(str(fv['a']['b']), 'f_foo_valid')
-        self.assertEqual(str(fr['a']['b']), 'f_foo_ready')
-        self.assertEqual(str(bd['a']['b']), 'f_bar_data(8*a + b)')
-        self.assertEqual(str(bv['a']['b']), 'f_bar_valid(a)')
-        self.assertEqual(str(br['a']['b']), 'f_bar_ready(a)')
+        self.assertEqual(str(foo_d['a']['b']), 'f_foo_data(b)')
+        self.assertEqual(str(foo_v['a']['b']), 'f_foo_valid')
+        self.assertEqual(str(foo_r['a']['b']), 'f_foo_ready')
+        self.assertEqual(str(foo_e['a']['b']), 'F_FOO_ENABLE')
+        self.assertEqual(str(bar_d['a']['b']), 'f_bar_data(8*a + b)')
+        self.assertEqual(str(bar_v['a']['b']), 'f_bar_valid(a)')
+        self.assertEqual(str(bar_r['a']['b']), 'f_bar_ready(a)')
+        self.assertEqual(str(bar_e['a']['b']), 'F_BAR_ENABLE(a)')
 
     def test_grouped_flattened(self):
-        iface, fd, fv, fr, fe, bd, bv, br, be = self.gen_basic_interface('test', 'all')
+        """test grouped, array-flattened interface generation"""
+        result = self.gen_basic_interface('test', 'all')
+        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface group for:',
             '@  - field bar: a vector field.',
@@ -331,7 +359,8 @@ class TestVhdlInterface(TestCase):
             'g_test_i : in tns_g_test_i_type@:= TNS_G_TEST_I_RESET;',
             'g_test_o : out tns_g_test_o_type@:= TNS_G_TEST_O_RESET;',
         ]))
-        self.assertEqual('\n\n'.join(iface.generate('generic', end_with_semicolon=False)), '\n'.join([
+        result = iface.generate('generic', end_with_semicolon=False)
+        self.assertEqual('\n\n'.join(result), '\n'.join([
             '@ Interface group for:',
             '@  - field bar: a vector field.',
             '@  - field foo: a scalar field.',
@@ -367,9 +396,11 @@ class TestVhdlInterface(TestCase):
             '  f_bar_enable => (others => false)',
             ');',
         ]))
-        self.assertEqual(str(fd['a']['b']), 'g_test_i.f_foo_data(b)')
-        self.assertEqual(str(fv['a']['b']), 'g_test_i.f_foo_valid')
-        self.assertEqual(str(fr['a']['b']), 'g_test_o.f_foo_ready')
-        self.assertEqual(str(bd['a']['b']), 'g_test_o.f_bar_data(8*a + b)')
-        self.assertEqual(str(bv['a']['b']), 'g_test_o.f_bar_valid(a)')
-        self.assertEqual(str(br['a']['b']), 'g_test_i.f_bar_ready(a)')
+        self.assertEqual(str(foo_d['a']['b']), 'g_test_i.f_foo_data(b)')
+        self.assertEqual(str(foo_v['a']['b']), 'g_test_i.f_foo_valid')
+        self.assertEqual(str(foo_r['a']['b']), 'g_test_o.f_foo_ready')
+        self.assertEqual(str(foo_e['a']['b']), 'G_TEST_G.f_foo_enable')
+        self.assertEqual(str(bar_d['a']['b']), 'g_test_o.f_bar_data(8*a + b)')
+        self.assertEqual(str(bar_v['a']['b']), 'g_test_o.f_bar_valid(a)')
+        self.assertEqual(str(bar_r['a']['b']), 'g_test_i.f_bar_ready(a)')
+        self.assertEqual(str(bar_e['a']['b']), 'G_TEST_G.f_bar_enable(a)')

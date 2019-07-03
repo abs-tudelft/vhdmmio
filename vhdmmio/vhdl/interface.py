@@ -431,6 +431,7 @@ class Interface:
         else:
             if sig_mode == 'g':
                 new_name = new_name.upper()
+                obj_path[0] = obj_path[0].upper()
 
             cur_type, cur_cnt, cur_mode = signals.get(new_name, (new_type, new_cnt, sig_mode))
             signals[new_name] = (cur_type, cur_cnt, cur_mode)

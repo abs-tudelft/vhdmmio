@@ -4,7 +4,7 @@ import os
 from collections import OrderedDict
 from enum import Enum
 from ..template import TemplateEngine, annotate_block
-from .match import match_template
+from .decoder import Decoder
 from .types import Record, Array, SizedArray, Object, gather_defs
 from .interface import Interface
 
@@ -107,48 +107,6 @@ $endif
 $endif
 """, comment='--')
 
-class _Decoder:
-    """Builder class for address decoders."""
-
-    def __init__(self, address, num_bits, optimize=False):
-        """Constructs an address decoder builder. The address decoder will
-        match the address signal or variable named by `address`, which must be
-        an `std_logic_vector(num_bits - 1 downto 0)`. If `optimize` is set,
-        the action for any address for which no action is specified is
-        interpreted as don't care, versus the default no-operation behavior."""
-        super().__init__()
-        self._num_bits = num_bits
-        self._optimize = optimize
-        self._tple = TemplateEngine()
-        self._tple['address'] = address
-        self._addresses = set()
-
-    def add_action(self, block, address, mask=0):
-        """Registers the given code block for execution when the address
-        input matches `address`, with any high bits in `mask` masked *out*."""
-        self._addresses.add((address, mask))
-        self._tple.append_block('ADDR_0x%X' % address, block)
-
-    def generate(self):
-        """Generates the address decoder."""
-        if not self._addresses:
-            return None
-        return self._tple.apply_str_to_str(
-            match_template(
-                self._num_bits,
-                self._addresses,
-                self._optimize),
-            postprocess=False)
-
-    def append_to_template(self, template_engine, key, comment):
-        """Appends this decoder to the given template engine as a block,
-        prefixing the given comment."""
-        block = self.generate()
-        if block is None:
-            return
-        template_engine.append_block(key, '@ ' + comment, block)
-
-
 class Generator:
     """VHDL generator for register files."""
 
@@ -165,10 +123,10 @@ class Generator:
         self._interface = Interface(regfile.meta.name, regfile.iface_opts)
 
         # Address decoder builders.
-        self._read_decoder = _Decoder('r_addr', 32, optimize=regfile.optimize)
-        self._read_tag_decoder = _Decoder('r_rtag', regfile.read_tag_width, optimize=True)
-        self._write_decoder = _Decoder('w_addr', 32, optimize=regfile.optimize)
-        self._write_tag_decoder = _Decoder('w_rtag', regfile.write_tag_width, optimize=True)
+        self._read_decoder = Decoder('r_addr', 32, optimize=regfile.optimize)
+        self._read_tag_decoder = Decoder('r_rtag', regfile.read_tag_width, optimize=True)
+        self._write_decoder = Decoder('w_addr', 32, optimize=regfile.optimize)
+        self._write_tag_decoder = Decoder('w_rtag', regfile.write_tag_width, optimize=True)
 
         # Generate code for interrupts.
         for interrupt in regfile.interrupts:

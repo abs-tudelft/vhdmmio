@@ -1,8 +1,9 @@
-"""Module for the `match_template` function."""
+"""Module for constructing address decoders."""
 
 import re
+from ..template import TemplateEngine
 
-def match_template(num_bits, addresses, optimize=False):
+def decoder_template(num_bits, addresses, optimize=False):
     """Generates a VHDL case/switch template for a vector of the given number
     of bits and the given addresses. The addresses must be any mix of integer
     addresses and two-tuples of base address and bitmask, where a high bit in
@@ -276,3 +277,45 @@ def match_template(num_bits, addresses, optimize=False):
     return '\n'.join((
         re.sub(r'^ ( +)\$', r'$\1', line)
         for line in gen_template(num_bits - 1, 0, '', '', addresses)))
+
+
+class Decoder:
+    """Builder class for address decoders."""
+
+    def __init__(self, address, num_bits, optimize=False):
+        """Constructs an address decoder builder. The address decoder will
+        match the address signal or variable named by `address`, which must be
+        an `std_logic_vector(num_bits - 1 downto 0)`. If `optimize` is set,
+        the action for any address for which no action is specified is
+        interpreted as don't care, versus the default no-operation behavior."""
+        super().__init__()
+        self._num_bits = num_bits
+        self._optimize = optimize
+        self._tple = TemplateEngine()
+        self._tple['address'] = address
+        self._addresses = set()
+
+    def add_action(self, block, address, mask=0):
+        """Registers the given code block for execution when the address
+        input matches `address`, with any high bits in `mask` masked *out*."""
+        self._addresses.add((address, mask))
+        self._tple.append_block('ADDR_0x%X' % address, block)
+
+    def generate(self):
+        """Generates the address decoder."""
+        if not self._addresses:
+            return None
+        return self._tple.apply_str_to_str(
+            decoder_template(
+                self._num_bits,
+                self._addresses,
+                self._optimize),
+            postprocess=False)
+
+    def append_to_template(self, template_engine, key, comment):
+        """Appends this decoder to the given template engine as a block,
+        prefixing the given comment."""
+        block = self.generate()
+        if block is None:
+            return
+        template_engine.append_block(key, '@ ' + comment, block)
