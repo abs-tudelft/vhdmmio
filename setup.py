@@ -46,6 +46,7 @@ setup(
         'vhdmmio.vhdl',
         'vhdmmio.html'
     ],
+    include_package_data=True,
     entry_points = {'console_scripts': ['vhdmmio=vhdmmio:run_cli']},
 
     # Install dependencies
@@ -56,6 +57,6 @@ setup(
     cmdclass = {'test': NoseTestCommand},
 
     # Setup dependencies
-    setup_requires = ['setuptools-lint', 'pylint']
+    setup_requires = ['setuptools-lint', 'pylint', 'setuptools-git']
 
 )
