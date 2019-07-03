@@ -34,7 +34,8 @@ def run_cli(args=None):
 
     parser = argparse.ArgumentParser(
         description='This script generates AXI4L-compatible register files '
-        'from simple YAML or JSON descriptions.')
+        'from simple YAML or JSON descriptions. Visit '
+        'https://github.com/abs-tudelft/vhdmmio for more information.')
 
     parser.add_argument(
         'source', nargs='*',
@@ -44,14 +45,14 @@ def run_cli(args=None):
         'and \'*.mmio.json\'.')
 
     parser.add_argument(
-        '-P', '--pkg', const='.', nargs='?',
+        '-P', '--pkg', metavar='dir', const='.', nargs='?',
         help='Write the \'vhdmmio_pkg.gen.vhd\' support package to the given '
         'directory. The directory defaults to the current working directory. '
         'You should only ever have to do this once, or maybe after you update '
         'vhdmmio; it does not depend on the register file descriptions.')
 
     parser.add_argument(
-        '-V', '--vhd', const='@', nargs='?',
+        '-V', '--vhd', metavar='dir', const='@', nargs='?',
         help='Generate VHDL files. If [dir] is specified, it is used as the '
         'output directory. You can use the \'@\' symbol to have vhdmmio '
         'insert the relative path from the current working directory to the '
@@ -60,7 +61,7 @@ def run_cli(args=None):
         'description by default.')
 
     parser.add_argument(
-        '-H', '--html', const='vhdmmio-doc', nargs='?',
+        '-H', '--html', metavar='dir', const='vhdmmio-doc', nargs='?',
         help='Generate HTML documentation for the register files. [dir] '
         'defaults to \'./vhdmmio-doc\'.')
 
@@ -75,12 +76,17 @@ def run_cli(args=None):
 
     parser.add_argument(
         '-v', '--version', action='version', version='vhdmmio ' + __version__,
-        help='Prints the current version of vhdeps and exits.')
+        help='Prints the current version of vhdmmio and exits.')
 
     try:
         if args is None:
             args = sys.argv[1:]
         args = parser.parse_args(args)
+
+        if not args.source:
+            parser.print_usage()
+            return 1
+
     except SystemExit as exc:
         return exc.code
 
