@@ -21,9 +21,9 @@ and `generate_vhdl()`."""
 import sys
 import os
 import argparse
-from .core.regfile import RegisterFile
 import vhdmmio.vhdl as vhdl
 import vhdmmio.html as html
+from .core.regfile import RegisterFile
 
 __version__ = '0.0.1'
 

@@ -173,7 +173,9 @@ def _bitfield_table(*registers):
     return '\n'.join(lines)
 
 def generate(regfiles, output_directory):
-    """Generates HTML documentation for the given register files."""
+    """Generates HTML documentation for the given register files. The files are
+    written to the given output directory. If the output directory does not
+    exist yet, it is first created."""
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     fname = output_directory + os.sep + 'index.html'

@@ -625,11 +625,23 @@ class Generator:
 
 
 def generate(regfiles, output_directory, annotate=False):
-    """Generates the VHDL files for the given list of register files."""
+    """Generates the VHDL files for the given list of register files.
+
+    The files are written to `output_directory`. If you add an `@` symbol into
+    the path, it will be replaced with the relative path from the working
+    directory to the description file associated with the register file (or
+    with an empty string if the filename is not known). Directories are
+    automatically created if they don't exist yet.
+
+    If `annotate` is set, the output files include comments that mark the
+    template origin of most lines of code. This can be useful when debugging
+    `vhdmmio` itself."""
     for regfile in regfiles:
         Generator(regfile).generate_files(output_directory, annotate=annotate)
 
 def generate_pkg(output_directory):
+    """Writes the `vhdmiio_pkg.gen.vhd` file to the given directory. If the
+    directory does not exist yet, it is automatically created."""
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     fname = output_directory + os.sep + 'vhdmmio_pkg.gen.vhd'
