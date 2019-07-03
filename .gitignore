@@ -6,7 +6,6 @@ include
 lib
 vhdmmio.egg-info
 .coverage
-coverage.xml
 .eggs
 .tox
 .venv
@@ -19,5 +18,7 @@ coverage.xml
 .idea/
 .pytest_cache/
 htmlcov
+coverage.xml
+nosetests.xml
 *.cf
 *.gen.*
