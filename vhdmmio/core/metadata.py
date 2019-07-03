@@ -28,8 +28,8 @@ class Metadata:
 
         Either `mnemonic`, `name`, or both must be specified. If one is
         missing, it's derived from the other. `brief` defaults to the outcome
-        for `name`, while `doc` defaults to an empty string.
-        """
+        for `name` (with an attempt to convert it to a sentence), while `doc`
+        defaults to an empty string."""
         super().__init__()
 
         if mnemonic is None and name is None:
@@ -49,7 +49,7 @@ class Metadata:
             self._mnemonic = str(mnemonic)
         if not re.match(r'[A-Z][A-Z_0-9]*$', self._mnemonic):
             raise ValueError('name {!r} is not a valid mnemonic'.format(self._mnemonic))
-        if count is not None and re.match(r'[0-9]*$', self._mnemonic):
+        if count is not None and re.search(r'[0-9]$', self._mnemonic):
             raise ValueError('mnemonic cannot end in a digit when repetition is used')
 
         # Parse and check name.
@@ -59,12 +59,14 @@ class Metadata:
             self._name = str(name)
         if not re.match(r'[a-zA-Z][a-zA-Z_0-9]*$', self._name):
             raise ValueError('name {!r} is not a valid identifier'.format(self._name))
-        if count is not None and re.match(r'[0-9]*$', self._name):
+        if count is not None and re.search(r'[0-9]$', self._name):
             raise ValueError('name cannot end in a digit when repetition is used')
 
         # Parse and check brief.
         if brief is None:
-            self._brief = self._name
+            brief = re.split(r'([0-9]+)|([A-Z]*)(?:_|([0-9]+|[A-Z][a-z]+))', self._name)
+            brief = ' '.join(filter(bool, brief))
+            self._brief = brief[0].upper() + brief[1:] + '.'
         else:
             self._brief = str(brief)
         if '\n' in self._brief:
@@ -243,8 +245,8 @@ class ExpandedMetadata:
         """Checks for name conflicts between cousins."""
         names = {}
         for cousin in cousins:
-            conflict = names.get(cousin.name, None)
+            conflict = names.get(cousin.name.lower(), None)
             if conflict is not None:
                 raise ValueError(
                     'duplicate name %s' % cousin.name)
-            names[cousin.name] = cousin
+            names[cousin.name.lower()] = cousin
