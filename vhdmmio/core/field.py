@@ -94,14 +94,14 @@ class FieldDescriptor:
                 deny = switches(kwargs, key, [
                     'user',         # Deny access for unprivileged masters.
                     'super',        # Deny access for privileged masters.
-                    'secure',       # Deny access for secure masters.
-                    'unsecure',     # Deny access for unsecure masters.
+                    'secure',       # Deny secure accesses.
+                    'nonsecure',    # Deny non-secure accesses.
                     'data',         # Deny data accesses.
-                    'instruction']) # Deny instruction accesses.)
+                    'instruction']) # Deny instruction accesses.
                 if 'super' in deny and 'user' in deny:
                     raise ValueError('cannot deny accesses from both user and superuser')
-                if 'secure' in deny and 'unsecure' in deny:
-                    raise ValueError('cannot deny both secure and unsecure accesses')
+                if 'secure' in deny and 'nonsecure' in deny:
+                    raise ValueError('cannot deny both secure and nonsecure accesses')
                 if 'data' in deny and 'instruction' in deny:
                     raise ValueError('cannot deny both data and instruction accesses')
                 if 'user' in deny:
@@ -112,7 +112,7 @@ class FieldDescriptor:
                     prot = '-'
                 if 'secure' in deny:
                     prot += '1'
-                elif 'unsecure' in deny:
+                elif 'nonsecure' in deny:
                     prot += '0'
                 else:
                     prot += '-'
