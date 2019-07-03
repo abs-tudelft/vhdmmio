@@ -4,6 +4,8 @@ import os
 from markdown2 import Markdown
 from vhdmmio.core.bitrange import BitRange
 
+#get#xdg-open#to#interpret#this#as#a#python#file#...##################
+
 _HEADER = """<!DOCTYPE html>
 <html>
 <meta charset="UTF-8">
