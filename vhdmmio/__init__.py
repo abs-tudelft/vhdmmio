@@ -21,11 +21,10 @@ and `generate_vhdl()`."""
 import sys
 import os
 import argparse
+from vhdmmio.version import __version__
 import vhdmmio.vhdl as vhdl
 import vhdmmio.html as html
 from .core.regfile import RegisterFile
-
-__version__ = '0.0.1'
 
 def run_cli(args=None):
     """Runs the vhdmmio CLI. The command-line arguments are taken from `args`
