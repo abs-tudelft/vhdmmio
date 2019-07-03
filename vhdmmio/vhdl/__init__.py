@@ -215,23 +215,23 @@ class Generator:
     def generate_files(self, output_directory, annotate=False):
         """Generates the files for this register file in the specified
         directory."""
-        if output_directory is not None:
-            name = output_directory
-        elif self._regfile.output_directory is not None:
-            name = self._regfile.output_directory
-        else:
-            name = '.'
-        name += os.sep + self._regfile.meta.name
+        relpath = ''
+        if self._regfile.output_directory is not None:
+            relpath = os.path.relpath(self._regfile.output_directory)
+        output_directory = output_directory.replace('@', relpath)
+        if not os.path.exists(output_directory):
+            os.makedirs(output_directory)
+        name = output_directory + os.sep + self._regfile.meta.name
 
         self._tple.apply_file_to_file(
             os.path.dirname(__file__) + os.sep + 'entity.template.vhd',
-            name + '.vhd',
+            name + '.gen.vhd',
             comment='-- ', annotate=annotate)
         print('Wrote %s.vhd' % name)
 
         self._tple.apply_file_to_file(
             os.path.dirname(__file__) + os.sep + 'package.template.vhd',
-            name + '_pkg.vhd',
+            name + '_pkg.gen.vhd',
             comment='-- ', annotate=annotate)
         print('Wrote %s_pkg.vhd' % name)
 
@@ -624,7 +624,18 @@ class Generator:
                 self._write_decoder.add_action(block, address, mask)
 
 
-def generate(regfiles, output_directory=None, annotate=False):
+def generate(regfiles, output_directory, annotate=False):
     """Generates the VHDL files for the given list of register files."""
     for regfile in regfiles:
         Generator(regfile).generate_files(output_directory, annotate=annotate)
+
+def generate_pkg(output_directory):
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+    fname = output_directory + os.sep + 'vhdmmio_pkg.gen.vhd'
+
+    with open(os.path.dirname(__file__) + os.sep + 'vhdmmio_pkg.vhd', 'r') as fil:
+        data = fil.read()
+    with open(fname, 'w') as fil:
+        fil.write(data)
+    print('Wrote %s.vhd' % fname)
