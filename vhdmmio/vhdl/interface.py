@@ -42,7 +42,7 @@ class InterfaceOptions:
 
         # Check for unknown keys.
         for key in kwargs:
-            raise ValueError('unexpected key in field description: %s' % key)
+            raise ValueError('unexpected key in interface options: %s' % key)
 
     @classmethod
     def from_dict(cls, dictionary):

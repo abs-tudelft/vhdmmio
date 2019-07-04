@@ -404,3 +404,193 @@ class TestVhdlInterface(TestCase):
         self.assertEqual(str(bar_v['a']['b']), 'g_test_o.f_bar_valid(a)')
         self.assertEqual(str(bar_r['a']['b']), 'g_test_i.f_bar_ready(a)')
         self.assertEqual(str(bar_e['a']['b']), 'G_TEST_G.f_bar_enable(a)')
+
+    def test_mixed(self):
+        """test generation of mixed-mode interface"""
+
+        iface = Interface('tns')
+
+        options = InterfaceOptions(
+            port_group=False, port_flatten=False,
+            generic_group='foo', generic_flatten=True)
+
+        iface.add(
+            'foo', 'field foo: a scalar field.', 'f', None,
+            'data', 'i', types.std_logic_vector, 8,
+            options=options)
+        iface.add(
+            'foo', 'field foo: a scalar field.', 'f', None,
+            'valid', 'i', types.std_logic, None,
+            options=options)
+        iface.add(
+            'foo', 'field foo: a scalar field.', 'f', None,
+            'ready', 'o', types.std_logic, None,
+            options=options)
+        iface.add(
+            'foo', 'field foo: a scalar field.', 'f', None,
+            'enable', 'g', types.boolean, None,
+            options=options)
+
+        options = InterfaceOptions(
+            port_group='bar', port_flatten=True,
+            generic_group=False, generic_flatten=False)
+
+        iface.add(
+            'bar', 'field bar: a vector field.', 'f', 4,
+            'data', 'o', types.std_logic_vector, 8,
+            options=options)
+        iface.add(
+            'bar', 'field bar: a vector field.', 'f', 4,
+            'valid', 'o', types.std_logic, None,
+            options=options)
+        iface.add(
+            'bar', 'field bar: a vector field.', 'f', 4,
+            'ready', 'i', types.std_logic, None,
+            options=options)
+        iface.add(
+            'bar', 'field bar: a vector field.', 'f', 4,
+            'enable', 'g', types.boolean, None,
+            options=options)
+
+        self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
+            '@ Interface for field foo: a scalar field.',
+            'f_foo_i : in tns_f_foo_i_type@:= TNS_F_FOO_I_RESET;',
+            'f_foo_o : out tns_f_foo_o_type@:= TNS_F_FOO_O_RESET;',
+            '',
+            '@ Interface group for:',
+            '@  - field bar: a vector field.',
+            'g_bar_o : out tns_g_bar_o_type@:= TNS_G_BAR_O_RESET;',
+            'g_bar_i : in tns_g_bar_i_type@:= TNS_G_BAR_I_RESET;',
+        ]))
+        result = iface.generate('generic', end_with_semicolon=False)
+        self.assertEqual('\n\n'.join(result), '\n'.join([
+            '@ Interface group for:',
+            '@  - field foo: a scalar field.',
+            'G_FOO_G : tns_g_foo_g_type@:= TNS_G_FOO_G_RESET;',
+            '',
+            '@ Interface for field bar: a vector field.',
+            'F_BAR_G : tns_f_bar_g_array(0 to 3)@:= (others => TNS_F_BAR_G_RESET)',
+        ]))
+        self.assertEqual('\n'.join(types.gather_defs(*iface.gather_types())), '\n'.join([
+            'type tns_f_foo_i_type is record',
+            '  data : std_logic_vector(7 downto 0);',
+            '  valid : std_logic;',
+            'end record;',
+            'constant TNS_F_FOO_I_RESET : tns_f_foo_i_type := (',
+            '  data => (others => \'0\'),',
+            '  valid => \'0\'',
+            ');',
+            'type tns_f_foo_o_type is record',
+            '  ready : std_logic;',
+            'end record;',
+            'constant TNS_F_FOO_O_RESET : tns_f_foo_o_type := (',
+            '  ready => \'0\'',
+            ');',
+            'type tns_g_foo_g_type is record',
+            '  f_foo_enable : boolean;',
+            'end record;',
+            'constant TNS_G_FOO_G_RESET : tns_g_foo_g_type := (',
+            '  f_foo_enable => false',
+            ');',
+            'type tns_g_bar_o_type is record',
+            '  f_bar_data : std_logic_vector(31 downto 0);',
+            '  f_bar_valid : std_logic_vector(3 downto 0);',
+            'end record;',
+            'constant TNS_G_BAR_O_RESET : tns_g_bar_o_type := (',
+            '  f_bar_data => (others => \'0\'),',
+            '  f_bar_valid => (others => \'0\')',
+            ');',
+            'type tns_g_bar_i_type is record',
+            '  f_bar_ready : std_logic_vector(3 downto 0);',
+            'end record;',
+            'constant TNS_G_BAR_I_RESET : tns_g_bar_i_type := (',
+            '  f_bar_ready => (others => \'0\')',
+            ');',
+            'type tns_f_bar_g_type is record',
+            '  enable : boolean;',
+            'end record;',
+            'constant TNS_F_BAR_G_RESET : tns_f_bar_g_type := (',
+            '  enable => false',
+            ');',
+            'type tns_f_bar_g_array is array (natural range <>) of tns_f_bar_g_type;',
+        ]))
+
+    def test_type_inference(self):
+        """test interface generator VHDL type inference"""
+
+        options = InterfaceOptions(
+            port_group=False, port_flatten=True,
+            generic_group=False, generic_flatten=True)
+
+        for count, abs_type, vhd_type in [
+                (8, types.StdLogicVector, 'std_logic_vector(7 downto 0)@:= (others => \'0\')'),
+                (1, types.StdLogicVector, 'std_logic_vector(0 downto 0)@:= (others => \'0\')'),
+                (None, types.StdLogic, 'std_logic@:= \'0\'')]:
+
+            iface = Interface('tns', options)
+            obj = iface.add(
+                'foo', 'field foo: a scalar field.', 'f', None,
+                'data', 'i', None, count)
+            self.assertTrue(isinstance(obj.typ, abs_type))
+            self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
+                '@ Interface for field foo: a scalar field.',
+                'f_foo_data : in %s;' % vhd_type,
+            ]))
+
+    def test_type_errors(self):
+        """test interface generator VHDL type errors"""
+
+        iface = Interface('tns')
+
+        with self.assertRaisesRegex(
+                ValueError,
+                'signal count is not None, but signal type is not an incomplete array'):
+            iface.add(
+                'foo', 'field foo: a scalar field.', 'f', None,
+                'data', 'i', types.std_logic, 8)
+
+        with self.assertRaisesRegex(
+                ValueError,
+                'signal type is an incomplete array, but signal count is None'):
+            iface.add(
+                'foo', 'field foo: a scalar field.', 'f', None,
+                'data', 'i', types.std_logic_vector, None)
+
+    def test_options(self):
+        """test interface generator options object"""
+
+        def test(port_group, port_flatten, generic_group, generic_flatten, dictionary):
+            options = InterfaceOptions.from_dict(dictionary)
+            self.assertEqual(options.port_group, port_group)
+            self.assertEqual(options.port_flatten, port_flatten)
+            self.assertEqual(options.generic_group, generic_group)
+            self.assertEqual(options.generic_flatten, generic_flatten)
+            options = InterfaceOptions.from_dict(options.to_dict())
+            self.assertEqual(options.port_group, port_group)
+            self.assertEqual(options.port_flatten, port_flatten)
+            self.assertEqual(options.generic_group, generic_group)
+            self.assertEqual(options.generic_flatten, generic_flatten)
+
+        test(None, None, None, None, {})
+
+        test('test', 'all', False, 'never', {
+            'port-group': 'test',
+            'port-flatten': True,
+            'generic-group': False,
+            'generic-flatten': False})
+
+        test(None, 'all', None, 'record', {
+            'port-flatten': 'all',
+            'generic-flatten': 'record'})
+
+        test(None, 'never', None, None, {
+            'port-flatten': 'never'})
+
+        with self.assertRaisesRegex(ValueError, 'invalid value for interface.port-flatten'):
+            InterfaceOptions.from_dict({'port-flatten': 'hello'})
+
+        with self.assertRaisesRegex(ValueError, 'invalid value for interface.port-group'):
+            InterfaceOptions.from_dict({'port-group': True})
+
+        with self.assertRaisesRegex(ValueError, 'unexpected key in interface options: foo'):
+            InterfaceOptions.from_dict({'foo': True})
