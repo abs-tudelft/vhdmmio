@@ -1,14 +1,46 @@
 """Module for `AccessCapabilities` and `ReadWriteCapabilities` objects."""
 
+from enum import Enum
+
+class NoOpMethod(Enum):
+    """Enumeration of the possible minimum "effort" needed to make an access
+    to this field no-op. This information is used when a neighboring field
+    (i.e. in the same register) is to be accessed without affecting this
+    field.
+
+     - `ALWAYS` means that the access is always no-op.
+     - `WRITE_ZERO` means that writing zero is no-op.
+     - `WRITE_CURRENT_OR_MASK` means that a read-modify-write or the write
+       strobe bits can be used for masking this field.
+     - `WRITE_CURRENT` means that only read-modify-write can be used to mask
+       this field (i.e. it ignores byte strobes).
+     - `MASK` means that only the write strobe bits can be used to mask this
+       field.
+     - `NEVER` means that it is impossible to access the surrounding
+       register without touching this field.
+    """
+    ALWAYS = 0
+    WRITE_ZERO = 1
+    WRITE_CURRENT_OR_MASK = 3
+    WRITE_CURRENT = 2
+    MASK = 4
+    NEVER = 5
+
+
 class AccessCapabilities:
     """Class maintaining flags indicating the capabilities of a field for
     a specific operation (read or write)."""
 
-    def __init__(self, volatile=False, can_block=False, can_defer=False):
+    def __init__(
+            self,
+            volatile=False, can_block=False, can_defer=False,
+            no_op_method=NoOpMethod.NEVER, can_read_for_rmw=True):
         super().__init__()
         self._volatile = bool(volatile)
         self._can_block = bool(can_block)
         self._can_defer = bool(can_defer)
+        self._no_op_method = no_op_method
+        self._can_read_for_rmw = can_read_for_rmw
 
     @property
     def volatile(self):
@@ -32,6 +64,17 @@ class AccessCapabilities:
         this flag set must be the only field within a register."""
         return self._can_defer
 
+    @property
+    def no_op_method(self):
+        """Returns the no-op/masking method."""
+        return self._no_op_method
+
+    @property
+    def can_read_for_rmw(self):
+        """Returns whether this field can be read for the purpose of doing a
+        read-modify-write."""
+        return self._can_read_for_rmw
+
     @classmethod
     def check_siblings(cls, siblings):
         """Checks for incompatibilities between the given iterable of fields
@@ -54,6 +97,7 @@ class AccessCapabilities:
             volatile=any(map(lambda x: x.volatile, siblings)),
             can_block=any(map(lambda x: x.can_block, siblings)),
             can_defer=any(map(lambda x: x.can_defer, siblings)))
+
 
 class ReadWriteCapabilities:
     """Base class for representing a field, register, or some other entity with
@@ -91,3 +135,46 @@ class ReadWriteCapabilities:
         writing (`write`). `None` is used to indicate that the operation is not
         supported."""
         return self.write_caps if write else self.read_caps
+
+    @property
+    def read_is_no_op(self):
+        """Returns whether reading this field does not have any side
+        effects."""
+        return (
+            self._read_caps is None
+            or self._read_caps.no_op_method == NoOpMethod.ALWAYS)
+
+    @property
+    def masking_needed(self):
+        """Returns whether masking writes to this field (i.e. behaving like the
+        field isn't being accessed even though the surrounding register is)
+        requires some action to be taken."""
+        return (
+            self._write_caps is not None
+            and self._write_caps.no_op_method != NoOpMethod.ALWAYS)
+
+    @property
+    def can_mask_with_strobe(self):
+        """Returns whether it is possible to mask out this field in a write
+        access using the strobe bits."""
+        return not self.masking_needed or self._write_caps.no_op_method not in (
+            NoOpMethod.WRITE_CURRENT, NoOpMethod.NEVER)
+
+    @property
+    def can_mask_with_zero(self):
+        """Returns whether it is possible to mask out this field in a write
+        access by writing zeros."""
+        return not self.masking_needed or self._write_caps.no_op_method in (
+            NoOpMethod.WRITE_ZERO, NoOpMethod.ALWAYS)
+
+    @property
+    def can_mask_with_rmw(self):
+        """Returns whether it is possible to mask out this field in a write
+        access by using a read-modify-write (assuming that the field can be
+        read)."""
+        return (
+            (not self.masking_needed or self._write_caps.no_op_method in (
+                NoOpMethod.WRITE_CURRENT_OR_MASK, NoOpMethod.WRITE_CURRENT, NoOpMethod.ALWAYS))
+            and self._read_caps is not None
+            and self._read_caps.no_op_method == NoOpMethod.ALWAYS
+            and self._read_caps.can_read_for_rmw)

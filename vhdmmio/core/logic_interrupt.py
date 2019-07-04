@@ -2,7 +2,7 @@
 
 from .logic import FieldLogic
 from .logic_registry import field_logic
-from .accesscaps import AccessCapabilities
+from .accesscaps import AccessCapabilities, NoOpMethod
 from .utils import choice, override, default
 from ..template import TemplateEngine, annotate_block
 
@@ -85,12 +85,18 @@ class InterruptField(FieldLogic):
         if self._read == 'disabled':
             read_caps = None
         else:
-            read_caps = AccessCapabilities(volatile=self._read == 'clear')
+            read_caps = AccessCapabilities(
+                volatile=self._read == 'clear',
+                no_op_method=NoOpMethod.NEVER if self._read == 'clear' else NoOpMethod.ALWAYS)
 
         if self._write == 'disabled':
             write_caps = None
+        elif self._write == 'enabled':
+            write_caps = AccessCapabilities(
+                no_op_method=NoOpMethod.WRITE_CURRENT_OR_MASK)
         else:
-            write_caps = AccessCapabilities()
+            write_caps = AccessCapabilities(
+                no_op_method=NoOpMethod.WRITE_ZERO)
 
         super().__init__(
             field_descriptor=field_descriptor,

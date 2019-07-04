@@ -2,7 +2,7 @@
 
 from .logic import FieldLogic
 from .logic_registry import field_logic
-from .accesscaps import AccessCapabilities
+from .accesscaps import AccessCapabilities, NoOpMethod
 from ..template import TemplateEngine, annotate_block
 from ..vhdl.types import Record, Array, Axi4Lite, gather_defs
 
@@ -152,12 +152,16 @@ class AXIField(FieldLogic):
 
         # Determine the read/write capability fields.
         if read_support:
-            read_caps = AccessCapabilities(volatile=True, can_block=True, can_defer=True)
+            read_caps = AccessCapabilities(
+                volatile=True, can_block=True, can_defer=True,
+                no_op_method=NoOpMethod.NEVER, can_read_for_rmw=False)
         else:
             read_caps = None
 
         if write_support:
-            write_caps = AccessCapabilities(volatile=True, can_block=True, can_defer=True)
+            write_caps = AccessCapabilities(
+                volatile=True, can_block=True, can_defer=True,
+                no_op_method=NoOpMethod.NEVER)
         else:
             write_caps = None
 
