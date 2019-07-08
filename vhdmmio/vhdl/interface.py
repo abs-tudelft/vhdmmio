@@ -482,8 +482,17 @@ class Interface:
         return blocks
 
     def gather_types(self):
-        """Returns the toplevel types of all the signals used by this
+        """Yields the toplevel types of all the signals used by this
         interface, for gathering all requisite typedefs."""
         for _, _, signals in self._decls.values():
             for typ, _, _ in signals.values():
                 yield typ
+
+    def gather_ports(self):
+        """Yields all the inputs/outputs/generics created by this interface as
+        `(mode, name, type, count)` four-tuples. `mode` is `'i'` for inputs,
+        `'o'` for outputs, and `'g'` for generics. `count` is `None` if the
+        type is not an incomplete array."""
+        for _, _, signals in self._decls.values():
+            for name, (typ, count, mode) in signals.items():
+                yield mode, name, typ, count

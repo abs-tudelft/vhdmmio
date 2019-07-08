@@ -83,6 +83,17 @@ class _Base():
                 raise ValueError('type name conflict: %s' % self)
         return into
 
+    def gather_members(self, _=None):
+        """Yields all members of this type as `(path, type, count)`
+        three-tuples. `path` is a list of `str`ings and `int`s, where a
+        `str`ing means the name of a record member and an int means an array
+        index. `type` is a primitive type. `count` is used for the number of
+        bits in `std_logic_vector`s. Incomplete array types need an input
+        `count` as well for the number of elements in the vector/array."""
+        assert self.primitive
+        assert not self.incomplete
+        yield [], self, None
+
     def make_object(self, name):
         """Construct an object reference for an instantiation of this type with
         the given name or identifier path."""
@@ -303,6 +314,19 @@ class Array(_Base):
         into = self.element_type.gather_types(into)
         return super().gather_types(into)
 
+    def gather_members(self, count=None):
+        """Yields all members of this type as `(path, type, count)`
+        three-tuples. `path` is a list of `str`ings and `int`s, where a
+        `str`ing means the name of a record member and an int means an array
+        index. `type` is a primitive type. `count` is used for the number of
+        bits in `std_logic_vector`s. Incomplete array types need an input
+        `count` as well for the number of elements in the vector/array."""
+        if count is None:
+            raise ValueError('count must not be None for an incomplete array')
+        for i in range(count):
+            for subpath, subtype, subcount in self.element_type.gather_members():
+                yield [i] + subpath, subtype, subcount
+
     def __eq__(self, other):
         if not super().__eq__(other):
             return False
@@ -323,6 +347,17 @@ class StdLogicVector(Array):
         """Returns the type definition(s) for this type as a list of strings
         representing lines of code."""
         return []
+
+    def gather_members(self, count=None):
+        """Yields all members of this type as `(path, type, count)`
+        three-tuples. `path` is a list of `str`ings and `int`s, where a
+        `str`ing means the name of a record member and an int means an array
+        index. `type` is a primitive type. `count` is used for the number of
+        bits in `std_logic_vector`s. Incomplete array types need an input
+        `count` as well for the number of elements in the vector/array."""
+        if count is None:
+            raise ValueError('count must not be None for an incomplete array')
+        yield [], self, count
 
     @staticmethod
     def get_range(count, offset=0):
@@ -431,6 +466,15 @@ class SizedArray(_Base):
         name to type."""
         into = self.array_type.gather_types(into)
         return super().gather_types(into)
+
+    def gather_members(self, _=None):
+        """Yields all members of this type as `(path, type, count)`
+        three-tuples. `path` is a list of `str`ings and `int`s, where a
+        `str`ing means the name of a record member and an int means an array
+        index. `type` is a primitive type. `count` is used for the number of
+        bits in `std_logic_vector`s. Incomplete array types need an input
+        `count` as well for the number of elements in the vector/array."""
+        return self.array_type.gather_members(self._count)
 
     def __eq__(self, other):
         if not super().__eq__(other):
@@ -550,6 +594,17 @@ class Record(_Base):
         for _, element_type, _, _ in self._elements:
             into = element_type.gather_types(into)
         return super().gather_types(into)
+
+    def gather_members(self, _=None):
+        """Yields all members of this type as `(path, type, count)`
+        three-tuples. `path` is a list of `str`ings and `int`s, where a
+        `str`ing means the name of a record member and an int means an array
+        index. `type` is a primitive type. `count` is used for the number of
+        bits in `std_logic_vector`s. Incomplete array types need an input
+        `count` as well for the number of elements in the vector/array."""
+        for name, typ, count, _ in self._elements:
+            for subpath, subtype, subcount in typ.gather_members(count):
+                yield [name] + subpath, subtype, subcount
 
     def __eq__(self, other):
         if not super().__eq__(other):

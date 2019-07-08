@@ -9,6 +9,7 @@ use std.textio.all;
 
 library work;
 use work.vhdmmio_pkg.all;
+$USES
 
 entity runner_tc is
 end runner_tc;

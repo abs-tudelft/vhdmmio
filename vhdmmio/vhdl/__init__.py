@@ -5,7 +5,7 @@ from collections import OrderedDict
 from enum import Enum
 from ..template import TemplateEngine, annotate_block
 from .decoder import Decoder
-from .types import Record, Array, SizedArray, Object, gather_defs
+from .types import Record, Array, SizedArray, Axi4Lite, Object, gather_defs
 from .interface import Interface
 
 _BUS_REQ_FIELD_TEMPLATE = annotate_block("""
@@ -192,6 +192,16 @@ class Generator:
             name + '_pkg.gen.vhd',
             comment='-- ', annotate=annotate)
         print('Wrote %s_pkg.vhd' % name)
+
+    def gather_ports(self):
+        """Yields all the inputs/outputs/generics excluding `clk` and `reset`
+        as `(mode, path, type, count)` four-tuples. `mode` is `'i'` for
+        inputs, `'o'` for outputs, and `'g'` for generics. `count` is `None` if
+        the type is not an incomplete array."""
+        for mode, name, typ, count in self._interface.gather_ports():
+            yield mode, name, typ, count
+        yield 'i', 'bus_i', Axi4Lite('m2s', self._regfile.bus_width), None
+        yield 'o', 'bus_o', Axi4Lite('s2m', self._regfile.bus_width), None
 
     @staticmethod
     def _describe_interrupt(interrupt):

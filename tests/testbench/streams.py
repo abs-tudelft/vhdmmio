@@ -71,7 +71,10 @@ class StreamSourceMock:
             remain = max_cycle - self._testbench.cycle
             if not remain:
                 raise TimeoutError('timeout')
-            self._ready.wait(remain, '1')
+            if self._ready:
+                self.testbench.clock()
+            else:
+                self._ready.wait(remain, '1')
 
 
 class StreamSinkMock:
@@ -150,4 +153,7 @@ class StreamSinkMock:
             remain = max_cycle - self._testbench.cycle
             if not remain:
                 raise TimeoutError('timeout')
-            self._valid.wait(remain, '1')
+            if self._valid:
+                self.testbench.clock()
+            else:
+                self._valid.wait(remain, '1')

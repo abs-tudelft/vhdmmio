@@ -417,10 +417,10 @@ $if r.secure
       end if;
 $endif
       w_addr := awl.addr;
-      w_data := wl.data;
       for b in w_strb'range loop
         w_strb(b) := wl.strb(b / 8);
       end loop;
+      w_data := wl.data and w_strb;
 $if r.secure
       if r_req then
         r_prot := arl.prot;

@@ -253,6 +253,11 @@ class Testbench:
         self._assert_not_running()
         self._tple.append_block('UUT_BODY', *args)
 
+    def add_use(self, *args):
+        """Adds a library/use block to the testbench."""
+        self._assert_not_running()
+        self._tple.append_block('USES', *args)
+
     def define_var(self, var, value):
         """Defines a custom variable within the template engine."""
         self._tple[var] = value
