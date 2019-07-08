@@ -133,17 +133,17 @@ $endif
 end if;
 $endif
 
-$if l.get_ctrl('bit_set')
+$if l.get_ctrl('bit-set')
 @ Handle bit set control input.
 $state[i].d$@:= $state[i].d$@or $bit_set[i]$;
 $endif
 
-$if l.get_ctrl('bit_clear')
+$if l.get_ctrl('bit-clear')
 @ Handle bit clear control input.
 $state[i].d$@:= $state[i].d$@and not $bit_clear[i]$;
 $endif
 
-$if l.get_ctrl('bit_toggle')
+$if l.get_ctrl('bit-toggle')
 @ Handle bit toggle control input.
 $state[i].d$@:= $state[i].d$@and xor $bit_toggle[i]$;
 $endif
@@ -893,13 +893,11 @@ class ReverseFlagField(PrimitiveField):
 
 @field_logic('counter')
 class CounterField(PrimitiveField):
-    """Event counter field. With the default configuration, the register is
-    incremented using a strobe control signal. The bus can then read the
-    accumulated value. Values written to the register are subtracted from the
-    counter, so a read-write cycle that writes the read value will "reset" the
-    counter without losing any events that may be counted between the read and
-    write. Decrement, accumulate, and readback signals can be optionally added
-    when needed."""
+    """Event counter field. This fulfills a similar role as flag fields, but
+    instead of bit-setting, the operation is accumulation. This allows not only
+    the occurance of one or more events to be registered, but also the amount.
+    The clear operation is subtraction, so writing the previously read value
+    will not clear any events that occurred between the read and the write."""
 
     def __init__(self, field_descriptor, dictionary):
         override(dictionary, {
@@ -909,7 +907,7 @@ class CounterField(PrimitiveField):
 
         default(dictionary, {
             'ctrl_increment':   'enabled',
-            'hw_read':          'disabled',
+            'hw_read':          'simple',
             'hw_write':         'disabled',
             'after_hw_write':   'nothing',
         })
@@ -931,7 +929,7 @@ class VolatileCounterField(PrimitiveField):
 
         default(dictionary, {
             'ctrl_increment':   'enabled',
-            'hw_read':          'disabled',
+            'hw_read':          'simple',
             'hw_write':         'disabled',
             'after_hw_write':   'nothing',
         })

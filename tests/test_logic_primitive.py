@@ -425,3 +425,180 @@ class TestPrimitive(TestCase):
             self.assertEqual(int(objs.f_b_o[0].data), 1)
             self.assertEqual(int(objs.f_b_o[1].data), 1)
             self.assertEqual(int(objs.f_b_o[2].data), 0)
+
+    def test_flag(self):
+        """test flag fields"""
+        rft = RegisterFileTestbench({
+            'meta': {'name': 'test'},
+            'features': {'bus-width': 32, 'optimize': False},
+            'fields': [
+                {
+                    'address': '0x00:7..0',
+                    'register-name': 'a',
+                    'name': 'a',
+                    'type': 'flag',
+                    'reset': 3,
+                },
+                {
+                    'address': '0x04:0',
+                    'repeat': 8,
+                    'register-name': 'b',
+                    'name': 'b',
+                    'type': 'volatile-flag',
+                },
+                {
+                    'address': '0x08:7..0',
+                    'register-name': 'c',
+                    'name': 'c',
+                    'type': 'reverse-flag',
+                },
+            ]
+        })
+        with rft as objs:
+
+            # Test reset values.
+            self.assertEqual(int(objs.f_a_o.data), 3)
+            self.assertEqual(int(objs.f_b_o[0].data), 0)
+            self.assertEqual(int(objs.f_b_o[1].data), 0)
+            self.assertEqual(int(objs.f_b_o[4].data), 0)
+            self.assertEqual(int(objs.f_c_o.data), 0)
+            self.assertEqual(objs.bus.read(0), 3)
+            self.assertEqual(objs.bus.read(4), 0)
+            self.assertEqual(objs.bus.read(8), 0)
+
+            # Test asserting flags.
+            objs.f_a_i.bit_set.val = 6
+            objs.f_b_i[1].bit_set.val = 1
+            objs.f_b_i[4].bit_set.val = 1
+            rft.testbench.clock()
+            objs.f_a_i.bit_set.val = 0
+            objs.f_b_i[1].bit_set.val = 0
+            objs.f_b_i[4].bit_set.val = 0
+            rft.testbench.clock()
+            objs.bus.write(8, 3)
+            objs.bus.write(8, 5)
+            objs.bus.write(8, 10, 2)
+            self.assertEqual(int(objs.f_a_o.data), 7)
+            self.assertEqual(int(objs.f_b_o[0].data), 0)
+            self.assertEqual(int(objs.f_b_o[1].data), 1)
+            self.assertEqual(int(objs.f_b_o[4].data), 1)
+            self.assertEqual(int(objs.f_c_o.data), 7)
+            self.assertEqual(objs.bus.read(0), 7)
+            self.assertEqual(objs.bus.read(4), 18)
+            self.assertEqual(objs.bus.read(8), 7)
+
+            # Test clearing volatile flags.
+            self.assertEqual(int(objs.f_a_o.data), 7)
+            self.assertEqual(int(objs.f_b_o[0].data), 0)
+            self.assertEqual(int(objs.f_b_o[1].data), 0)
+            self.assertEqual(int(objs.f_b_o[4].data), 0)
+            self.assertEqual(objs.bus.read(0), 7)
+            self.assertEqual(objs.bus.read(4), 0)
+
+            # Test clearing normal flags.
+            objs.bus.write(0, 14)
+            with self.assertRaisesRegex(ValueError, 'decode error'):
+                objs.bus.write(4, 0xFF)
+            self.assertEqual(int(objs.f_a_o.data), 1)
+            self.assertEqual(int(objs.f_b_o[0].data), 0)
+            self.assertEqual(int(objs.f_b_o[1].data), 0)
+            self.assertEqual(int(objs.f_b_o[4].data), 0)
+            self.assertEqual(objs.bus.read(0), 1)
+            self.assertEqual(objs.bus.read(4), 0)
+
+            # Test clearing reverse flags.
+            objs.f_c_i.bit_clear.val = 6
+            rft.testbench.clock()
+            objs.f_c_i.bit_clear.val = 0
+            rft.testbench.clock()
+            self.assertEqual(int(objs.f_c_o.data), 1)
+            self.assertEqual(objs.bus.read(8), 1)
+
+    def test_counter(self):
+        """test counter fields"""
+        rft = RegisterFileTestbench({
+            'meta': {'name': 'test'},
+            'features': {'bus-width': 32, 'optimize': False},
+            'fields': [
+                {
+                    'address': '0x00:7..0',
+                    'register-name': 'a',
+                    'name': 'a',
+                    'type': 'counter',
+                    'reset': 3,
+                },
+                {
+                    'address': '0x04:7..0',
+                    'repeat': 2,
+                    'register-name': 'b',
+                    'name': 'b',
+                    'type': 'volatile-counter',
+                },
+                {
+                    'address': '0x08:7..0',
+                    'register-name': 'c',
+                    'name': 'c',
+                    'type': 'reverse-counter',
+                },
+            ]
+        })
+        with rft as objs:
+
+            # Test reset values.
+            self.assertEqual(int(objs.f_a_o.data), 3)
+            self.assertEqual(int(objs.f_b_o[0].data), 0)
+            self.assertEqual(int(objs.f_b_o[1].data), 0)
+            self.assertEqual(int(objs.f_c_o.data), 0)
+            self.assertEqual(objs.bus.read(0), 3)
+            self.assertEqual(objs.bus.read(4), 0)
+            self.assertEqual(objs.bus.read(8), 0)
+
+            # Test registration of some events.
+            objs.f_a_i.increment.val = 1
+            objs.f_b_i[1].increment.val = 1
+            rft.testbench.clock(10)
+            objs.f_a_i.increment.val = 0
+            objs.f_b_i[0].increment.val = 1
+            rft.testbench.clock(5)
+            objs.f_b_i[0].increment.val = 0
+            objs.f_b_i[1].increment.val = 0
+            objs.bus.write(8, 20)
+            objs.bus.write(8, 22)
+            rft.testbench.clock(5)
+            self.assertEqual(int(objs.f_a_o.data), 13)
+            self.assertEqual(int(objs.f_b_o[0].data), 5)
+            self.assertEqual(int(objs.f_b_o[1].data), 15)
+            self.assertEqual(int(objs.f_c_o.data), 42)
+            self.assertEqual(objs.bus.read(0), 13)
+            self.assertEqual(objs.bus.read(4), 0x0F05)
+            self.assertEqual(objs.bus.read(8), 42)
+
+            # Test clearing volatile counters.
+            self.assertEqual(int(objs.f_a_o.data), 13)
+            self.assertEqual(int(objs.f_b_o[0].data), 0)
+            self.assertEqual(int(objs.f_b_o[1].data), 0)
+            self.assertEqual(int(objs.f_c_o.data), 42)
+            self.assertEqual(objs.bus.read(0), 13)
+            self.assertEqual(objs.bus.read(4), 0)
+            self.assertEqual(objs.bus.read(8), 42)
+
+            # Test clearing normal counters.
+            objs.bus.write(0, 10)
+            with self.assertRaisesRegex(ValueError, 'decode error'):
+                objs.bus.write(4, 0xFF)
+            self.assertEqual(int(objs.f_a_o.data), 3)
+            self.assertEqual(int(objs.f_b_o[0].data), 0)
+            self.assertEqual(int(objs.f_b_o[1].data), 0)
+            self.assertEqual(int(objs.f_c_o.data), 42)
+            self.assertEqual(objs.bus.read(0), 3)
+            self.assertEqual(objs.bus.read(4), 0)
+            self.assertEqual(objs.bus.read(8), 42)
+
+            # Test clearing reverse counters.
+            objs.f_c_i.clear.val = 1
+            rft.testbench.clock()
+            objs.f_c_i.clear.val = 0 # clear is actually 1 during this cycle
+            self.assertEqual(int(objs.f_c_o.data), 42)
+            rft.testbench.clock()
+            self.assertEqual(int(objs.f_c_o.data), 0)
+            self.assertEqual(objs.bus.read(8), 0)

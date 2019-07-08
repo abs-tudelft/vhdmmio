@@ -39,6 +39,8 @@ $endif
 
 _BUS_REQ_BOILERPLATE_TEMPLATE = annotate_block("""
 $block BEFORE_READ
+@ Clear holding register location prior to read.
+r_hold($bw*blk + bw-1$ downto $bw*blk$) := (others => '0');
 $endblock
 
 $block AFTER_READ
