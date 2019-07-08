@@ -2,7 +2,7 @@
 
 from .logic import FieldLogic
 from .logic_registry import field_logic
-from .accesscaps import AccessCapabilities
+from .accesscaps import AccessCapabilities, NoOpMethod
 from .utils import choice, switches, override, default
 from ..template import TemplateEngine, annotate_block
 from ..vhdl.types import std_logic, std_logic_vector, Record, Array, gather_defs
@@ -433,17 +433,43 @@ class PrimitiveField(FieldLogic):
         if self._bus_read == 'disabled':
             read_caps = None
         else:
+            volatile = False
+            can_block = self._bus_read == 'valid-wait'
+            no_op_method = NoOpMethod.ALWAYS
+            can_read_for_rmw = self._bus_read != 'error'
+
+            if self._after_bus_read != 'nothing':
+                volatile = True
+                no_op_method = NoOpMethod.NEVER
+
             read_caps = AccessCapabilities(
-                volatile=(self._after_bus_read != 'nothing'),
-                can_block=(self._bus_read == 'valid-wait'))
+                volatile=volatile,
+                can_block=can_block,
+                no_op_method=no_op_method,
+                can_read_for_rmw=can_read_for_rmw)
 
         if self._bus_write == 'disabled':
             write_caps = None
         else:
+            volatile = self._bus_write in ('accumulate', 'subtract', 'bit-toggle')
+            can_block = self._bus_write == 'invalid-wait'
+            no_op_method = NoOpMethod.WRITE_ZERO
+
+            if self._bus_write == 'error':
+                no_op_method = NoOpMethod.ALWAYS
+            elif self._bus_write == 'masked':
+                no_op_method = NoOpMethod.WRITE_CURRENT_OR_MASK
+            elif self._bus_write in ('enabled', 'invalid-wait', 'invalid-only'):
+                no_op_method = NoOpMethod.WRITE_CURRENT
+
+            if self._after_bus_write != 'nothing':
+                volatile = True
+                no_op_method = NoOpMethod.NEVER
+
             write_caps = AccessCapabilities(
-                volatile=(self._after_bus_write != 'nothing'
-                          or self._bus_write in ('accumulate', 'subtract', 'bit-toggle')),
-                can_block=(self._bus_write == 'invalid-wait'))
+                volatile=volatile,
+                can_block=can_block,
+                no_op_method=no_op_method)
 
         super().__init__(
             field_descriptor=field_descriptor,
