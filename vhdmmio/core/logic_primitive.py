@@ -20,6 +20,18 @@ $endif
 end if;
 $endif
 
+$if l.get_ctrl('ready')
+@ Handle ready control input.
+if $ready[i]$ = '1' then
+$if vec
+  $state[i].d$@:= (others => '0');
+$else
+  $state[i].d$@:= '0';
+$endif
+  $state[i].v$@:= '0';
+end if;
+$endif
+
 $if l.get_ctrl('clear')
 @ Handle clear control input.
 if $clear[i]$ = '1' then
@@ -42,6 +54,98 @@ $endif
   $state[i].v$@:= '0';
 end if;
 $state[i].inval$@:= '0';
+$endif
+
+$if l.hw_write != 'disabled'
+@ Handle hardware write for field $l.field_descriptor.meta.name$: $l.hw_write$.
+$if l.after_hw_write != 'nothing'
+@ Also handle post-write operation: $l.after_hw_write$.
+$endif
+$if l.hw_write == 'status'
+$state[i].d$@:= $write_data[i]$;
+$state[i].v$@:= '1';
+$else
+$if l.hw_write == 'stream'
+if $valid[i]$ = '1' and $state[i].v$ = '0' then
+  $state[i].d$@:= $data[i]$;
+$else
+if $write_enable[i]$ = '1' then
+$endif
+$if l.hw_write == 'enabled'
+  $state[i].d$@:= $write_data[i]$;
+$endif
+$if l.hw_write == 'accumulate'
+$if vec
+  $state[i].d$@:= std_logic_vector(unsigned($state[i].d$)@+ unsigned($write_data[i]$));
+$else
+  $state[i].d$@:= $state[i].d$@xor $write_data[i]$;
+$endif
+$endif
+$if l.hw_write == 'subtract'
+$if vec
+  $state[i].d$@:= std_logic_vector(unsigned($state[i].d$)@- unsigned($write_data[i]$));
+$else
+  $state[i].d$@:= $state[i].d$@xor $write_data[i]$;
+$endif
+$endif
+$if l.hw_write == 'set'
+  $state[i].d$@:= $state[i].d$@or $write_data[i]$;
+$endif
+$if l.hw_write == 'reset'
+  $state[i].d$@:= $state[i].d$@and not $write_data[i]$;
+$endif
+$if l.hw_write == 'toggle'
+  $state[i].d$@:= $state[i].d$@xor $write_data[i]$;
+$endif
+$if l.after_hw_write == 'validate'
+  $state[i].v$@:= '1';
+$endif
+end if;
+$endif
+$endif
+
+$if l.get_ctrl('validate')
+@ Handle validation control input.
+if $validate[i]$ = '1' then
+  $state[i].v$@:= '1';
+end if;
+$endif
+
+$if l.get_ctrl('increment')
+@ Handle increment control input.
+if $increment[i]$ = '1' then
+$if vec
+  $state[i].d$@:= std_logic_vector(unsigned($state[i].d$) + 1);
+$else
+  $state[i].d$@:= not $state[i].d$;
+$endif
+end if;
+$endif
+
+$if l.get_ctrl('decrement')
+@ Handle decrement control input.
+if $decrement[i]$ = '1' then
+$if vec
+  $state[i].d$@:= std_logic_vector(unsigned($state[i].d$) - 1);
+$else
+  $state[i].d$@:= not $state[i].d$;
+$endif
+end if;
+$endif
+
+$if l.get_ctrl('bit_set')
+@ Handle bit set control input.
+$state[i].d$@:= $state[i].d$@or $bit_set[i]$;
+$endif
+
+$if l.get_ctrl('bit_clear')
+@ Handle bit clear control input.
+$state[i].d$@:= $state[i].d$@and not $bit_clear[i]$;
+$endif
+
+$if l.get_ctrl('bit_toggle')
+@ Handle bit toggle control input.
+$state[i].d$@:= $state[i].d$@and xor $bit_toggle[i]$;
 $endif
 """, comment='--')
 
@@ -196,97 +300,6 @@ $endif
 """, comment='--')
 
 _LOGIC_POST = annotate_block("""
-$if l.hw_write not in 'disabled'
-@ Handle hardware write for field $l.field_descriptor.meta.name$: $l.hw_write$.
-$if l.after_hw_write != 'nothing'
-@ Also handle post-write operation: $l.after_hw_write$.
-$endif
-$if l.hw_write == 'status'
-$state[i].d$@:= $reset_data if isinstance(reset_data, str) else reset_data[i]$;
-$state[i].v$@:= '1';
-$else
-$if l.hw_write == 'invalid-only'
-if $write_enable[i]$ = '1' and $state[i].v$ = '0' then
-$else
-if $write_enable[i]$ = '1' then
-$endif
-$if l.hw_write in ['enabled', 'invalid-only']
-  $state[i].d$@:= $write_data[i]$;
-$endif
-$if l.hw_write == 'accumulate'
-$if vec
-  $state[i].d$@:= std_logic_vector(unsigned($state[i].d$)@+ unsigned($write_data[i]$));
-$else
-  $state[i].d$@:= $state[i].d$@xor $write_data[i]$;
-$endif
-$endif
-$if l.hw_write == 'subtract'
-$if vec
-  $state[i].d$@:= std_logic_vector(unsigned($state[i].d$)@- unsigned($write_data[i]$));
-$else
-  $state[i].d$@:= $state[i].d$@xor $write_data[i]$;
-$endif
-$endif
-$if l.hw_write == 'set'
-  $state[i].d$@:= $state[i].d$@or $write_data[i]$;
-$endif
-$if l.hw_write == 'reset'
-  $state[i].d$@:= $state[i].d$@and not $write_data[i]$;
-$endif
-$if l.hw_write == 'toggle'
-  $state[i].d$@:= $state[i].d$@xor $write_data[i]$;
-$endif
-$if l.after_hw_write == 'validate'
-  $state[i].v$@:= '1';
-$endif
-end if;
-$endif
-$endif
-
-$if l.get_ctrl('validate')
-@ Handle validation control input.
-if $validate[i]$ = '1' then
-  $state[i].v$@:= '1';
-end if;
-$endif
-
-$if l.get_ctrl('increment')
-@ Handle increment control input.
-if $increment[i]$ = '1' then
-$if vec
-  $state[i].d$@:= std_logic_vector(unsigned($state[i].d$) + 1);
-$else
-  $state[i].d$@:= not $state[i].d$;
-$endif
-end if;
-$endif
-
-$if l.get_ctrl('decrement')
-@ Handle decrement control input.
-if $decrement[i]$ = '1' then
-$if vec
-  $state[i].d$@:= std_logic_vector(unsigned($state[i].d$) - 1);
-$else
-  $state[i].d$@:= not $state[i].d$;
-$endif
-end if;
-$endif
-
-$if l.get_ctrl('bit_set')
-@ Handle bit set control input.
-$state[i].d$@:= $state[i].d$@or $bit_set[i]$;
-$endif
-
-$if l.get_ctrl('bit_clear')
-@ Handle bit clear control input.
-$state[i].d$@:= $state[i].d$@and not $bit_clear[i]$;
-$endif
-
-$if l.get_ctrl('bit_toggle')
-@ Handle bit toggle control input.
-$state[i].d$@:= $state[i].d$@and xor $bit_toggle[i]$;
-$endif
-
 $if l.hw_write != 'status'
 @ Handle reset for field $l.field_descriptor.meta.name$.
 $if l.get_ctrl('reset')
@@ -303,12 +316,17 @@ $endif
 end if;
 $endif
 
-$if l.hw_read != 'disabled'
+$if l.hw_read in ('simple', 'enabled')
 @ Assign the read outputs for field $l.field_descriptor.meta.name$.
 $data[i]$ <= $state[i].d$;
 $if l.hw_read == 'enabled'
 $valid[i]$ <= $state[i].v$;
 $endif
+$endif
+
+$if l.hw_read == 'handshake'
+@ Assign the ready output for field $l.field_descriptor.meta.name$.
+$ready[i]$ <= not $state[i].v$;
 $endif
 """, comment='--')
 
@@ -363,14 +381,15 @@ class PrimitiveField(FieldLogic):
         self._hw_read = choice(dictionary, 'hw_read', [
             'disabled',     # No read port is generated.
             'simple',       # Only a simple data port is generated (no record).
-            'enabled'])     # A record of the data and valid bit is generated.
+            'enabled',      # A record of the data and valid bit is generated.
+            'handshake'])   # A stream-to-mmio ready signal is generated.
 
         # Configure hardware write port.
         self._hw_write = choice(dictionary, 'hw_write', [
             'disabled',     # No write port is generated.
             'status',       # The register is constantly driven by a port and is always valid.
             'enabled',      # A record consisting of a write enable flag and data is generated.
-            'invalid-only', # Like enabled, but the write only occurs when the register is invalid.
+            'stream',       # Like enabled, but the write only occurs when the register is invalid.
             'accumulate',   # Like enabled, but the data is accumulated instead of written.
             'subtract',     # Like enabled, but the data is subtracted instead of written.
             'set',          # Like enabled, but bits that are written 1 are set in the register.
@@ -387,6 +406,7 @@ class PrimitiveField(FieldLogic):
             'lock',         # When asserted, disables the bus write logic.
             'validate',     # Adds a strobe signal that validates the register.
             'invalidate',   # Adds a strobe signal that invalidates the register.
+            'ready',        # As above, but renamed to "ready" for mmio-to-stream fields.
             'clear',        # Adds a strobe signal that clears the register (sets value to 0).
             'reset',        # Adds a strobe signal that works just like a global reset.
             'increment',    # Adds a strobe signal that increments the register.
@@ -428,6 +448,18 @@ class PrimitiveField(FieldLogic):
                 raise ValueError('status fields do not support additional control signals')
             if self._bus_write not in ('disabled', 'error'):
                 raise ValueError('status fields cannot allow bus writes')
+
+        if self._hw_write == 'stream':
+            if self._hw_read == 'enabled':
+                raise ValueError('cannot combine hw-write=stream with hw-read=enabled '
+                                 '(name conflict for "valid" and "data" signals)')
+            if self._hw_read == 'simple':
+                raise ValueError('cannot combine hw-write=stream with hw-read=simple '
+                                 '(name conflict for "data" signal)')
+
+        if self._hw_read == 'handshake' and 'ready' in self._ctrl:
+            raise ValueError('cannot combine hw-read=handshake with ctrl-ready=enabled '
+                             '(name conflict for "ready" signal)')
 
         # Determine the read/write capability fields.
         if self._bus_read == 'disabled':
@@ -562,11 +594,15 @@ class PrimitiveField(FieldLogic):
 
         # Generate interface.
         if self.hw_write != 'disabled':
-            add_input('write_data', self.vector_width)
-            if self.hw_write != 'status':
-                add_input('write_enable')
+            if self.hw_write == 'stream':
+                add_input('data', self.vector_width)
+                add_input('valid')
+            else:
+                add_input('write_data', self.vector_width)
+                if self.hw_write != 'status':
+                    add_input('write_enable')
         ctrl_signals = [
-            'lock', 'validate', 'invalidate', 'clear', 'reset', 'increment', 'decrement']
+            'lock', 'validate', 'invalidate', 'ready', 'clear', 'reset', 'increment', 'decrement']
         for ctrl_signal in ctrl_signals:
             if ctrl_signal in self._ctrl:
                 add_input(ctrl_signal)
@@ -574,10 +610,12 @@ class PrimitiveField(FieldLogic):
         for bit_signal in bit_signals:
             if bit_signal.replace('_', '-') in self._ctrl:
                 add_input(bit_signal, self.vector_width)
-        if self.hw_read != 'disabled':
+        if self.hw_read in ('simple', 'enabled'):
             add_output('data', self.vector_width)
             if self.hw_read != 'simple':
                 add_output('valid')
+        if self.hw_read == 'handshake':
+            add_output('ready')
         if self.reset == 'generic':
             add_generic('reset_data', None, self.vector_width)
             tple['reset_valid'] = "'1'"
@@ -731,16 +769,15 @@ class StreamToMmioField(PrimitiveField):
     """Hardware to software stream. The stream is "popped" when the field is
     read, so it is write-once read-once; for write-once read-many use
     `latching` instead. By default, the read is blocked until a value is
-    available. The valid bit of the internal register is used as the `!ready`
-    signal for the stream, while the write-enable signal represents `valid`."""
+    available."""
 
     def __init__(self, field_descriptor, dictionary):
         override(dictionary, {
             'after_bus_read':   'invalidate',
             'bus_write':        'disabled',
             'after_bus_write':  'nothing',
-            'hw_read':          'enabled', # for the register valid flag, serving as !ready
-            'hw_write':         'invalid-only', # data; write enable = valid & ready
+            'hw_read':          'handshake', # for the ready flag
+            'hw_write':         'stream', # data; write enable = valid & ready
             'after_hw_write':   'validate',
         })
 
@@ -767,7 +804,7 @@ class MmioToStreamField(PrimitiveField):
             'hw_read':          'enabled', # for data and stream valid
             'hw_write':         'disabled',
             'after_hw_write':   'nothing',
-            'ctrl_invalidate':  'enabled', # ready flag
+            'ctrl_ready':       'enabled', # ready flag
         })
 
         default(dictionary, {

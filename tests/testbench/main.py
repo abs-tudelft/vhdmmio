@@ -366,8 +366,9 @@ class Testbench:
         the cycle counter and returned as an `int`. Otherwise, the result is
         returned as string without modification. Neither the command nor the
         result include the terminating newline."""
-        if self._in_isr and command[0] not in 'GSI':
-            raise ValueError('invalid command in interrupt mode: %s' % command)
+        if self._in_isr:
+            if command[0] not in 'GSIX':
+                raise ValueError('invalid command in interrupt mode: %s' % command)
         if self._activity_dump:
             if self._in_isr:
                 print(":  |->|", command, file=sys.stderr)
@@ -454,6 +455,10 @@ class Testbench:
 
     def __exit__(self, *_):
         """Ends the simulation."""
+        if self._in_isr:
+            # This happens if we crash while handling an interrupt.
+            self._communicate('X')
+            self._in_isr = False
         self._communicate('Q')
         self._cycle = None
         self._request_file.close()

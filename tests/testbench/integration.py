@@ -41,7 +41,7 @@ class RegisterFileTestbench:
             return name[:-2]
         return name
 
-    def __init__(self, data):
+    def __init__(self, data, *generics):
         """Constructs a testbench for a register file. `data` can be anything
         that `RegisterFile.load()` accepts."""
         super().__init__()
@@ -55,6 +55,13 @@ class RegisterFileTestbench:
         inst = []
         conn = []
         inst.append('  uut: %s' % self._regfile.meta.name)
+        if generics:
+            inst.append('    generic map (')
+            for name, value in generics[:-1]:
+                inst.append('      %s => %s,' % (name, value))
+            name, value = generics[-1]
+            inst.append('      %s => %s' % (name, value))
+            inst.append('    )')
         inst.append('    port map (')
 
         # Create testbench signal hooks/AXI4L mockups for all UUT ports.
@@ -71,7 +78,7 @@ class RegisterFileTestbench:
 
             # Add a signal for this port and connect it to the UUT.
             decl.append('%s;' % typ.make_signal('uut_%s' % name, count)[0])
-            inst.append('    %s => uut_%s,' % (name, name))
+            inst.append('      %s => uut_%s,' % (name, name))
 
             # Create testbench hooks for all the std_logic(_vector) members of
             # this port. Record any AXI4L signals we encounter to match them.
@@ -193,6 +200,7 @@ class RegisterFileTestbench:
         generate_pkg(self._tempdir.name)
         self._testbench.add_include(self._tempdir.name)
         self._testbench.__enter__()
+        self._testbench.reset()
         return AttributeDict(self._tb_obs)
 
     def __exit__(self, *args):
