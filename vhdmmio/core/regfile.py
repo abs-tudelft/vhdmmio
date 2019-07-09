@@ -7,6 +7,7 @@ from .metadata import Metadata, ExpandedMetadata
 from .field import FieldDescriptor
 from .register import Register
 from .interrupt import Interrupt
+from .internal_signals import InternalSignalRegistry
 from ..vhdl.interface import InterfaceOptions
 
 class RegisterFile:
@@ -67,6 +68,9 @@ class RegisterFile:
             if iface_opts is None:
                 iface_opts = {}
             self._iface_opts = InterfaceOptions.from_dict(iface_opts)
+
+            # Set up internal signal registry.
+            self._internal_signals = InternalSignalRegistry()
 
             # Read the interrupts.
             self._interrupts = tuple((
@@ -185,6 +189,9 @@ class RegisterFile:
                 field.meta
                 for reg in self._registers
                 for field in reg.fields))
+
+            # Check internal signal consistency.
+            self._internal_signals.check_consistency()
 
             # Check for unknown keys.
             for key in kwargs:
@@ -315,6 +322,12 @@ class RegisterFile:
         """Returns an `InterfaceOptions` object, carrying the default options
         for generating the VHDL interface."""
         return self._iface_opts
+
+    @property
+    def internal_signals(self):
+        """Returns the `InternalSignalRegistry` object associated with this
+        register file."""
+        return self._internal_signals
 
     @property
     def interrupts(self):

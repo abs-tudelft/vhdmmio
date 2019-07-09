@@ -109,6 +109,16 @@ $endif
 $endif
 """, comment='--')
 
+_INTERNAL_SIGNAL_BOILERPLATE_TEMPLATE = annotate_block("""
+$if s.is_strobe
+$s.use_name$ := $s.drive_name$;
+$s.drive_name$ := $c$;
+$endif
+if reset = '1' then
+  $s.use_name$ := $c$;
+end if;
+""", comment='--')
+
 class Generator:
     """VHDL generator for register files."""
 
@@ -142,7 +152,7 @@ class Generator:
         for field_descriptor in regfile.field_descriptors:
             field_descriptor.logic.generate_vhdl(self)
 
-        # Generate boilerplate register access code before after code.
+        # Generate boilerplate register access code after field code.
         for register in regfile.registers:
             self._add_register_boilerplate(register, 'after')
 
@@ -171,6 +181,10 @@ class Generator:
                 'PACKAGE',
                 '@ Types used by the register file interface.',
                 '\n'.join(typedefs))
+
+        # Generate code for internal signals.
+        for internal_signal in regfile.internal_signals:
+            self._add_internal_signal_boilerplate(internal_signal)
 
     def generate_files(self, output_directory, annotate=False):
         """Generates the files for this register file in the specified
@@ -593,6 +607,31 @@ class Generator:
                     _BUS_REQ_BOILERPLATE_TEMPLATE, postprocess=False)
                 self._write_decoder.add_action(block, address, mask)
 
+    def _add_internal_signal_boilerplate(self, internal_signal):
+        """Adds the boilerplate logic for the given internal signal."""
+        desc = 'internal signal %s' % internal_signal.name
+
+        # Determine signal type name and reset value.
+        if internal_signal.width is None:
+            clear = "'0'"
+            typ = 'std_logic'
+        else:
+            clear = "(others => '0')"
+            typ = 'std_logic_vector(%d downto 0)' % (internal_signal.width - 1)
+
+        # Variable declarations.
+        block = 'variable %s : %s := %s;' % (internal_signal.use_name, typ, clear)
+        if internal_signal.drive_name != internal_signal.use_name:
+            block += '\nvariable %s : %s := %s;' % (internal_signal.drive_name, typ, clear)
+        self._add_declarations(desc, block, None, None)
+
+        # Boilerplate logic.
+        tple = TemplateEngine()
+        tple['s'] = internal_signal
+        tple['c'] = clear
+        block = tple.apply_str_to_str(
+            _INTERNAL_SIGNAL_BOILERPLATE_TEMPLATE, postprocess=False)
+        self._add_block('INTERNAL_SIGNAL_LOGIC', 'Logic', desc, block)
 
 def generate(regfiles, output_directory, annotate=False):
     """Generates the VHDL files for the given list of register files.

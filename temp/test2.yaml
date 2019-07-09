@@ -1,4 +1,4 @@
-# rm temp/output/*.vhd; python3 -m vhdmmio temp/test2.yaml && vhdeps ghdl -i temp/output
+# rm temp/output/*.vhd; python3 -m vhdmmio temp/test2.yaml -V temp/output -P temp/output && vhdeps ghdl -i temp/output
 
 meta:
   mnemonic: SSP

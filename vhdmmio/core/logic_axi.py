@@ -28,6 +28,16 @@ if $state[i]$.r.valid = '0' then
   $state[i]$.r := $s2m[i]$.r;
 end if;
 $endif
+
+$if l.interrupt is not None
+@ Connect the incoming interrupt signal for field $l.field_descriptor.meta.name$
+@ to the associated internal signal.
+$if l.interrupt.width is None
+$l.interrupt.drive_name$ := $s2m[i]$.u.irq;
+$else
+$l.interrupt.drive_name$($i$) := $s2m[i]$.u.irq;
+$endif
+$endif
 """, comment='--')
 
 _LOGIC_READ_REQUEST = annotate_block("""
@@ -138,17 +148,21 @@ class AXIField(FieldLogic):
         # Parse configuration options.
         read_support = bool(dictionary.pop('read_support', True))
         write_support = bool(dictionary.pop('write_support', True))
-
-        # TODO: interrupt support; requires new InternalInterrupt class that
-        # doesn't generate an input signal but rather uses the interrupt from
-        # the AXI-lite record. Also requires regfile to ask fields whether they
-        # define interrupts.
+        interrupt_support = bool(dictionary.pop('interrupt_support', False))
 
         # Validate the field configuration.
         if field_descriptor.vector_width not in [32, 64]:
             raise ValueError('AXI field width must be 32 or 64 bits')
         if not read_support and not write_support:
             raise ValueError('cannot disable both read- and write support')
+
+        # Register/connect internal interrupt signal.
+        self._interrupt = None
+        if interrupt_support:
+            self._interrupt = self.field_descriptor.regfile.internal_signals.drive(
+                self.field_descriptor,
+                '%s_irq' % self.field_descriptor.meta.name,
+                field_descriptor.vector_count)
 
         # Determine the read/write capability fields.
         if read_support:
@@ -177,6 +191,14 @@ class AXIField(FieldLogic):
             dictionary['read-support'] = False
         if self.write_caps is None:
             dictionary['write-support'] = False
+        if self._interrupt is not None:
+            dictionary['interrupt-support'] = True
+
+    @property
+    def interrupt(self):
+        """The internal signal that is connected to the incoming interrupt
+        request flag, or `None` if the interrupt flag is ignored."""
+        return self._interrupt
 
     def generate_vhdl(self, gen):
         """Generates the VHDL code for the associated field by updating the

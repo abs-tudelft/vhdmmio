@@ -302,9 +302,15 @@ class TestPrimitive(TestCase):
                     'type': 'mmio-to-stream',
                     'bus-write': 'invalid-only',
                 },
-                { # slave error upon overflow, valid after reset
+                { # ignore upon overflow
                     'address': '0x08',
                     'name': 'c',
+                    'type': 'mmio-to-stream',
+                    'bus-write': 'invalid',
+                },
+                { # slave error upon overflow, valid after reset
+                    'address': '0x0C',
+                    'name': 'd',
                     'type': 'mmio-to-stream',
                     'bus-write': 'invalid-only',
                     'reset': 11,
@@ -315,6 +321,7 @@ class TestPrimitive(TestCase):
             mock_a = StreamSinkMock(objs.f_a_o.valid, objs.f_a_i.ready, objs.f_a_o.data)
             mock_b = StreamSinkMock(objs.f_b_o.valid, objs.f_b_i.ready, objs.f_b_o.data)
             mock_c = StreamSinkMock(objs.f_c_o.valid, objs.f_c_i.ready, objs.f_c_o.data)
+            mock_d = StreamSinkMock(objs.f_d_o.valid, objs.f_d_i.ready, objs.f_d_o.data)
 
             async_resp = []
             def callback(resp):
@@ -356,18 +363,33 @@ class TestPrimitive(TestCase):
             self.assertEqual(async_data, [55])
             async_data.clear()
 
-            # Test slave error upon overflow, valid after reset.
-            with self.assertRaisesRegex(ValueError, 'slave error'):
-                objs.bus.write(8, 44)
+            # Test ignore upon overflow.
+            objs.bus.write(8, 33)
+            objs.bus.write(8, 44)
             mock_c.handle(handler)
             mock_c.wait(10)
-            self.assertEqual(async_data, [11])
+            self.assertEqual(async_data, [33])
             async_data.clear()
             mock_c.handle(handler)
             with self.assertRaises(TimeoutError):
                 mock_c.wait(10)
             objs.bus.write(8, 55)
             mock_c.wait(10)
+            self.assertEqual(async_data, [55])
+            async_data.clear()
+
+            # Test slave error upon overflow, valid after reset.
+            with self.assertRaisesRegex(ValueError, 'slave error'):
+                objs.bus.write(12, 44)
+            mock_d.handle(handler)
+            mock_d.wait(10)
+            self.assertEqual(async_data, [11])
+            async_data.clear()
+            mock_d.handle(handler)
+            with self.assertRaises(TimeoutError):
+                mock_d.wait(10)
+            objs.bus.write(12, 55)
+            mock_d.wait(10)
             self.assertEqual(async_data, [55])
             async_data.clear()
 
@@ -425,6 +447,85 @@ class TestPrimitive(TestCase):
             self.assertEqual(int(objs.f_b_o[0].data), 1)
             self.assertEqual(int(objs.f_b_o[1].data), 1)
             self.assertEqual(int(objs.f_b_o[2].data), 0)
+
+    def test_internal(self):
+        """test internal status and control fields"""
+        rft = RegisterFileTestbench({
+            'meta': {'name': 'test'},
+            'features': {'bus-width': 32, 'optimize': True},
+            'fields': [
+                {
+                    'register-name': 'a',
+                    'address': '0x00:3..0',
+                    'name': 'as',
+                    'type': 'internal-status',
+                    'monitor-internal': 'ac',
+                },
+                {
+                    'address': '0x00:7..4',
+                    'name': 'ac',
+                    'type': 'internal-control',
+                },
+                {
+                    'address': '0x00:8',
+                    'name': 'bc',
+                    'type': 'internal-control',
+                    'drive-internal': 'bs',
+                },
+                {
+                    'register-name': 'b',
+                    'address': '0x04:0',
+                    'name': 'bs',
+                    'type': 'internal-status',
+                },
+                {
+                    'register-name': 'c',
+                    'address': '0x08:7..0',
+                    'repeat': 4,
+                    'name': 'ai',
+                    'type': 'internal-counter',
+                    'monitor-internal': 'ac',
+                },
+                {
+                    'register-name': 'd',
+                    'address': '0x0C:7..0',
+                    'name': 'bvi',
+                    'type': 'volatile-internal-counter',
+                    'monitor-internal': 'bs',
+                },
+                {
+                    'register-name': 'c',
+                    'address': '0x10:3..0',
+                    'name': 'af',
+                    'type': 'internal-flag',
+                    'monitor-internal': 'ac',
+                },
+                {
+                    'register-name': 'd',
+                    'address': '0x10:4',
+                    'name': 'bvf',
+                    'type': 'volatile-internal-flag',
+                    'monitor-internal': 'bs',
+                },
+            ]
+        })
+        with rft as objs:
+            self.assertEqual(objs.bus.read(0), 0)
+            self.assertEqual(objs.bus.read(4), 0)
+            objs.bus.write(0, 0x130)
+            self.assertEqual(objs.bus.read(0), 0x133)
+            self.assertEqual(objs.bus.read(4), 1)
+            objs.bus.write(0, 0)
+            self.assertEqual(objs.bus.read(8), 0x0606)
+            self.assertEqual(objs.bus.read(8), 0x0606)
+            objs.bus.write(8, 3)
+            self.assertEqual(objs.bus.read(8), 0x0603)
+            self.assertEqual(objs.bus.read(12), 6)
+            self.assertEqual(objs.bus.read(12), 0)
+            self.assertEqual(objs.bus.read(16), 0x13)
+            self.assertEqual(objs.bus.read(16), 0x03)
+            objs.bus.write(16, 6)
+            self.assertEqual(objs.bus.read(16), 0x01)
 
     def test_flag(self):
         """test flag fields"""

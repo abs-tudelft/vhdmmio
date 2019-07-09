@@ -49,11 +49,19 @@ class Interrupt:
             # Parse metadata again, now with the correct vector width.
             self._meta = Metadata.from_dict(self._width, kwargs)
 
-            # Parse interface options.
+            # Parse interface options or internal signal name.
+            internal = kwargs.pop('internal', None)
             iface_opts = kwargs.pop('interface', None)
-            if iface_opts is None:
-                iface_opts = {}
-            self._iface_opts = InterfaceOptions.from_dict(iface_opts)
+            if internal is not None and iface_opts is not None:
+                raise ValueError('internal and interface are mutually exclusive')
+            if internal is None:
+                if iface_opts is None:
+                    iface_opts = {}
+                self._iface_opts = InterfaceOptions.from_dict(iface_opts)
+                self._internal = None
+            else:
+                self._iface_opts = None
+                self._internal = regfile.internal_signals.use(self, internal, self._width)
 
             # Check for unknown keys.
             for key in kwargs:
@@ -84,9 +92,12 @@ class Interrupt:
         self._meta.to_dict(dictionary)
 
         # Write interface options.
-        iface = self._iface_opts.to_dict()
-        if iface:
-            dictionary['interface'] = iface
+        if self._internal is not None:
+            dictionary['internal'] = self._internal.name
+        else:
+            iface = self._iface_opts.to_dict()
+            if iface:
+                dictionary['interface'] = iface
 
         return dictionary
 
@@ -159,8 +170,15 @@ class Interrupt:
     @property
     def iface_opts(self):
         """Returns an `InterfaceOptions` object, carrying the options for
-        generating the VHDL interface for this interrupt."""
+        generating the VHDL interface for this interrupt. If this interrupt is
+        sensitive to an internal signal instead, this returns `None`."""
         return self._iface_opts
+
+    @property
+    def internal_signal(self):
+        """Returns the `InternalSignal` object that this interrupt is sensitive
+        to, or `None` if it is external."""
+        return self._internal
 
     def register_enable(self):
         """Registers that a field is present that can enable the interrupt."""
@@ -181,18 +199,29 @@ class Interrupt:
     def check_consistency(self):
         """Consistency-checks this interrupt after all fields have been
         processed."""
-        if self.can_pend and not self.can_clear:
-            raise ValueError(
-                'illegal pend field is present for level-sensitive interrupt %s '
-                '(add a clear field to make it edge-sensitive)' % self.meta.name)
+        if not self.can_clear:
+            if self.can_pend:
+                raise ValueError(
+                    'illegal pend field is present for level-sensitive interrupt %s '
+                    '(add a clear field to make it edge-sensitive)' % self.meta.name)
+            if self.internal_signal is not None and self.internal_signal.is_strobe:
+                raise ValueError(
+                    'level-sensitive interrupt %s is driven by internal strobe signal '
+                    '(add a clear field to make it edge-sensitive)' % self.meta.name)
 
     def generate_vhdl(self, gen):
         """Generates the VHDL code for this interrupt by updating the given
         `vhdl.Generator` object."""
-        req = gen.add_interrupt_port(self, 'request', 'i', None, self.width)[None]
+        if self._internal is not None:
+            req = self._internal.use_name
+        else:
+            req = gen.add_interrupt_port(self, 'request', 'i', None, self.width)[None]
         if self.width is None:
             gen.add_interrupt_logic(
                 self, 'i_req(%d) := %s;' % (self.index, req))
         else:
             gen.add_interrupt_logic(
                 self, 'i_req(%d downto %d) := %s;' % (self.high, self.low, req))
+
+    def __str__(self):
+        return 'interrupt %s' % self.meta.name

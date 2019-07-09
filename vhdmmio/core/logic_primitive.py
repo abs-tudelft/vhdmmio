@@ -3,7 +3,7 @@
 from .logic import FieldLogic
 from .logic_registry import field_logic
 from .accesscaps import AccessCapabilities, NoOpMethod
-from .utils import choice, switches, override, default
+from .utils import choice, switches
 from ..template import TemplateEngine, annotate_block
 from ..vhdl.types import std_logic, std_logic_vector, Record, Array, gather_defs
 
@@ -147,6 +147,25 @@ $if l.get_ctrl('bit-toggle')
 @ Handle bit toggle control input.
 $state[i].d$@:= $state[i].d$@and xor $bit_toggle[i]$;
 $endif
+
+$if l.monitor_internal is not None
+@ Handle monitoring internal signal.
+$if l.monitor_mode == 'status'
+$state[i].d$@:= $l.monitor_internal.use_name$;
+$endif
+$if l.monitor_mode == 'bit-set'
+$state[i].d$@:= $state[i].d$@or $l.monitor_internal.use_name$;
+$endif
+$if l.monitor_mode == 'increment'
+$if l.monitor_internal.width is None
+if $l.monitor_internal.use_name$ = '1' then
+$else
+if $l.monitor_internal.use_name$($i$) = '1' then
+$endif
+  $state[i].d$@:= std_logic_vector(unsigned($state[i].d$) + 1);
+end if;
+$endif
+$endif
 """, comment='--')
 
 _LOGIC_READ = annotate_block("""
@@ -186,6 +205,15 @@ $endif
 $if l.bus_read == 'error'
 r_nack@:= true;
 $endif
+$if l.underflow_internal is not None
+if $state[i].v$ = '0' then
+$if l.underflow_internal.width is None
+$l.underflow_internal := '1';
+$else
+$l.underflow_internal($i$) := '1'; 
+$endif
+end if;
+$endif
 $if l.bus_read in ['enabled', 'valid-wait', 'valid-only']
 $r_data$@:= $state[i].d$;
 $if l.bus_read in ['valid-wait', 'valid-only']
@@ -221,6 +249,15 @@ $endif
 $endblock
 
 $block HANDLE_WRITE
+$if l.overflow_internal is not None
+if $state[i].v$ = '1' then
+$if l.overflow_internal.width is None
+$l.overflow_internal.drive_name$ := '1';
+$else
+$l.overflow_internal.drive_name$($i$) := '1'; 
+$endif
+end if;
+$endif
 $if l.bus_write == 'error'
 w_nack@:= true;
 $endif
@@ -241,6 +278,13 @@ else
   w_ack@:= true;
 $ AFTER_WRITE
 end if;
+$endif
+$if l.bus_write == 'invalid'
+if $state[i].v$ = '0' then
+  $state[i].d$@:= $w_data$;
+end if;
+w_ack@:= true;
+$AFTER_WRITE
 $endif
 $if l.bus_write == 'enabled'
 $state[i].d$@:= $w_data$;
@@ -328,6 +372,11 @@ $if l.hw_read == 'handshake'
 @ Assign the ready output for field $l.field_descriptor.meta.name$.
 $ready[i]$ <= not $state[i].v$;
 $endif
+
+$if l.drive_internal is not None
+@ Assign the internal signal for field $l.field_descriptor.meta.name$.
+$l.drive_internal.drive_name$ := $state[i].d$;
+$endif
 """, comment='--')
 
 @field_logic('primitive')
@@ -359,6 +408,7 @@ class PrimitiveField(FieldLogic):
             'disabled',     # Write access is disabled.
             'error',        # Writes always return a slave error.
             'enabled',      # Normal write access to register. Masked bits are written 0.
+            'invalid',      # As above, but ignores the write when the register is valid.
             'invalid-wait', # As above, but blocks until register is invalid.
             'invalid-only', # As above, but fails when register is already valid.
             'masked',       # Write access respects strobe bits. Precludes after-bus-write.
@@ -415,6 +465,29 @@ class PrimitiveField(FieldLogic):
             'bit-clear',    # Adds a vector of strobe signals that reset bits in the register.
             'bit-toggle'])  # Adds a vector of strobe signals that toggle bits in the register.
 
+        # Configures driving an internal signal with the value of this field.
+        drive_internal = dictionary.pop('drive_internal', None)
+
+        # Configures strobing an internal signal when a bus write occurs while
+        # the stored value was already valid (this is an overflow condition for
+        # MMIO to stream fields).
+        overflow_internal = dictionary.pop('overflow_internal', None)
+
+        # Configures strobing an internal signal when a bus read occurs while
+        # the stored value is invalid (this is an underflow condition for
+        # stream to MMIO fields).
+        underflow_internal = dictionary.pop('underflow_internal', None)
+
+        # Configures monitoring the value of an internal signal with this
+        # field.
+        monitor_internal = dictionary.pop('monitor_internal', None)
+
+        # Configures the way the internal monitor signal is monitored.
+        self._monitor_mode = choice(dictionary, 'monitor_mode', [
+            'status',       # The vector-sized internal signal is constantly driven.
+            'bit-set',      # The vector-sized internal signal bit-sets the register.
+            'increment'])   # The count-sized internal signal increments the register.
+
         # Configures the reset value:
         #  - specify an integer to indicate that the field should have the
         #    given value after reset and be valid.
@@ -449,6 +522,14 @@ class PrimitiveField(FieldLogic):
             if self._bus_write not in ('disabled', 'error'):
                 raise ValueError('status fields cannot allow bus writes')
 
+        if monitor_internal is not None and self._monitor_mode == 'status':
+            if self._ctrl:
+                raise ValueError('status fields do not support additional control signals')
+            if self._bus_write not in ('disabled', 'error'):
+                raise ValueError('status fields cannot allow bus writes')
+            if self._hw_write != 'disabled':
+                raise ValueError('cannot monitor both internal and external signal')
+
         if self._hw_write == 'stream':
             if self._hw_read == 'enabled':
                 raise ValueError('cannot combine hw-write=stream with hw-read=enabled '
@@ -460,6 +541,34 @@ class PrimitiveField(FieldLogic):
         if self._hw_read == 'handshake' and 'ready' in self._ctrl:
             raise ValueError('cannot combine hw-read=handshake with ctrl-ready=enabled '
                              '(name conflict for "ready" signal)')
+
+        self._drive_internal = None
+        if drive_internal is not None:
+            if field_descriptor.vector_count is not None:
+                raise ValueError('cannot drive internal signal with repeated field')
+            self._drive_internal = field_descriptor.regfile.internal_signals.drive(
+                field_descriptor, drive_internal, field_descriptor.vector_width)
+
+        self._overflow_internal = None
+        if overflow_internal is not None:
+            self._overflow_internal = field_descriptor.regfile.internal_signals.strobe(
+                field_descriptor, overflow_internal, field_descriptor.vector_count)
+
+        self._underflow_internal = None
+        if underflow_internal is not None:
+            self._underflow_internal = field_descriptor.regfile.internal_signals.strobe(
+                field_descriptor, underflow_internal, field_descriptor.vector_count)
+
+        self._monitor_internal = None
+        if monitor_internal is not None:
+            if self._monitor_mode == 'increment':
+                width = field_descriptor.vector_count
+            else:
+                width = field_descriptor.vector_width
+                if field_descriptor.vector_count is not None:
+                    raise ValueError('cannot monitor internal signal with repeated field')
+            self._monitor_internal = field_descriptor.regfile.internal_signals.use(
+                field_descriptor, monitor_internal, width)
 
         # Determine the read/write capability fields.
         if self._bus_read == 'disabled':
@@ -520,6 +629,15 @@ class PrimitiveField(FieldLogic):
         dictionary['after-hw-write'] = self.after_hw_write
         dictionary['ctrl'] = list(self.ctrl)
         dictionary['reset'] = self.reset
+        if self.drive_internal:
+            dictionary['drive-internal'] = self.drive_internal.name
+        if self.overflow_internal:
+            dictionary['overflow-internal'] = self.overflow_internal.name
+        if self.underflow_internal:
+            dictionary['underflow-internal'] = self.underflow_internal.name
+        if self.monitor_internal:
+            dictionary['monitor-internal'] = self.monitor_internal.name
+            dictionary['monitor-mode'] = self.monitor_mode
 
     @property
     def bus_read(self):
@@ -576,6 +694,37 @@ class PrimitiveField(FieldLogic):
         a preconfigured value, the string `'generic'` to set the value with a
         generic, or `None` to reset the register to the invalid state."""
         return self._reset
+
+    @property
+    def drive_internal(self):
+        """Returns the internal signal that is driven by this field, if any.
+        Returns `None` if there is no such signal."""
+        return self._drive_internal
+
+    @property
+    def overflow_internal(self):
+        """Returns the internal signal that is strobed when this field is
+        written while the internal register is already valid, if any. Returns
+        `None` if there is no such signal."""
+        return self._overflow_internal
+
+    @property
+    def underflow_internal(self):
+        """Returns the internal signal that is strobed when this field is
+        read while the internal register is invalid, if any. Returns `None` if
+        there is no such signal."""
+        return self._underflow_internal
+
+    @property
+    def monitor_internal(self):
+        """Returns the internal signal that is monitored by this field, if any.
+        Returns `None` if there is no such signal."""
+        return self._monitor_internal
+
+    @property
+    def monitor_mode(self):
+        """The mode with which the `monitor_internal` signal is monitored."""
+        return self._monitor_mode
 
     def generate_vhdl(self, gen):
         """Generates the VHDL code for the associated field by updating the
@@ -680,277 +829,3 @@ class PrimitiveField(FieldLogic):
             gen.add_field_write_logic(
                 self.field_descriptor,
                 expand(_LOGIC_WRITE))
-
-
-@field_logic('constant')
-class ConstantField(PrimitiveField):
-    """Read-only constant field. The constant is set in the register file
-    description using the value key."""
-
-    def __init__(self, field_descriptor, dictionary):
-        value = dictionary.pop('value', None)
-        if value is None:
-            raise ValueError('missing value key')
-
-        override(dictionary, {
-            'bus_read':         'enabled',
-            'after_bus_read':   'nothing',
-            'bus_write':        'disabled',
-            'after_bus_write':  'nothing',
-            'hw_read':          'disabled',
-            'hw_write':         'disabled',
-            'after_hw_write':   'nothing',
-            'reset':            value,
-        })
-
-        super().__init__(field_descriptor, dictionary)
-
-        if self.ctrl:
-            raise ValueError('constant fields do not support additional control signals')
-
-    def to_dict(self, dictionary):
-        """Returns a dictionary representation of this object."""
-        super().to_dict(dictionary)
-        del dictionary['reset']
-        dictionary['value'] = self.reset
-
-
-@field_logic('config')
-class ConfigField(ConstantField):
-    """Read-only constant field. The constant is set through a generic."""
-
-    def __init__(self, field_descriptor, dictionary):
-        override(dictionary, {'value': 'generic'})
-        super().__init__(field_descriptor, dictionary)
-
-
-@field_logic('status')
-class StatusField(PrimitiveField):
-    """Read-only field. The value is driven by a signal."""
-
-    def __init__(self, field_descriptor, dictionary):
-        override(dictionary, {
-            'bus_read':         'enabled',
-            'after_bus_read':   'nothing',
-            'bus_write':        'disabled',
-            'after_bus_write':  'nothing',
-            'hw_read':          'disabled',
-            'hw_write':         'status',
-            'after_hw_write':   'nothing',
-            'reset':            None,
-        })
-
-        super().__init__(field_descriptor, dictionary)
-
-        if self.ctrl:
-            raise ValueError('status fields do not support additional control signals')
-
-
-@field_logic('latching')
-class LatchingField(PrimitiveField):
-    """Read-only field. The value is written by a stream-like interface."""
-
-    def __init__(self, field_descriptor, dictionary):
-        override(dictionary, {
-            'bus_read':         'enabled',
-            'hw_read':          'disabled',
-            'hw_write':         'enabled',
-        })
-
-        default(dictionary, {
-            'after_hw_write':   'validate'
-        })
-
-        super().__init__(field_descriptor, dictionary)
-
-
-@field_logic('stream-to-mmio')
-class StreamToMmioField(PrimitiveField):
-    """Hardware to software stream. The stream is "popped" when the field is
-    read, so it is write-once read-once; for write-once read-many use
-    `latching` instead. By default, the read is blocked until a value is
-    available."""
-
-    def __init__(self, field_descriptor, dictionary):
-        override(dictionary, {
-            'after_bus_read':   'invalidate',
-            'bus_write':        'disabled',
-            'after_bus_write':  'nothing',
-            'hw_read':          'handshake', # for the ready flag
-            'hw_write':         'stream', # data; write enable = valid & ready
-            'after_hw_write':   'validate',
-        })
-
-        default(dictionary, {
-            'bus_read':         'valid-wait',
-            'reset':            None,
-        })
-
-        super().__init__(field_descriptor, dictionary)
-
-
-@field_logic('mmio-to-stream')
-class MmioToStreamField(PrimitiveField):
-    """Software to hardware stream. By default, writes are blocked while the
-    field has not been popped by hardware yet. The valid bit of the internal
-    register maps one-to-one to the stream valid signal, while the invalidate
-    signal is connected to `ready`."""
-
-    def __init__(self, field_descriptor, dictionary):
-        override(dictionary, {
-            'bus_read':         'disabled',
-            'after_bus_read':   'nothing',
-            'after_bus_write':  'validate',
-            'hw_read':          'enabled', # for data and stream valid
-            'hw_write':         'disabled',
-            'after_hw_write':   'nothing',
-            'ctrl_ready':       'enabled', # ready flag
-        })
-
-        default(dictionary, {
-            'bus_write':        'invalid-wait',
-            'reset':            None,
-        })
-
-        super().__init__(field_descriptor, dictionary)
-
-
-@field_logic('control')
-class ControlField(PrimitiveField):
-    """Your standard control register; read-write by the bus and readable by
-    hardware.."""
-
-    def __init__(self, field_descriptor, dictionary):
-        default(dictionary, {
-            'bus_read':         'enabled',
-            'after_bus_read':   'nothing',
-            'bus_write':        'masked',
-            'after_bus_write':  'nothing',
-            'hw_read':          'simple',
-            'hw_write':         'disabled',
-            'after_hw_write':   'nothing',
-            'reset':            0,
-        })
-
-        super().__init__(field_descriptor, dictionary)
-
-
-@field_logic('flag')
-class FlagField(PrimitiveField):
-    """Field consisting of bit flags written by hardware and explicitly cleared
-    by a write."""
-
-    def __init__(self, field_descriptor, dictionary):
-        override(dictionary, {
-            'bus_read':         'enabled',
-            'bus_write':        'bit-clear',
-            'ctrl_bit_set':     'enabled',
-        })
-
-        default(dictionary, {
-            'hw_read':          'simple',
-        })
-
-        super().__init__(field_descriptor, dictionary)
-
-
-@field_logic('volatile-flag')
-class VolatileFlagField(PrimitiveField):
-    """Field consisting of bit flags written by hardware and implicitly cleared
-    when read."""
-
-    def __init__(self, field_descriptor, dictionary):
-        override(dictionary, {
-            'bus_read':         'enabled',
-            'after_bus_read':   'clear',
-            'ctrl_bit_set':     'enabled',
-        })
-
-        default(dictionary, {
-            'hw_read':          'simple',
-        })
-
-        super().__init__(field_descriptor, dictionary)
-
-
-@field_logic('reverse-flag')
-class ReverseFlagField(PrimitiveField):
-    """Reversed flag field: set by software, cleared by hardware."""
-
-    def __init__(self, field_descriptor, dictionary):
-        override(dictionary, {
-            'bus_write':        'bit-set',
-            'hw_read':          'simple',
-            'ctrl_bit_clear':   'enabled',
-        })
-
-        default(dictionary, {
-            'bus_read':         'enabled',
-        })
-
-        super().__init__(field_descriptor, dictionary)
-
-
-@field_logic('counter')
-class CounterField(PrimitiveField):
-    """Event counter field. This fulfills a similar role as flag fields, but
-    instead of bit-setting, the operation is accumulation. This allows not only
-    the occurance of one or more events to be registered, but also the amount.
-    The clear operation is subtraction, so writing the previously read value
-    will not clear any events that occurred between the read and the write."""
-
-    def __init__(self, field_descriptor, dictionary):
-        override(dictionary, {
-            'bus_read':         'enabled',
-            'bus_write':        'subtract',
-        })
-
-        default(dictionary, {
-            'ctrl_increment':   'enabled',
-            'hw_read':          'simple',
-            'hw_write':         'disabled',
-            'after_hw_write':   'nothing',
-        })
-
-        super().__init__(field_descriptor, dictionary)
-
-
-@field_logic('volatile-counter')
-class VolatileCounterField(PrimitiveField):
-    """Same as a regular counter, but the value is cleared immediately when the
-    register is read. This prevents the need for a write cycle, but requires
-    read-volatility."""
-
-    def __init__(self, field_descriptor, dictionary):
-        override(dictionary, {
-            'bus_read':         'enabled',
-            'after_bus_read':   'clear',
-        })
-
-        default(dictionary, {
-            'ctrl_increment':   'enabled',
-            'hw_read':          'simple',
-            'hw_write':         'disabled',
-            'after_hw_write':   'nothing',
-        })
-
-        super().__init__(field_descriptor, dictionary)
-
-
-@field_logic('reverse-counter')
-class ReverseCounterField(PrimitiveField):
-    """Reverse form of a counter, where the counter is incremented by software
-    and cleared by hardware."""
-
-    def __init__(self, field_descriptor, dictionary):
-        override(dictionary, {
-            'bus_write':        'accumulate',
-            'hw_read':          'simple',
-            'ctrl_clear':       'enabled',
-        })
-
-        default(dictionary, {
-            'bus_read':         'enabled',
-        })
-
-        super().__init__(field_descriptor, dictionary)
