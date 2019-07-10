@@ -1,33 +1,13 @@
 """Module for interrupt fields."""
 
-from .logic import FieldLogic
-from .logic_registry import field_logic
-from .accesscaps import AccessCapabilities, NoOpMethod
-from .utils import choice, override, default
-from ..template import TemplateEngine, annotate_block
+from ..logic import FieldLogic
+from ..logic_registry import field_logic
+from ..accesscaps import AccessCapabilities, NoOpMethod
+from ..utils import choice, override, default
+from ...template import TemplateEngine, preload_template
 
-_LOGIC_READ = annotate_block("""
-@ Read mode: $l.read$.
-$r_data$ := $v$;
-$if l.read == 'clear'
-$v$ := '0';
-$endif
-r_ack := true;
-""", comment='--')
-
-_LOGIC_WRITE = annotate_block("""
-@ Write mode: $l.write$.
-$if l.write == 'enabled'
-$v$ := ($v$ and not $w_strobe$) or $w_data$;
-$endif
-$if l.write == 'clear'
-$v$ := $v$ and not $w_data$;
-$endif
-$if l.write == 'set'
-$v$ := $v$ or $w_data$;
-$endif
-w_ack := true;
-""", comment='--')
+_LOGIC_READ = preload_template('interrupt-read.template.vhd', '--')
+_LOGIC_WRITE = preload_template('interrupt-write.template.vhd', '--')
 
 @field_logic('interrupt')
 class InterruptField(FieldLogic):

@@ -29,11 +29,11 @@ def type_lookup(typ):
     # Make sure that all logic_*.py modules are loaded, since they add items
     # to the registry.
     if not _ALL_LOADED:
-        for fname in os.listdir(os.path.dirname(__file__)):
-            if fname == 'logic_registry.py':
+        for fname in os.listdir(os.path.dirname(__file__) + os.sep + 'types'):
+            if fname == '__init__.py':
                 continue
-            if fname.startswith('logic_') and fname.endswith('.py'):
-                importlib.import_module('vhdmmio.core.logic_%s' % fname[6:-3])
+            if fname.endswith('.py'):
+                importlib.import_module('vhdmmio.core.types.%s' % fname[:-3])
         _ALL_LOADED.append(True)
 
     cls = _TYPE_LOOKUP.get(typ, None)

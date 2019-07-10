@@ -1,5 +1,6 @@
 """Simple templating engine. See `TemplateEngine` class."""
 
+import os
 import re
 import inspect
 
@@ -767,3 +768,18 @@ def annotate_block(template, fname=None, comment='#'):
     annotated.append('@!^->end')
 
     return '\n'.join(annotated)
+
+
+def preload_template(fname, comment='#'):
+    """Preloads a template from a file relative to the calling Python file."""
+    comment = comment.strip()
+
+    if not os.path.isabs(fname):
+        previous_frame = inspect.currentframe().f_back
+        caller_fname, _, _, _, _ = inspect.getframeinfo(previous_frame)
+        fname = os.path.dirname(caller_fname) + os.sep + fname
+
+    with open(fname, 'r') as fil:
+        template = fil.read()
+
+    return annotate_block(template, fname, comment)
