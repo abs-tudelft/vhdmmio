@@ -22,3 +22,4 @@ coverage.xml
 nosetests.xml
 *.cf
 *.gen.*
+.noseids
