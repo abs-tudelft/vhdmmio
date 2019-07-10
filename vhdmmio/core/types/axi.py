@@ -24,12 +24,30 @@ class AXIField(FieldLogic):
         read_support = bool(dictionary.pop('read_support', True))
         write_support = bool(dictionary.pop('write_support', True))
         interrupt_support = bool(dictionary.pop('interrupt_support', False))
+        self._offset = bool(dictionary.pop('offset', None))
+        offset_width = bool(dictionary.pop('offset_width', None))
 
         # Validate the field configuration.
         if field_descriptor.vector_width not in [32, 64]:
             raise ValueError('AXI field width must be 32 or 64 bits')
         if not read_support and not write_support:
             raise ValueError('cannot disable both read- and write support')
+        if self._offset is not None and not isinstance(self._offset, (int, str)):
+            raise ValueError('offset must be an integer constant or an '
+                             'internal signal if specified')
+
+        # Register/connect offset signal.
+        if isinstance(self._offset, str):
+            if offset_width is None:
+                offset_width = field_descriptor.vector_width
+                offset_width -= field_descriptor.fields[0].bitrange.size
+            elif not isinstance(offset_width, int):
+                raise ValueError('offset-width must be an integer if specified')
+            self._offset = self.field_descriptor.regfile.internal_signals.use(
+                self.field_descriptor, self._offset, offset_width)
+        elif offset_width is not None
+            raise ValueError('offset-width is only relevant when the offset is '
+                             'tied to an internal signal')
 
         # Register/connect internal interrupt signal.
         self._interrupt = None
@@ -68,12 +86,26 @@ class AXIField(FieldLogic):
             dictionary['write-support'] = False
         if self._interrupt is not None:
             dictionary['interrupt-support'] = True
+        if isinstance(self._offset, int):
+            dictionary['offset'] = self._offset
+        elif self._offset is not None:
+            dictionary['offset'] = self._offset.name
+            dictionary['offset-width'] = self._offset.width
 
     @property
     def interrupt(self):
         """The internal signal that is connected to the incoming interrupt
         request flag, or `None` if the interrupt flag is ignored."""
         return self._interrupt
+
+    @property
+    def offset(self):
+        """Returns the address offset that is to be used. This is `None` if the
+        incoming address should be passed through unmodified. If this is an
+        `int`, the integer value must be used as the byte-oriented base address.
+        If this is an `InternalSignal`, the signal should be used as the
+        block-oriented base address."""
+        return self._offset
 
     def generate_vhdl(self, gen):
         """Generates the VHDL code for the associated field by updating the
@@ -82,8 +114,9 @@ class AXIField(FieldLogic):
         tple = TemplateEngine()
         tple['l'] = self
         tple['width'] = self.vector_width
-        mask = (1 << self.field_descriptor.fields[0].bitrange.size) - 1
-        tple['addr_mask'] = 'X"%08X"' % mask
+        block_size = self.field_descriptor.fields[0].bitrange.size
+        tple['block_size'] = block_size
+        tple['mask'] = '%08X' % ((1 << block_size) - 1)
 
         # Generate interface.
         tple['m2s'] = gen.add_field_port(

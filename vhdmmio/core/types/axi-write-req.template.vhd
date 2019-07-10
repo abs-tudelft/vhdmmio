@@ -1,5 +1,15 @@
 if $state[i]$.aw.valid = '0' and $state[i]$.w.valid = '0' then
-  $state[i]$.aw.addr := w_addr and $addr_mask$;
+$if l.offset is None
+  $state[i]$.aw.addr := w_addr;
+$else
+$if isinstance(l.offset, int)
+  $state[i]$.aw.addr := X"$('{:0%dX}' % width).format(l.offset)$";
+$else
+  $state[i]$.aw.addr := (others => '0');
+  $state[i]$.aw.addr($block_size+l.offset.width-1$ downto $block_size$) := $l.offset.use_name$;
+$endif
+  $state[i]$.aw.addr($block_size-1$ downto $bus_size$) := w_addr($block_size-1$ downto $bus_size$);
+$endif
   $state[i]$.aw.prot := w_prot;
   $state[i]$.aw.valid := '1';
 
