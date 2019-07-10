@@ -407,6 +407,7 @@ fields:
       IMSC.
 
     type: interrupt-flag
+    write: disabled
 
     subfields:
       - address: 0:0
@@ -452,7 +453,7 @@ fields:
       the other two interrupt conditions can be cleared by writing or reading the
       appropriate FIFO, or disabled by clearing the corresponding bit in IMSC.
 
-    type: interrupt-flag-cow
+    type: interrupt-flag
     read: disabled
 
     subfields:

@@ -26,6 +26,7 @@ $endif
 $if l.write == 'set'
 $v$ := $v$ or $w_data$;
 $endif
+w_ack := true;
 """, comment='--')
 
 @field_logic('interrupt')
@@ -213,47 +214,39 @@ class InterruptField(FieldLogic):
                 expand(_LOGIC_WRITE))
 
 
-@field_logic('interrupt-flag-cow')
-class InterruptFlagCOWField(InterruptField):
-    """Interrupt flag clear-on-write field. Read mode can optionally be
-    disabled."""
+@field_logic('interrupt-flag')
+class InterruptFlagField(InterruptField):
+    """Interrupt flag field. Cleared by writing ones. Read mode can be disabled
+    to get just a flag clear field, and write mode can be disabled to get just
+    a status field that ignores unmask."""
 
     def __init__(self, field_descriptor, dictionary):
         override(dictionary, {
             'function': 'flag',
-            'write':    'clear',
         })
 
         default(dictionary, {
             'read':     'enabled',
+            'write':    'clear',
         })
 
         super().__init__(field_descriptor, dictionary)
 
-@field_logic('interrupt-flag-cor')
-class InterruptFlagCORField(InterruptField):
-    """Interrupt flag clear-on-read field."""
+
+@field_logic('volatile-interrupt-flag')
+class VolatileInterruptFlagField(InterruptField):
+    """Read-only variant of `interrupt-flag` that clears the flags immediately
+    when the field is read."""
 
     def __init__(self, field_descriptor, dictionary):
         override(dictionary, {
             'function': 'flag',
             'read':     'clear',
-        })
-
-        super().__init__(field_descriptor, dictionary)
-
-@field_logic('interrupt-flag')
-class InterruptFlagField(InterruptField):
-    """Read-only interrupt flag field."""
-
-    def __init__(self, field_descriptor, dictionary):
-        override(dictionary, {
-            'function': 'flag',
             'write':    'disabled',
-            'read':     'enabled',
         })
 
         super().__init__(field_descriptor, dictionary)
+
 
 @field_logic('interrupt-pend')
 class InterruptPendField(InterruptField):
@@ -271,10 +264,13 @@ class InterruptPendField(InterruptField):
 
         super().__init__(field_descriptor, dictionary)
 
+
 @field_logic('interrupt-enable')
 class InterruptEnableField(InterruptField):
     """Field that controls the enable register for an interrupt. Defaults to
-    read-write."""
+    control-register-style read-write behavior. Read mode can optionally be
+    disabled. Write mode can optionally be disabled or set to set or clear
+    mode."""
 
     def __init__(self, field_descriptor, dictionary):
         override(dictionary, {
@@ -288,10 +284,13 @@ class InterruptEnableField(InterruptField):
 
         super().__init__(field_descriptor, dictionary)
 
+
 @field_logic('interrupt-unmask')
 class InterruptUnmaskField(InterruptField):
     """Field that controls the unmask register for an interrupt. Defaults to
-    read-write."""
+    control-register-style read-write behavior. Read mode can optionally be
+    disabled. Write mode can optionally be disabled or set to set or clear
+    mode."""
 
     def __init__(self, field_descriptor, dictionary):
         override(dictionary, {
@@ -305,6 +304,7 @@ class InterruptUnmaskField(InterruptField):
 
         super().__init__(field_descriptor, dictionary)
 
+
 @field_logic('interrupt-status')
 class InterruptStatusField(InterruptField):
     """Field that allows the masked interrupt flag to be read."""
@@ -317,6 +317,7 @@ class InterruptStatusField(InterruptField):
         })
 
         super().__init__(field_descriptor, dictionary)
+
 
 @field_logic('interrupt-raw')
 class InterruptRawField(InterruptField):
