@@ -89,14 +89,14 @@ class SubConfig(Loader):
             if not subdict and self._optional:
                 return None
 
-        return self._configurable.from_dict(subdict, path)
+        return self._configurable.from_dict(subdict, parent)
 
     def serialize(self, dictionary, value):
         """`SubConfig` serializer. See `Loader.serialize()` for more info."""
         if value is None:
             return
         if self._style is True:
-            dictionary[self.key] = value.to_dict()
+            dictionary[self.friendly_key] = value.to_dict()
         else:
             prefix = '%s-' % self._style.replace('_', '-') if self._style else ''
             subdict = value.to_dict()

@@ -159,7 +159,7 @@ class ScalarLoader(Loader):
             return
         value = self.scalar_serialize(value)
         if value != self.default:
-            dictionary[self.key] = value
+            dictionary[self.friendly_key] = value
 
     @staticmethod
     def scalar_serialize(value):
