@@ -22,10 +22,11 @@ class Choice(ScalarLoader):
     something whose `str()` representation performs the inverse of the
     conversion function."""
 
-    def __init__(self, key, markdown, *choices):
-        default = choices[0][0]
-        if default is bool:
-            default = False
+    def __init__(self, key, markdown, *choices, default=Unset):
+        if default is not Unset:
+            default = choices[0][0]
+            if default is bool:
+                default = False
         if not isinstance(default, (int, str, bool)) and default is not None:
             raise ValueError('invalid default value')
         super().__init__(key, markdown, default, Unset)
@@ -223,5 +224,7 @@ def choice(method):
 
 def flag(method):
     """Convenience method for making flag `Choice`s, i.e. booleans that default
-    to `False`. The annotated method is never called."""
-    return Choice(method.__name__, method.__doc__, (bool, ''))
+    to `False`. The return value of the annotated method (cast to bool) is used
+    as the default value. The method should not take any arguments; not even
+    `self`."""
+    return Choice(method.__name__, method.__doc__, (bool, ''), bool(method()))
