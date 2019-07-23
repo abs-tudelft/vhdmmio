@@ -6,28 +6,55 @@ the Liskov substitution principle). They must carry the `@derive()` annotation,
 which allows defaults and value overrides to be specified."""
 
 import textwrap
-import inspect
 from .loader import Loader
-from .utils import ParseError, friendly_path
 
 class Configurable:
     """Base class for objects that can be configured with/deserialized from
-    and serialized to JSON/YAML-friendly dictionary form."""
+    and serialized to JSON/YAML-friendly dictionary form. When using this class
+    as an ancestor, also use the `@configurable()` annotation."""
 
+    def __init__(self, parent=None, dictionary=None, **kwargs):
+        # Save the parent.
+        self._parent = parent
+
+        # If no dictionary was supplied, create an empty one.
+        if dictionary is None:
+            dictionary = {}
+
+        # Update the dictionary with the kwargs. Together with the
+        # previous, this allows a `Configurable` to be instantiated using
+        # Pythonic keyword arguments in addition to the normal dictionary
+        # deserialization method.
+        for kwarg_key, value in kwargs:
+            dict_key = kwarg_key.replace('_', '-')
+            dictionary[dict_key] = value
+
+        # Handle the loaders.
+        for loader in self.loaders:
+            setattr(
+                self, '_' + loader.key,
+                loader.deserialize(dictionary, self))
+
+    @property
+    def parent(self):
+        """Returns the parent of this configurable. This is always another
+        configurable, unless this is the root, in which case this is `None`."""
+        return self._parent
+
+    # The loaders of a configurable define which configuration keys are
+    # supported and what their valid values are. This tuple is normally
+    # overridden by the @configurable annotation, which looks for `Loader`
+    # instances within the class definition. These are in turn constructed
+    # from placeholder methods using method annotations. They are ordered;
+    # that is, configuration keys are interpreted in the order in which
+    # their loaders were defined in the class, so they can use the values
+    # interpreted by previous loaders as contextual information. The
+    # documentation output also maintains order.
     loaders = ()
-    configuration_name = None
-    configuration_doc = None
 
-    @classmethod
-    def from_dict(cls, dictionary, *args):
-        """Constructs this class from its dictionary serialization."""
-        dictionary = dictionary.copy()
-        for key in list(dictionary.keys()):
-            if '-' in key:
-                dictionary[key.replace('-', '_')] = dictionary.pop(key)
-        return cls(*args, **dictionary)
-
-    def to_dict(self, dictionary=None):
+    # Reserialization is essentially the inverse of the constructor, allowing
+    # configuration files to be generated.
+    def serialize(self, dictionary=None):
         """Serializes this object into its canonical dictionary
         representation."""
         if dictionary is None:
@@ -35,6 +62,12 @@ class Configurable:
         for loader in self.loaders:
             loader.serialize(dictionary, getattr(self, '_' + loader.key))
         return dictionary
+
+    # A key aspect of `Configurable`s is that they can automatically generate
+    # markdown documentation for their configuration dictionary. These
+    # parameters are set by the `@configurable()` annotation.
+    configuration_name = None
+    configuration_doc = None
 
     @classmethod
     def configuration_markdown(cls):
@@ -92,43 +125,27 @@ def configurable(*loaders, name=None, doc=None):
 
         # Add a value property for each loader's key.
         for loader in loaders:
+
+            # Define getter trivially.
             def getter(self, loader=loader):
                 return getattr(self, '_' + loader.key)
-            prop = property(getter)
-            setattr(cls, loader.key, prop)
-            setattr(cls, '_' + loader.key, None)
 
-        # Patch the __init__ function to take serialized data from **kwargs.
-        user_initializer = cls.__init__
+            # If the loader supports mutation (that is, it has a validation
+            # function). define a setter as well.
+            if loader.mutable():
+                def setter(self, value, loader=loader):
+                    loader.validate(value)
+                    setattr(self, '_' + loader.key, value)
+            else:
+                setter = None
 
-        accept_keyword_args = set()
-        for key, param in inspect.signature(user_initializer).parameters.items():
-            if param.kind in (param.POSITIONAL_OR_KEYWORD, param.KEYWORD_ONLY):
-                if param.default is not param.empty:
-                    accept_keyword_args.add(key)
-            if param.kind == param.VAR_KEYWORD:
-                accept_keyword_args = True
+            # Create the property (with protected setter).
+            prop_name = loader.key.replace('-', '_')
+            prop = property(getter, setter)
+            setattr(cls, prop_name, prop)
 
-        def initializer(self, *args, configurable_path=(), **kwargs):
-            for loader in self.loaders:
-                setattr(
-                    self, '_' + loader.key,
-                    loader.deserialize(kwargs, self, configurable_path))
-
-            if accept_keyword_args is not True:
-                for key in kwargs:
-                    if key not in accept_keyword_args:
-                        if configurable_path == ():
-                            raise ParseError(
-                                'unknown key for configuration file: `%s`'
-                                % key.replace('_', '-'))
-                        raise ParseError(
-                            'unknown key for %s: `%s`' % (
-                                friendly_path(configurable_path),
-                                key.replace('_', '-')))
-            user_initializer(self, *args, **kwargs)
-
-        cls.__init__ = initializer
+            # Create the backing private variable.
+            setattr(cls, '_' + prop_name, None)
 
         # Add the documentation, if specified through the decorator.
         cls.configuration_name = name
@@ -152,6 +169,8 @@ def derive(name=None, doc=None, **mods):
     possible by prefixing an underscore to the modification key."""
 
     def decorator(cls, mods=mods): #pylint: disable=W0102
+
+        # Get the current loaders.
         loaders = {loader.key: loader for loader in cls.loaders}
 
         # Update the loaders.
@@ -164,6 +183,8 @@ def derive(name=None, doc=None, **mods):
                 loaders[key] = loaders[key].override(value[0])
             else:
                 loaders[key] = loaders[key].override(value)
+
+        # Set the new loader tuple.
         cls.loaders = tuple(loaders.values())
 
         # Update the documentation.

@@ -6,19 +6,24 @@ class through annotations, similar to how the `@property` annotation works."""
 
 import textwrap
 import copy
-from .utils import Unset, ParseError, friendly_path, friendly_yaml_value
+from .utils import Unset, ParseError, friendly_yaml_value
 
 class Loader:
     """Base class for configuration key loaders."""
 
+    # Since it's impossible to determine method definition order before Python
+    # 3.6, we keep track of our own (global) counter and use that as a sorting
+    # key.
     _ORDER = 0
 
     def __init__(self, key, doc):
         super().__init__()
-        self._order = Loader._ORDER
-        Loader._ORDER += 1
         self._key = key
         self._doc = textwrap.dedent(doc)
+
+        # Claim and update sorting key.
+        self._order = Loader._ORDER
+        Loader._ORDER += 1
 
     @property
     def order(self):
@@ -31,26 +36,15 @@ class Loader:
         return self._key
 
     @property
-    def friendly_key(self):
-        """"Friendly" version of the  key that this `Loader` operates on, using
-        dashes instead of underscores."""
-        return self._key.replace('_', '-')
-
-    @property
     def doc(self):
         """Documentation for the configuration parameter loaded by this
         `Loader`."""
         return self._doc
 
-    def friendly_path(self, path=()):
-        """Pretty-prints a key name and the path leading up to it for error
-        messages etc."""
-        return friendly_path(path + (self.friendly_key,))
-
     def markdown(self):
         """Yields markdown documentation for all the keys that this loader can
         make sense of as `(key, markdown)` tuples."""
-        yield self.friendly_key, self.doc
+        yield self.key, self.doc
 
     @staticmethod
     def markdown_more():
@@ -60,18 +54,7 @@ class Loader:
         return []
 
     @staticmethod
-    def pop_dict(dictionary, key, path=()):
-        """Convenience function that pops a value from a configuration
-        dictionary, raising an appropriate `ParseError` message if it does not
-        exist."""
-        if key not in dictionary:
-            raise ParseError(
-                '%s is a required parameter'
-                % friendly_path(path + (key.replace('_', '-'),)))
-        return dictionary.pop(key)
-
-    @staticmethod
-    def deserialize(dictionary, parent, path=()):
+    def deserialize(dictionary, parent):
         """Deserializes the part of the configuration dictionary `dictionary`
         handled by this loader. `parent` is a reference to the parent class
         instance itself, but be aware that it has not been fully initialized
@@ -83,12 +66,27 @@ class Loader:
         `Loader`s have been called, the dictionary should be empty. The
         deserialized value is returned, or an appropriate, user-friendly error
         message is returned by means of an exception."""
+        raise NotImplementedError()
 
     @staticmethod
     def serialize(dictionary, value):
         """Serializes a value returned by `deserialize()` back into its
         configuration form. `dictionary` is the `dict` that must be updated
         with the configuration keys, `value` is the deserialized value."""
+        raise NotImplementedError()
+
+    @staticmethod
+    def mutable():
+        """Returns whether the value managed by this loader can be mutated. If
+        this is overridden to return `True`, the loader must implement
+        `validate()`."""
+        return False
+
+    @staticmethod
+    def validate(_):
+        """Checks that the given value is valid for this loader, raising an
+        appropriate ParseError if not. This function only needs to work if
+        `mutable()` returns `True`."""
 
 
 class ScalarLoader(Loader):
@@ -114,7 +112,7 @@ class ScalarLoader(Loader):
         """Returns whether this loader has a default value."""
         return self.default is not Unset
 
-    def set_default(self, value):
+    def with_default(self, value):
         """Returns a copy of this loader with the default value modified to
         the given value."""
         result = copy.copy(self)
@@ -122,44 +120,49 @@ class ScalarLoader(Loader):
         return result
 
     @property
-    def override_value(self):
+    def override(self):
         """The override value, or `Unset` if there is no override."""
         return self._override
 
-    def is_overridden(self):
+    def has_override(self):
         """Returns whether this loader has an override value. In this case,
         `serialize()` should be no-op."""
-        return self.override_value is not Unset
+        return self.override is not Unset
 
-    def override(self, value):
+    def with_override(self, value):
         """Returns a copy of this loader with the override value modified to
         the given value."""
         result = copy.copy(self)
         result._override = value #pylint: disable=W0212
         return result
 
-    def get_value(self, dictionary, path=()):
+    def get_value(self, dictionary):
         """Pops the value for this loader from the given dictionary,
         respecting the default and override values. Raises a user-friendly
         error using `path` if the value in the dictionary is missing or not
         equal to the override value."""
-        if self.is_overridden():
-            value = dictionary.pop(self.key, self.override_value)
-            if value != self.override_value:
-                raise ParseError('%s must be %s or be left unspecified' % (
-                    self.friendly_path(path), friendly_yaml_value(self.override_value)))
+        if self.has_override():
+            value = dictionary.pop(self.key, self.override)
+            if value != self.override:
+                ParseError.invalid(self.key, value, self.override, Unset)
             return value
-        if self.has_default():
-            return dictionary.pop(self.key, self.default)
-        return self.pop_dict(dictionary, self.key, path)
+        value = dictionary.pop(self.key, self.default)
+        if value is Unset:
+            ParseError.required(self.key)
+        return value
+
+    @staticmethod
+    def deserialize(dictionary, parent):
+        """See `Loader.deserialize()`."""
+        raise NotImplementedError()
 
     def serialize(self, dictionary, value):
         """`ScalarLoader` serializer. See `Loader.serialize()` for more info."""
-        if self.is_overridden():
+        if self.has_override():
             return
         value = self.scalar_serialize(value)
         if value != self.default:
-            dictionary[self.friendly_key] = value
+            dictionary[self.key] = value
 
     @staticmethod
     def scalar_serialize(value):
@@ -169,17 +172,24 @@ class ScalarLoader(Loader):
     def markdown(self):
         """Yields markdown documentation for all the keys that this loader can
         make sense of as `(key, markdown)` tuples."""
-        if self.is_overridden():
+
+        # Don't document overridden keys. We condone the user specifying them
+        # if the value is correct, but it's not exactly recommended.
+        if self.has_override():
             return
+
         markdown = [self.doc]
         markdown.extend(self.scalar_markdown())
+
+        # Automatically generate as much as we can.
         if self.has_default():
             markdown.append('This key is optional unless required by context. '
                             'If not specified, the default value (%s) is used.' %
                             friendly_yaml_value(self.default))
         else:
             markdown.append('This key is required.')
-        yield self.friendly_key, '\n\n'.join(markdown)
+
+        yield self.key, '\n\n'.join(markdown)
 
     @staticmethod
     def scalar_markdown():

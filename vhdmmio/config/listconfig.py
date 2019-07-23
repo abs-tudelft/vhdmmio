@@ -2,7 +2,7 @@
 create/configure hierarchical object structures in various ways."""
 
 from .loader import Loader
-from .utils import ParseError, friendly_path
+from .utils import ParseError
 
 class ListConfig(Loader):
     """Loader for lists of `Configurable`s. This loader takes a single key from
@@ -27,15 +27,6 @@ class ListConfig(Loader):
         disabled."""
         return self._subkey
 
-    @property
-    def friendly_subkey(self):
-        """"Friendly" version of the prototype subkey for this loader (using
-        dashes instead of underscores), or `None` if this feature is
-        disabled."""
-        if self._subkey is None:
-            return None
-        return self._subkey.replace('_', '-')
-
     def markdown(self):
         """Yields markdown documentation for all the keys that this loader can
         make sense of as `(key, markdown)` tuples."""
@@ -47,7 +38,7 @@ class ListConfig(Loader):
                 'is recursively interpreted as a list of dictionaries, similar '
                 'to this key, instead of being parsed directly. Any additional '
                 'keys in the dictionary are then used as default values for '
-                'the subdictionaries. For example,' % self.friendly_subkey)
+                'the subdictionaries. For example,' % self.subkey)
             markdown.append(
                 '```\n'
                 '%s:\n'
@@ -57,7 +48,7 @@ class ListConfig(Loader):
                 '  %s:\n'
                 '  - a: 5\n'
                 '  - d: 4\n'
-                '```' % (self.friendly_key, self.friendly_subkey))
+                '```' % (self.key, self.subkey))
             markdown.append('is equivalent to')
             markdown.append(
                 '```\n'
@@ -69,7 +60,7 @@ class ListConfig(Loader):
                 '  b: 2\n'
                 '  c: 3\n'
                 '  d: 4\n'
-                '```' % self.friendly_key)
+                '```' % self.key)
             markdown.append(
                 'This can be useful for specifying repetetive structures.')
 
@@ -77,7 +68,7 @@ class ListConfig(Loader):
             'This key is optional. Not specifying it is equivalent to '
             'specifying an empty list.')
 
-        yield self.friendly_key, markdown
+        yield self.key, markdown
 
     def markdown_more(self):
         """Yields or returns a list of `@configurable` classes that must be
@@ -85,47 +76,47 @@ class ListConfig(Loader):
         to them."""
         yield self._configurable
 
-    def _handle_list(self, config_list, parent, path, prototype=None):
+    def _handle_list(self, config_list, parent, prototype=None):
         """Handles a list of subconfigs, yielding the deserialized objects."""
+
+        # Verify that we got a list.
         if not isinstance(config_list, list):
-            raise ParseError('%s must be a list' % friendly_path(path))
+            ParseError.invalid('', config_list, [])
+
         for index, subdict in enumerate(config_list):
-            subpath = path + (index,)
-            if not isinstance(subdict, dict):
-                raise ParseError('%s must be a dictionary' % friendly_path(subpath))
+            with ParseError.wrap(index):
 
-            # Merge the prototype and the dictionary.
-            if prototype:
-                updated_prototype = prototype.copy()
-                updated_prototype.update(subdict)
-                subdict = updated_prototype
+                # Verify that the list entry is a dictionary.
+                if not isinstance(subdict, dict):
+                    ParseError.invalid('', config_list, [])
 
-            # Handle the next level of prototypes.
-            if self.subkey is not None and self.subkey in subdict:
-                sublist = subdict.pop(self.subkey)
-                generator = self._handle_list(
-                    sublist,
-                    parent,
-                    subpath + (self.friendly_subkey,),
-                    subdict)
-                for item in generator:
-                    yield item
-                continue
+                # Merge the dictionary with the prototype, if there is one.
+                if prototype:
+                    updated_prototype = prototype.copy()
+                    updated_prototype.update(subdict)
+                    subdict = updated_prototype
 
-            # Pass the final dict to the configurable for deserialization.
-            yield self._configurable.from_dict(subdict, parent)
+                # Handle the next level of prototypes, if there is one.
+                if self.subkey is not None and self.subkey in subdict:
+                    sublist = subdict.pop(self.subkey)
+                    with ParseError.wrap(self.subkey):
+                        generator = self._handle_list(sublist, parent, subdict)
+                    for item in generator:
+                        yield item
+                    continue
 
-    def deserialize(self, dictionary, parent, path=()):
+                # Pass the final dict to the configurable for deserialization.
+                yield self._configurable(parent, subdict)
+
+    def deserialize(self, dictionary, parent):
         """`ListConfig` deserializer. See `Loader.deserialize()` for more
         info."""
-        return list(self._handle_list(
-            dictionary.pop(self.key, []),
-            parent,
-            path + (self.friendly_key,)))
+        with ParseError.wrap(self.key):
+            return list(self._handle_list(dictionary.pop(self.key, []), parent))
 
     def serialize(self, dictionary, value):
         """`ListConfig` serializer. See `Loader.serialize()` for more info."""
-        dictionary[self.friendly_key] = [item.to_dict() for item in value]
+        dictionary[self.key] = [item.serialize() for item in value]
 
 
 def listconfig(method):

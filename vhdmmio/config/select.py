@@ -5,7 +5,7 @@ instantiate."""
 import textwrap
 from collections import OrderedDict
 from .loader import Loader
-from .utils import ParseError
+from .utils import ParseError, Unset, friendly_yaml_value
 
 class Select(Loader):
     """Loader for embedding `Configurable`s, with multiple different kinds of
@@ -30,7 +30,7 @@ class Select(Loader):
             markdown.append(' - `%s`: %s' % (
                 value, textwrap.dedent(doc).replace('\n', '\n   ')))
 
-        yield self.friendly_key, markdown
+        yield self.key, markdown
 
     def markdown_more(self):
         """Yields or returns a list of `@configurable` classes that must be
@@ -39,21 +39,25 @@ class Select(Loader):
         for configurable, _ in self._config_options:
             yield configurable
 
-    def deserialize(self, dictionary, parent, path=()):
+    def deserialize(self, dictionary, parent):
         """`Select` deserializer. See `Loader.deserialize()` for more
         info."""
-        selection = self.pop_dict(dictionary, self.key, path)
+        selection = dictionary.pop(self.key, Unset)
+        if selection is Unset:
+            ParseError.required(self.key)
         configurable, _ = self._config_options.get(selection, (None, None))
         if configurable is None:
-            raise ParseError('%s has unknown value `%r`' % (
-                self.friendly_path(path), selection))
-        return selection, configurable.from_dict(dictionary, parent)
+            ParseError.invalid(
+                self.key, selection,
+                *map(friendly_yaml_value, self._config_options))
+        item = configurable(parent, dictionary)
+        return selection, item
 
     def serialize(self, dictionary, value):
         """`Select` serializer. See `Loader.serialize()` for more info."""
         selection, item = value
-        dictionary[self.friendly_key] = selection
-        item.to_dict(dictionary)
+        dictionary[self.key] = selection
+        item.serialize(dictionary)
 
 
 def select(method):

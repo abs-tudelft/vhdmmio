@@ -22,14 +22,12 @@ class Choice(ScalarLoader):
     something whose `str()` representation performs the inverse of the
     conversion function."""
 
-    def __init__(self, key, markdown, *choices, default=Unset):
-        if default is not Unset:
+    def __init__(self, key, doc, *choices, default=Unset):
+        if default is Unset:
             default = choices[0][0]
-            if default is bool:
-                default = False
         if not isinstance(default, (int, str, bool)) and default is not None:
             raise ValueError('invalid default value')
-        super().__init__(key, markdown, default, Unset)
+        super().__init__(key, doc, default, Unset)
         self._choices = choices
 
         # Run get_friendly_choices() to do error checking, but don't store the
@@ -38,43 +36,42 @@ class Choice(ScalarLoader):
         self._get_friendly_choices()
 
     def _parse_value(self, value):
-        """Tries to parse the given value against the choice list, returning
-        a two-tuple of the choice list index and the (possibly converted) value
-        if found, or `(None, None)` if not found."""
+        """Tries to match the given value against the choice list, returning
+        the choice list index if found, or `None` if not found."""
         for index, (choice_desc, _) in enumerate(self._choices):
             if isinstance(choice_desc, (int, str, bool)):
                 if value == choice_desc:
-                    return index, value
+                    return index
 
             elif choice_desc is None:
                 if value is None:
-                    return index, value
+                    return index
 
             elif hasattr(choice_desc, 'fullmatch'):
                 if isinstance(value, str) and choice_desc.fullmatch(value):
-                    return index, value
+                    return index
 
             elif isinstance(choice_desc, tuple):
                 if isinstance(value, int):
                     if choice_desc[0] is None or value >= choice_desc[0]:
                         if choice_desc[1] is None or value < choice_desc[1]:
-                            return index, value
+                            return index
 
             elif isinstance(choice_desc, type):
                 if isinstance(value, choice_desc):
-                    return index, value
+                    return index
 
             else:
                 return index, choice_desc(value)
 
-        return None, None
+        return None
 
     def _get_friendly_choices(self):
         """Formats each entry in the `self._choices` list as a friendly string
         for documentation and error messages. If there is an override, a list
         with just the override item is returned."""
-        if self.is_overridden():
-            return ['%r (default)' % (self.override_value,)]
+        if self.has_override():
+            return ['%r (default)' % (self.override,)]
 
         friendly_choices = []
         ints_found = False
@@ -87,22 +84,19 @@ class Choice(ScalarLoader):
                 raise ValueError('interpreter function must be the last choice')
 
             if isinstance(choice_desc, int):
-                friendly_choices.append('`%d`' % choice_desc)
+                friendly_choices.append(friendly_yaml_value(choice_desc))
                 ints_found = True
 
             elif isinstance(choice_desc, str):
-                friendly_choices.append('`%s`' % choice_desc)
+                friendly_choices.append(friendly_yaml_value(choice_desc))
                 strings_found = True
 
             elif isinstance(choice_desc, bool):
-                if choice_desc:
-                    friendly_choices.append('`true`')
-                else:
-                    friendly_choices.append('`false`')
+                friendly_choices.append(friendly_yaml_value(choice_desc))
                 bools_found = True
 
             elif choice_desc is None:
-                friendly_choices.append('`null`')
+                friendly_choices.append(friendly_yaml_value(choice_desc))
 
             elif hasattr(choice_desc, 'fullmatch'):
                 friendly_choices.append('a string matching `%s`' % choice_desc.pattern)
@@ -152,7 +146,7 @@ class Choice(ScalarLoader):
                 raise ValueError('unknown spec type')
 
         if self.has_default():
-            default_index, _ = self._parse_value(self.default)
+            default_index = self._parse_value(self.default)
             assert default_index is not None
             if self._choices[default_index][0] == self.default:
                 add = ' (default)'
@@ -162,30 +156,30 @@ class Choice(ScalarLoader):
 
         return friendly_choices
 
-    def deserialize(self, dictionary, _, path=()):
+    def deserialize(self, dictionary, _):
         """`Choice` deserializer. See `Loader.deserialize()` for more info."""
-        index, value = self._parse_value(self.get_value(dictionary, path))
-        if index is not None:
-            return value
-
-        friendly_choices = self._get_friendly_choices()
-
-        if len(friendly_choices) == 1:
-            friendly_choices = friendly_choices[0]
-        elif len(friendly_choices) == 2:
-            friendly_choices = '%s or %s' % tuple(friendly_choices)
-        else:
-            friendly_choices = '%s, or %s' % (
-                ', '.join(friendly_choices[:-1]), friendly_choices[-1])
-
-        raise ParseError('%s must be %s, but was %s' % (
-            self.friendly_path(path), friendly_choices, friendly_yaml_value(value)))
+        value = self.get_value(dictionary)
+        self.validate(value)
+        return value
 
     def scalar_serialize(self, value):
         """Converts the internal value into its serialized representation."""
         if not isinstance(value, (int, str, bool)) and value is not None:
             value = str(value)
         return value
+
+    def mutable(self):
+        """Returns whether the value managed by this loader can be mutated. If
+        this is overridden to return `True`, the loader must implement
+        `validate()`."""
+        return True
+
+    def validate(self, value):
+        """Checks that the given value is valid for this loader, raising an
+        appropriate ParseError if not. This function only needs to work if
+        `mutable()` returns `True`."""
+        if self._parse_value(value) is None:
+            ParseError.invalid(self.key, value, *self._get_friendly_choices())
 
     def scalar_markdown(self):
         """Extra markdown paragraphs representing the choices."""
@@ -227,4 +221,4 @@ def flag(method):
     to `False`. The return value of the annotated method (cast to bool) is used
     as the default value. The method should not take any arguments; not even
     `self`."""
-    return Choice(method.__name__, method.__doc__, (bool, ''), bool(method()))
+    return Choice(method.__name__, method.__doc__, (bool, ''), default=bool(method()))

@@ -9,8 +9,8 @@ class Metadata(Configurable):
     """Metadata for the surrounding object."""
     #pylint: disable=E0211,E0213
 
-    def __init__(self, parent):
-        self._parent = parent
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         if self.name is None and self.mnemonic is None:
             raise ParseError('name and mnemonic cannot both be auto-generated')
         print(self.name, self.mnemonic)
@@ -31,9 +31,6 @@ class Metadata(Configurable):
 class Test(Configurable):
     """Hello."""
     #pylint: disable=E0211,E0213
-
-    def __init__(self):
-        pass
 
     @flag
     def test_flag():
@@ -65,6 +62,6 @@ class Test(Configurable):
         """Metadata for the surrounding register."""
         return 'register', Metadata
 
-print(Test.from_dict({'bitrange': 32, 'name': 'hello'}).to_dict())
+print(Test(None, {'bitrange': '4', 'name': 'hello'}).serialize())
 
 print(Test.configuration_markdown())

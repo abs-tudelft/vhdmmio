@@ -12,8 +12,8 @@ class Parsed(ScalarLoader):
     initializer, using the setter functions, or using the annotation syntax
     (similar to `property`)."""
 
-    def __init__(self, key, markdown, default=Unset, deserializer=None, serializer=None):
-        super().__init__(key, markdown, default)
+    def __init__(self, key, doc, default=Unset, deserializer=None, serializer=None):
+        super().__init__(key, doc, default)
         self._deserializer = deserializer
         self._serializer = serializer
 
@@ -33,16 +33,13 @@ class Parsed(ScalarLoader):
         self._serializer = serializer
         return self
 
-    def deserialize(self, dictionary, parent, path=()):
+    def deserialize(self, dictionary, parent):
         """`Parsed` deserializer. See `Loader.deserialize()` for more info."""
-        value = self.get_value(dictionary, path)
+        value = self.get_value(dictionary)
         if self._deserializer is None:
             return value
-        try:
+        with ParseError.wrap(self.key):
             return self._deserializer(parent, value)
-        except (ParseError, ValueError, TypeError, KeyError) as exc:
-            raise ParseError('while parsing %s: %s' % (
-                self.friendly_path(path), exc))
 
     def scalar_serialize(self, value):
         """`Parsed` serializer. See `ScalarLoader.scalar_serialize()` for more
