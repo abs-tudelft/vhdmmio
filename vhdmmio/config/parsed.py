@@ -48,17 +48,6 @@ class Parsed(ScalarLoader):
             return value
         return self._serializer(value)
 
-    @classmethod
-    def decorator(cls, *args, **kwargs):
-        """Returns a decorator for this `Parsed`. It should be applied to a
-        function or method, which is used as the deserializer. The serializer
-        can be set later with `@<name>.serializer`, similar to
-        `property.setter`. The name of the method is the name of the key, and
-        its docstring is used as the key's documentation."""
-        def fun(method):
-            return cls(method.__name__, method.__doc__, *args, deserializer=method, **kwargs)
-        return fun
-
 
 def parsed(method):
     """Method decorator for constructing `Parsed` loaders inside a

@@ -6,6 +6,7 @@ the Liskov substitution principle). They must carry the `@derive()` annotation,
 which allows defaults and value overrides to be specified."""
 
 import textwrap
+import inspect
 from .loader import Loader
 
 class Configurable:
@@ -79,20 +80,40 @@ class Configurable:
         doc = cls.configuration_doc
         if doc is None:
             doc = cls.__doc__
+        doc = inspect.cleandoc(doc)
 
         markdown = ['# %s%s' % (name[0].upper(), name[1:])]
         if doc:
             markdown.append(textwrap.dedent(doc))
-        markdown.append(
-            'The following configuration keys are supported by %s objects.' % name)
+
+        key_markdowns = []
         for loader in cls.loaders:
             for key, key_markdown in loader.markdown():
                 if ' ' in key:
-                    markdown.append('## %s' % key)
+                    key_markdowns.append('## %s\n\n%s' % (key, key_markdown))
                 else:
-                    markdown.append('## `%s`' % key)
-                markdown.append(key_markdown)
+                    key_markdowns.append('## `%s`\n\n%s' % (key, key_markdown))
+        if not key_markdowns:
+            markdown.append('This structure does not support any configuration keys.')
+        elif len(key_markdowns) == 1:
+            markdown.append('This structure supports the following configuration key.')
+        else:
+            markdown.append('This structure supports the following configuration keys.')
+        markdown.extend(key_markdowns)
+
         return '\n\n'.join(markdown)
+
+    @classmethod
+    def markdown_more(cls):
+        """Yields `Configurable` classes that are referred to by the output of
+        `configuration_markdown()`."""
+        for loader in cls.loaders:
+            #if loader.markdown_more() is None:
+                #print(loader)
+            for cfg in loader.markdown_more():
+                if cfg is None:
+                    print(loader)
+                yield cfg
 
 
 def configurable(*loaders, name=None, doc=None):
@@ -177,15 +198,23 @@ def derive(name=None, doc=None, **mods):
         for key, value in mods.items():
             if key.startswith('_'):
                 key = key[1:]
+            key = key.replace('_', '-')
             if isinstance(value, list) and len(value) == 1:
-                loaders[key] = loaders[key].set_default(value[0])
+                loaders[key] = loaders[key].with_default(value[0])
             elif isinstance(value, tuple) and len(value) == 1:
-                loaders[key] = loaders[key].override(value[0])
+                loaders[key] = loaders[key].with_override(value[0])
             else:
-                loaders[key] = loaders[key].override(value)
+                loaders[key] = loaders[key].with_override(value)
+
+        # Gather any new loaders defined in the class. These loaders may also
+        # override the loader for an existing key.
+        for attr in dir(cls):
+            attr = getattr(cls, attr)
+            if isinstance(attr, Loader):
+                loaders[attr.key] = attr
 
         # Set the new loader tuple.
-        cls.loaders = tuple(loaders.values())
+        cls.loaders = tuple(sorted(loaders.values(), key=lambda loader: loader.order))
 
         # Update the documentation.
         cls.configuration_name = name

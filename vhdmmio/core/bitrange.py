@@ -76,7 +76,7 @@ class BitRange:
             return cls(bus_width, int(spec))
 
         match = re.match((
-            r'([1-9][0-9]*|0x[a-fA-F0-9]+|0b[01]+|0o?[0-7]*)'
+            r'([1-9][0-9]*|0x[a-fA-F0-9]+|0b[01]+|0o?[0-7]*)?'
             r'(?:/([1-9][0-9]*|0))?'
             r'(?::([1-9][0-9]*|0)(?:\.\.([1-9][0-9]*|0))?)?$'
         ), str(spec))
@@ -84,7 +84,9 @@ class BitRange:
             raise ValueError('failed to parse address specification {}'.format(repr(spec)))
 
         address = match.group(1)
-        if address.startswith('0') and not (
+        if not address:
+            address = 0
+        elif address.startswith('0') and not (
                 address.startswith('0b') or address.startswith('0x')):
             address = int(address, 8)
         else:

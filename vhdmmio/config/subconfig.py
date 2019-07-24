@@ -38,10 +38,10 @@ class SubConfig(Loader):
 
         markdown = [self.doc]
 
-        segue = 'The following configuration keys are used to configure this object.'
+        segue = 'The following configuration keys are used to configure this structure.'
         if self._optional:
-            segue += (' This object is optional, so it is legal to not specify '
-                      'any of them, except when this object is required by context.')
+            segue += (' This structure is optional, so it is legal to not specify '
+                      'any of them, except when this structure is required by context.')
         markdown.append(segue)
 
         for loader in self._configurable.loaders:

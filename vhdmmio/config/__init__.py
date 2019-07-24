@@ -7,8 +7,9 @@ resulting configuration file syntax."""
 # of this submodule.
 from .configurable import Configurable, configurable, derive
 from .choice import choice, flag
+from .checked import checked, opt_checked
 from .parsed import parsed
 from .subconfig import subconfig, opt_subconfig, embedded, opt_embedded
 from .listconfig import listconfig, protolistconfig
 from .select import select
-from .utils import ParseError
+from .utils import ParseError, Unset

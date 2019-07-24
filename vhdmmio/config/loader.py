@@ -6,6 +6,7 @@ class through annotations, similar to how the `@property` annotation works."""
 
 import textwrap
 import copy
+import inspect
 from .utils import Unset, ParseError, friendly_yaml_value
 
 class Loader:
@@ -18,8 +19,8 @@ class Loader:
 
     def __init__(self, key, doc):
         super().__init__()
-        self._key = key
-        self._doc = textwrap.dedent(doc)
+        self._key = key.replace('_', '-')
+        self._doc = inspect.cleandoc(doc)
 
         # Claim and update sorting key.
         self._order = Loader._ORDER
@@ -147,7 +148,7 @@ class ScalarLoader(Loader):
                 ParseError.invalid(self.key, value, self.override, Unset)
             return value
         value = dictionary.pop(self.key, self.default)
-        if value is Unset:
+        if not self.has_default() and value is Unset:
             ParseError.required(self.key)
         return value
 
@@ -182,12 +183,14 @@ class ScalarLoader(Loader):
         markdown.extend(self.scalar_markdown())
 
         # Automatically generate as much as we can.
-        if self.has_default():
+        if not self.has_default():
+            markdown.append('This key is required.')
+        elif self.default is Unset:
+            markdown.append('This key is optional unless required by context.')
+        else:
             markdown.append('This key is optional unless required by context. '
                             'If not specified, the default value (%s) is used.' %
                             friendly_yaml_value(self.default))
-        else:
-            markdown.append('This key is required.')
 
         yield self.key, '\n\n'.join(markdown)
 
