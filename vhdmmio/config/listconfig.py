@@ -112,11 +112,105 @@ class ListConfig(Loader):
         """`ListConfig` deserializer. See `Loader.deserialize()` for more
         info."""
         with ParseError.wrap(self.key):
-            return list(self._handle_list(dictionary.pop(self.key, []), parent))
+            return ProtectedList(
+                self._configurable,
+                self._handle_list(dictionary.pop(self.key, []), parent))
 
     def serialize(self, dictionary, value):
         """`ListConfig` serializer. See `Loader.serialize()` for more info."""
         dictionary[self.key] = [item.serialize() for item in value]
+
+
+class ProtectedList:
+    """Wrapper for Python list that ensures that the type of objects added to
+    it match the expected type."""
+
+    def __init__(self, configurable, initial=None):
+        super().__init__()
+        self._configurable = configurable
+        self._list = []
+        if initial is not None:
+            self.extend(initial)
+
+    def validate(self, value):
+        """Checks the type of the given value to make sure it can go into the
+        list."""
+
+        # Note: an exact typecheck is used in order to ensure that
+        # serialization followed by deserialization results in the same value.
+        if type(value) is not self._configurable: #pylint: disable=C0123
+            raise TypeError(
+                'cannot insert value of type %s into list, must be %s'
+                % (type(value).__name__, self._configurable.__name__))
+
+    def __len__(self):
+        return len(self._list)
+
+    def __getitem__(self, index):
+        return self._list[index]
+
+    def __setitem__(self, index, value):
+        self.validate(value)
+        self._list[index] = value
+
+    def __delitem__(self, index):
+        del self._list[index]
+
+    def __iter__(self):
+        return iter(self._list)
+
+    def __reversed__(self):
+        return reversed(self._list)
+
+    def __contains__(self, value):
+        return value in self._list
+
+    def append(self, value):
+        """Appends to the internal list, ensuring value is acceptable."""
+        self.validate(value)
+        self._list.append(value)
+
+    def extend(self, iterable):
+        """Extends the internal list, ensuring value is acceptable."""
+        for value in iterable:
+            self.append(value)
+
+    def insert(self, index, value):
+        """Inserts into the internal list, ensuring value is acceptable."""
+        self.validate(value)
+        self._list.insert(index, value)
+
+    def remove(self, value):
+        """Removes a value from the list."""
+        self._list.remove(value)
+
+    def pop(self, index=-1):
+        """Pops a value from the list."""
+        return self._list.pop(index)
+
+    def clear(self):
+        """Clears the list."""
+        self._list.clear()
+
+    def index(self, *args):
+        """Chains to list.index()."""
+        return self._list.index(*args)
+
+    def count(self, value):
+        """Chains to list.count()."""
+        return self._list.count(value)
+
+    def sort(self, *args, **kwargs):
+        """Chains to list.sort()."""
+        return self._list.sort(*args, **kwargs)
+
+    def reverse(self):
+        """Chains to list.reverse()."""
+        return self._list.reverse()
+
+    def copy(self):
+        """Returns a shallow copy of this protected list."""
+        return ProtectedList(self._configurable, self._list)
 
 
 def listconfig(method):

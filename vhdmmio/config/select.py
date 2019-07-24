@@ -51,13 +51,42 @@ class Select(Loader):
                 self.key, selection,
                 *map(friendly_yaml_value, self._config_options))
         item = configurable(parent, dictionary)
-        return selection, item
+        assert type(item) is configurable #pylint: disable=C0123
+        return item
 
     def serialize(self, dictionary, value):
         """`Select` serializer. See `Loader.serialize()` for more info."""
-        selection, item = value
+        selection = None
+        for selection, configurable in self._config_options.items():
+            if type(value) is configurable: #pylint: disable=C0123
+                break
+        else:
+            selection = None
+        assert selection is not None
         dictionary[self.key] = selection
-        item.serialize(dictionary)
+        value.serialize(dictionary)
+
+    def mutable(self):
+        """Returns whether the value managed by this loader can be mutated. If
+        this is overridden to return `True`, the loader must implement
+        `validate()`."""
+        return True
+
+    def validate(self, value):
+        """Checks that the given value is valid for this loader, raising an
+        appropriate ParseError if not. This function only needs to work if
+        `mutable()` returns `True`."""
+        for configurable in self._config_options.values():
+            # Note: an exact typecheck is used in order to ensure that
+            # serialization followed by deserialization results in the same
+            # value. Also, the configurables in the mapping could be instances
+            # of each other.
+            if type(value) is configurable: #pylint: disable=C0123
+                break
+        else:
+            raise TypeError('type of value must be one of the configurable options')
+        if value.parent is not self:
+            raise ValueError('value must have been initialized with us as the parent')
 
 
 def select(method):
@@ -67,8 +96,8 @@ def select(method):
     `(value, configurable, doc)` three-tuples, where `value` is the unique
     value that the user must specify to select `configurable`, and `doc` is the
     documentation associated with this option. The method is transformed to a
-    property that allows the object type and the constructed configurable
-    instance to be accessed as a `(selection, instance)` two-tuple."""
+    property that allows the constructed configurable instance to be
+    accessed."""
     return Select(
         method.__name__, method.__doc__, OrderedDict((
             (value, (configurable, doc))

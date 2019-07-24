@@ -145,7 +145,10 @@ class SubConfig(Loader):
         """Checks that the given value is valid for this loader, raising an
         appropriate ParseError if not. This function only needs to work if
         `mutable()` returns `True`."""
-        if not isinstance(value, self._configurable):
+
+        # Note: an exact typecheck is used in order to ensure that
+        # serialization followed by deserialization results in the same value.
+        if type(value) is not self._configurable: #pylint: disable=C0123
             raise TypeError('value must be an instance of %s' % self._configurable.__name__)
         if value.parent is not self:
             raise ValueError('value must have been initialized with us as the parent')
