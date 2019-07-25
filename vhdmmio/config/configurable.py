@@ -7,6 +7,7 @@ which allows defaults and value overrides to be specified."""
 
 import textwrap
 import inspect
+from os.path import join as pjoin
 from .loader import Loader
 
 class Configurable:
@@ -71,11 +72,17 @@ class Configurable:
     configuration_doc = None
 
     @classmethod
-    def configuration_markdown(cls):
-        """Generates a markdown page for this class' configuration."""
+    def configuration_name_markdown(cls):
+        """Returns the friendly name of this class in markdown syntax."""
         name = cls.configuration_name
         if name is None:
             name = '`%s`' % cls.__name__
+        return name
+
+    @classmethod
+    def configuration_markdown(cls):
+        """Generates a markdown page for this class' configuration."""
+        name = cls.configuration_name_markdown()
 
         doc = cls.configuration_doc
         if doc is None:
@@ -203,6 +210,8 @@ def derive(name=None, doc=None, **mods):
                 loaders[key] = loaders[key].with_default(value[0])
             elif isinstance(value, tuple) and len(value) == 1:
                 loaders[key] = loaders[key].with_override(value[0])
+            elif isinstance(value, tuple):
+                loaders[key] = loaders[key].with_mods(*value)
             else:
                 loaders[key] = loaders[key].with_override(value)
 
@@ -223,3 +232,32 @@ def derive(name=None, doc=None, **mods):
         return cls
 
     return decorator
+
+
+def document_configurables(root_cfg, output_dir='.'):
+    """Outputs markdown documentation for the given configurable and any
+    sub-configurables it requires to the given directory."""
+
+    summary = ['# Summary', '']
+    cfgs = set()
+
+    def require_cfg(cfg, depth=0):
+        if cfg in cfgs:
+            return
+
+        name = cfg.configuration_name_markdown()
+        fname = '%s.md' % cfg.__name__.lower()
+
+        summary.append('%s- [%s](%s)' % ('  ' * depth, name, fname))
+
+        with open(pjoin(output_dir, fname), 'w') as fil:
+            fil.write(cfg.configuration_markdown())
+
+        cfgs.add(cfg)
+        for subcfg in cfg.markdown_more():
+            require_cfg(subcfg, depth+1)
+
+    require_cfg(root_cfg)
+
+    with open(pjoin(output_dir, 'SUMMARY.md'), 'w') as fil:
+        fil.write('\n'.join(summary))

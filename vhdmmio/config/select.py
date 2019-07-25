@@ -26,8 +26,12 @@ class Select(Loader):
 
         markdown.append('This key can take the following values:')
 
-        for value, _, doc, level in self._option_doc:
-            value = '' if value is None else '`%s`: ' % value
+        for value, cfg, doc, level in self._option_doc:
+            if value is None:
+                value = ''
+            else:
+                cfg_fname = '%s.md' % cfg.__name__.lower()
+                value = '[`%s`](%s): ' % (value, cfg_fname)
             markdown.append('%s - %s%s' % (
                 '   ' * level, value, textwrap.dedent(doc).replace('\n', '\n   ')))
 

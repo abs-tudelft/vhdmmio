@@ -7,7 +7,7 @@ from ..config import configurable, Configurable, opt_checked, ParseError, Unset
 class Metadata(Configurable):
     """This configuration structure is used to identify and document objects
     within `vhdmmio`."""
-    #pylint: disable=E0211,E0213
+    #pylint: disable=E0211,E0213,R0201
 
     def _parent_is_array(self):
         """Returns whether our parent is an array. If we don't know, default

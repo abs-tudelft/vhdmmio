@@ -28,7 +28,7 @@ class FieldDescriptor(Configurable):
     based on the AXI4L `aw_prot` and `ar_prot` fields (`read-deny` and
     `write-deny`). The VHDL code generated for the field can be further
     customized using the `interface` key."""
-    #pylint: disable=E0211,E0213
+    #pylint: disable=E0211,E0213,E0202
 
     @select
     def behavior():
@@ -135,9 +135,9 @@ class FieldDescriptor(Configurable):
          - `0x300/6`: represents an address range from 0x300 to 0x33F.
          - `/10`: represents an address range from 0x000 to 0x3FF.
         """
-        base = self.base
-        self._base = 0
-        return BitRange.from_spec(self.bus_width, value).move(base)
+        address = self.address
+        self.address = 0
+        return BitRange.from_spec(self.parent.bus_width, value).move(address)
 
     @bitrange.serializer
     def bitrange(value):

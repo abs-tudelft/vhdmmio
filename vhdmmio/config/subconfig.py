@@ -36,7 +36,12 @@ class SubConfig(Loader):
             yield self.key, self.doc + '\n\nRefer to TODO for more info.'
             return
 
+        cfg_fname = '%s.md' % self._configurable.__name__.lower()
+
         markdown = [self.doc]
+
+        markdown.append(
+            'More information about this structure may be found [here](%s).' % cfg_fname)
 
         segue = 'The following configuration keys are used to configure this structure.'
         if self._optional:
@@ -47,10 +52,11 @@ class SubConfig(Loader):
         for loader in self._configurable.loaders:
             for key, doc in loader.markdown():
                 markdown.append('### `%s%s`' % (self.prefix, key))
-                doc = '\n\n'.join((
-                    '#' + paragraph if paragraph.startswith('###') else paragraph
-                    for paragraph in doc.split('\n\n')))
-                markdown.append(doc)
+                #doc = '\n\n'.join((
+                    #'#' + paragraph if paragraph.startswith('###') else paragraph
+                    #for paragraph in doc.split('\n\n')))
+                #markdown.append(doc)
+                markdown.append('This key is documented [here](%s#%s).' % (cfg_fname, key))
 
         markdown = '\n\n'.join(markdown)
 

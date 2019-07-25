@@ -83,17 +83,17 @@ class Choice(ScalarLoader):
             if function_found:
                 raise ValueError('interpreter function must be the last choice')
 
-            if isinstance(choice_desc, int):
+            if isinstance(choice_desc, bool):
+                friendly_choices.append(friendly_yaml_value(choice_desc))
+                bools_found = True
+
+            elif isinstance(choice_desc, int):
                 friendly_choices.append(friendly_yaml_value(choice_desc))
                 ints_found = True
 
             elif isinstance(choice_desc, str):
                 friendly_choices.append(friendly_yaml_value(choice_desc))
                 strings_found = True
-
-            elif isinstance(choice_desc, bool):
-                friendly_choices.append(friendly_yaml_value(choice_desc))
-                bools_found = True
 
             elif choice_desc is None:
                 friendly_choices.append(friendly_yaml_value(choice_desc))
@@ -202,6 +202,24 @@ class Choice(ScalarLoader):
                 else:
                     choice_markdown = '.'
                 yield ' - %s%s' % (choice_description, choice_markdown)
+
+    def with_mods(self, *choices_to_keep):
+        """Returns a modified `Choice`, where only the choices listed in
+        `choices_to_keep` are present, in that order. The first choice listed
+        becomes the new default value. Choices can be specified either as just
+        a descriptor or as a two-tuple of a descriptor and a new documentation
+        string."""
+        current_choices = {desc: doc for desc, doc in self._choices}
+        new_choices = []
+        for choice_tuple in choices_to_keep:
+            desc, doc = choice_tuple if isinstance(choice_tuple, tuple) else (choice_tuple, None)
+            current_doc = current_choices.pop(desc)
+            if doc is None:
+                doc = current_doc
+            new_choices.append((desc, doc))
+        new_choice = Choice(self.key, self.doc, *new_choices)
+        new_choice.order = self.order
+        return new_choice
 
 
 def choice(method):

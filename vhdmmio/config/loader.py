@@ -4,7 +4,6 @@ serialized form, or one `@property` in deserialized/internal form. Their
 specializations (define in other submodules) are added to a `Configurable`
 class through annotations, similar to how the `@property` annotation works."""
 
-import textwrap
 import copy
 import inspect
 from .utils import Unset, ParseError, friendly_yaml_value
@@ -30,6 +29,11 @@ class Loader:
     def order(self):
         """Ordering key to get the order in which loaders are defined."""
         return self._order
+
+    @order.setter
+    def order(self, value):
+        """Allows setting the order."""
+        self._order = value
 
     @property
     def key(self):

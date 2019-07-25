@@ -1,0 +1,5 @@
+[book]
+authors = ["Jeroen van Straten"]
+multilingual = false
+src = "src"
+title = "vhdMMIO"
