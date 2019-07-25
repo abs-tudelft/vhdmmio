@@ -9,3 +9,9 @@ from .control import Control, InternalControl
 from .flag import Flag, VolatileFlag, InternalFlag, VolatileInternalFlag
 from .request import Strobe, Request, MultiRequest
 from .counter import Counter, VolatileCounter, InternalCounter, VolatileInternalCounter
+from .stream import StreamToMMIO, MMIOToStream
+from .axi import Axi
+from .memory import Memory
+from .interrupt import (
+    Interrupt, InterruptFlag, VolatileInterruptFlag, InterruptPend,
+    InterruptEnable, InterruptUnmask, InterruptStatus, InterruptRaw)

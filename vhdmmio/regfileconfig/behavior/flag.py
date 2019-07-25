@@ -4,7 +4,7 @@ software."""
 import re
 from ...config import derive, checked, ParseError
 from .registry import behavior, behavior_doc
-from .primitive import BasePrimitive
+from .primitive import Primitive
 
 behavior_doc('Flag-like fields for signalling events from hardware to software:', 1)
 
@@ -31,8 +31,17 @@ behavior_doc('Flag-like fields for signalling events from hardware to software:'
     ctrl_bit_set=True,
     ctrl_bit_clear=False,
     ctrl_bit_toggle=False,
+    drive_internal=None,
+    full_internal=None,
+    empty_internal=None,
+    overflow_internal=None,
+    underflow_internal=None,
+    overrun_internal=None,
+    underrun_internal=None,
+    monitor_internal=None,
+    monitor_mode='status',
     reset=(False, True, int, 'generic'))
-class Flag(BasePrimitive):
+class Flag(Primitive):
     """Fields with `flag' behavior behave like most edge/event-sensitive
     interrupt flags in commercial peripherals work: occurance of the event
     sets the flag bit, and writing a one to the bit through MMIO clears it
@@ -46,10 +55,12 @@ class Flag(BasePrimitive):
     action. This event will then be handled the next time the software reads
     the flag register.
 
-    It isn't possible to detect how many events have occurred for a single
-    flag, just that there was at least one occurrance since the last read of
-    the flag. If this information is necessary, the `counter` behavior can be
-    used instead."""
+    It normally isn't possible to detect how many events have occurred for a
+    single flag, just that there was at least one occurrance since the last
+    read of the flag. If this information is necessary, the `counter` behavior
+    can be used instead. If only the knowledge that an overflow occurred is
+    needed, `bit-overflow-internal` can be used to drive an `internal-flag`
+    field and/or an internal interrupt."""
 
 @behavior(
     'volatile-flag', 'like `flag`, but implicitly cleared on read.', 2)

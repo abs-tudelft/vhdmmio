@@ -79,7 +79,39 @@ This key can take the following values:
 
        - [`volatile-internal-counter`](volatileinternalcounter.md): internal event counter, reset implicitly by the read.
 
-Depending on the value, more configuration keys may be supported. Refer to the documentation for the individual values for more information.
+    - Fields for interfacing with AXI streams:
+
+       - [`stream-to-mmio`](streamtommio.md): field which pops data from an incoming stream.
+
+       - [`mmio-to-stream`](mmiotostream.md): field which pushes data into an outgoing stream.
+
+ - Fields for interfacing with AXI4-lite busses:
+
+    - [`axi`](axi.md): connects a field to an AXI4-lite master port for generating hierarchical bus structures.
+
+ - Fields for interfacing with memories:
+
+    - [`memory`](memory.md): not yet implemented!
+
+ - Fields for controlling `vhdmmio`-managed interrupts:
+
+    - [`interrupt`](interrupt.md): base class for interrupt field behaviors. Normally not used directly; it's easier to use one of its specializations:
+
+    - [`interrupt-flag`](interruptflag.md): interrupt pending flag, cleared by writing ones.
+
+    - [`volatile-interrupt-flag`](volatileinterruptflag.md): interrupt pending flag, cleared by reading.
+
+    - [`interrupt-pend`](interruptpend.md): software-pend field.
+
+    - [`interrupt-enable`](interruptenable.md): interrupt enable control field.
+
+    - [`interrupt-unmask`](interruptunmask.md): interrupt unmask control field.
+
+    - [`interrupt-status`](interruptstatus.md): reflects the masked interrupt flag.
+
+    - [`interrupt-raw`](interruptraw.md): reflects the raw interrupt request.
+
+Depending on the value, additional configuration keys may be supported or required. These must be specified in the same dictionary that this key resides in. Refer to the documentation for the individual values for more information.
 
 ## `address`
 
@@ -89,7 +121,7 @@ The following values are supported:
 
  - `0` (default): no offset.
 
- - a different integer: byte-oriented address offset to add to `address`.
+ - a different integer: byte-oriented address offset to add to `bitrange`.
 
 This key is optional unless required by context. If not specified, the default value (`0`) is used.
 
@@ -98,9 +130,9 @@ This key is optional unless required by context. If not specified, the default v
 The bitrange determines the size of a field and which addresses it
 is sensitive to. It consists of the following components:
 
- - a byte address (`address`);
- - a block size (`size`);
- - one or two bit indices (`high` and `low`).
+ - a byte address;
+ - a block size;
+ - one or two bit indices.
 
 The address is what you might expect: it is the AXI4-lite address that
 the associated field responds to. A field can be mapped to more than

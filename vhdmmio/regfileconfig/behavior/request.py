@@ -2,7 +2,7 @@
 
 from ...config import derive
 from .registry import behavior, behavior_doc
-from .primitive import BasePrimitive
+from .primitive import Primitive, BasePrimitive
 
 behavior_doc('Flag-like fields for signalling requests from software to hardware:', 1)
 
@@ -59,8 +59,19 @@ class Strobe(BasePrimitive):
     ctrl_bit_set=False,
     ctrl_bit_clear=[True],
     ctrl_bit_toggle=False,
+    drive_internal=None,
+    full_internal=None,
+    empty_internal=None,
+    overflow_internal=None,
+    underflow_internal=None,
+    bit_overflow_internal=[None],
+    bit_underflow_internal=[None],
+    overrun_internal=None,
+    underrun_internal=None,
+    monitor_internal=None,
+    monitor_mode='status',
     reset=(False, True, int, 'generic'))
-class Request(BasePrimitive):
+class Request(Primitive):
     """This behavior can be seen as both the inverse of a `flag` and as an
     extension of `strobe`: the bits in the field are set by software writing
     a one to them, and cleared when acknowledged by hardware. They can be used
@@ -91,8 +102,19 @@ class Request(BasePrimitive):
     ctrl_bit_set=False,
     ctrl_bit_clear=False,
     ctrl_bit_toggle=False,
+    drive_internal=None,
+    full_internal=None,
+    empty_internal=None,
+    overflow_internal=[None],
+    underflow_internal=[None],
+    bit_overflow_internal=None,
+    bit_underflow_internal=None,
+    overrun_internal=None,
+    underrun_internal=None,
+    monitor_internal=None,
+    monitor_mode='status',
     reset=(False, True, int, 'generic'))
-class MultiRequest(BasePrimitive):
+class MultiRequest(Primitive):
     """`multi-request` fields accumulate anything written to them, and by
     default allow hardware to decrement them. This may be used to request
     a certain number of things with a single, atomic MMIO write."""

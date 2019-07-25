@@ -50,7 +50,7 @@ class SubConfig(Loader):
         markdown.append(segue)
 
         for loader in self._configurable.loaders:
-            for key, doc in loader.markdown():
+            for key, _ in loader.markdown():
                 markdown.append('### `%s%s`' % (self.prefix, key))
                 #doc = '\n\n'.join((
                     #'#' + paragraph if paragraph.startswith('###') else paragraph

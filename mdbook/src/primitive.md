@@ -43,9 +43,9 @@ The following values are supported:
 
  - `clear`: field is cleared after read, valid untouched.
 
- - `increment`: Register is incremented after read, valid untouched.
+ - `increment`: register is incremented after read, valid untouched.
 
- - `decrement`: Register is decremented after read, valid untouched.
+ - `decrement`: register is decremented after read, valid untouched.
 
 This key is optional unless required by context. If not specified, the default value (`nothing`) is used.
 
@@ -55,29 +55,29 @@ Configures what happens when a bus write occurs.
 
 The following values are supported:
 
- - `disabled` (default): Write access is disabled.
+ - `disabled` (default): write access is disabled.
 
- - `error`: Writes always return a slave error.
+ - `error`: writes always return a slave error.
 
- - `enabled`: Normal write access to register. Masked bits are written 0.
+ - `enabled`: normal write access to register. Masked bits are written 0.
 
- - `invalid`: As above, but ignores the write when the register is valid.
+ - `invalid`: as above, but ignores the write when the register is valid.
 
- - `invalid-wait`: As above, but blocks until register is invalid.
+ - `invalid-wait`: as above, but blocks until register is invalid.
 
- - `invalid-only`: As above, but fails when register is already valid.
+ - `invalid-only`: as above, but fails when register is already valid.
 
- - `masked`: Write access respects strobe bits. Precludes after-bus-write.
+ - `masked`: write access respects strobe bits. Precludes after-bus-write.
 
- - `accumulate`: Write data is added to the register.
+ - `accumulate`: write data is added to the register.
 
- - `subtract`: Write data is subtracted from the register.
+ - `subtract`: write data is subtracted from the register.
 
- - `bit-set`: Bits that are written 1 are set in the register.
+ - `bit-set`: bits that are written 1 are set in the register.
 
- - `bit-clear`: Bits that are written 1 are cleared in the register.
+ - `bit-clear`: bits that are written 1 are cleared in the register.
 
- - `bit-toggle`: Bits that are written 1 are toggled in the register.
+ - `bit-toggle`: bits that are written 1 are toggled in the register.
 
 This key is optional unless required by context. If not specified, the default value (`disabled`) is used.
 
@@ -285,6 +285,92 @@ The following values are supported:
  - `null` (default): the feature is disabled.
 
  - a string matching `[a-zA-Z][a-zA-Z0-9_]*`: an internal signal with the given name is created and driven with the value in the internal data register for this field.
+
+This key is optional unless required by context. If not specified, the default value (`null`) is used.
+
+## `full-internal`
+
+Configures driving an internal signal high when the internal data
+register is valid. This essentially serves as a holding register full
+signal for stream interface fields.
+
+The following values are supported:
+
+ - `null` (default): the feature is disabled.
+
+ - a string matching `[a-zA-Z][a-zA-Z0-9_]*`: an internal signal with the given name is created (if necessary) and driven by the internal valid register of this field.
+
+This key is optional unless required by context. If not specified, the default value (`null`) is used.
+
+## `empty-internal`
+
+Configures driving an internal signal high when the internal data
+register is invalid. This essentially serves as a holding register
+empty signal for stream interface fields.
+
+The following values are supported:
+
+ - `null` (default): the feature is disabled.
+
+ - a string matching `[a-zA-Z][a-zA-Z0-9_]*`: an internal signal with the given name is created (if necessary) and driven by the one's complement of the internal valid register of this field.
+
+This key is optional unless required by context. If not specified, the default value (`null`) is used.
+
+## `overflow-internal`
+
+Configures strobing an internal signal when the most significant bit
+of the internal register flips from high to low during an increment or
+accumulate operation. This essentially serves as an overflow signal for
+counter fields.
+
+The following values are supported:
+
+ - `null` (default): the feature is disabled.
+
+ - a string matching `[a-zA-Z][a-zA-Z0-9_]*`: an internal signal with the given name is created (if necessary) and strobed when an increment or accumulate operation causes the MSB of the data register to be cleared.
+
+This key is optional unless required by context. If not specified, the default value (`null`) is used.
+
+## `underflow-internal`
+
+Configures strobing an internal signal when the most significant bit
+of the internal register flips from low to high during a decrement or
+subtract operation. This essentially serves as an underflow signal for
+counter fields.
+
+The following values are supported:
+
+ - `null` (default): the feature is disabled.
+
+ - a string matching `[a-zA-Z][a-zA-Z0-9_]*`: an internal signal with the given name is created (if necessary) and strobed when a decrement or subtract operation causes the MSB of the data register to be set.
+
+This key is optional unless required by context. If not specified, the default value (`null`) is used.
+
+## `bit-overflow-internal`
+
+Configures strobing an internal signal when a bit-set operation to
+a bit that was already set occurs. This essentially serves as an
+overflow signal for flag fields.
+
+The following values are supported:
+
+ - `null` (default): the feature is disabled.
+
+ - a string matching `[a-zA-Z][a-zA-Z0-9_]*`: an internal signal with the given name is created (if necessary) and strobed when a bit-set operation occurs to an already-set bit.
+
+This key is optional unless required by context. If not specified, the default value (`null`) is used.
+
+## `bit-underflow-internal`
+
+Configures strobing an internal signal when a bit-clear operation to
+a bit that was already cleared occurs. This essentially serves as an
+underflow signal for flag fields.
+
+The following values are supported:
+
+ - `null` (default): the feature is disabled.
+
+ - a string matching `[a-zA-Z][a-zA-Z0-9_]*`: an internal signal with the given name is created (if necessary) and strobed when a bit-clear operation occurs to an already-cleared bit.
 
 This key is optional unless required by context. If not specified, the default value (`null`) is used.
 

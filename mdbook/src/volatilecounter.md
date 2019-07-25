@@ -93,3 +93,31 @@ decremented.
 The value must be a boolean (default `no`).
 
 This key is optional unless required by context. If not specified, the default value (`no`) is used.
+
+## `bit-overflow-internal`
+
+Configures strobing an internal signal when a bit-set operation to
+a bit that was already set occurs. This essentially serves as an
+overflow signal for flag fields.
+
+The following values are supported:
+
+ - `null` (default): the feature is disabled.
+
+ - a string matching `[a-zA-Z][a-zA-Z0-9_]*`: an internal signal with the given name is created (if necessary) and strobed when a bit-set operation occurs to an already-set bit.
+
+This key is optional unless required by context. If not specified, the default value (`null`) is used.
+
+## `bit-underflow-internal`
+
+Configures strobing an internal signal when a bit-clear operation to
+a bit that was already cleared occurs. This essentially serves as an
+underflow signal for flag fields.
+
+The following values are supported:
+
+ - `null` (default): the feature is disabled.
+
+ - a string matching `[a-zA-Z][a-zA-Z0-9_]*`: an internal signal with the given name is created (if necessary) and strobed when a bit-clear operation occurs to an already-cleared bit.
+
+This key is optional unless required by context. If not specified, the default value (`null`) is used.

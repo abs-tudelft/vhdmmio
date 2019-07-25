@@ -36,24 +36,24 @@ class Primitive(Configurable):
         yield 'nothing', 'no extra operation after read.'
         yield 'invalidate', 'field is invalidated and cleared after read.'
         yield 'clear', 'field is cleared after read, valid untouched.'
-        yield 'increment', 'Register is incremented after read, valid untouched.'
-        yield 'decrement', 'Register is decremented after read, valid untouched.'
+        yield 'increment', 'register is incremented after read, valid untouched.'
+        yield 'decrement', 'register is decremented after read, valid untouched.'
 
     @choice
     def bus_write():
         """Configures what happens when a bus write occurs."""
-        yield 'disabled', 'Write access is disabled.'
-        yield 'error', 'Writes always return a slave error.'
-        yield 'enabled', 'Normal write access to register. Masked bits are written 0.'
-        yield 'invalid', 'As above, but ignores the write when the register is valid.'
-        yield 'invalid-wait', 'As above, but blocks until register is invalid.'
-        yield 'invalid-only', 'As above, but fails when register is already valid.'
-        yield 'masked', 'Write access respects strobe bits. Precludes after-bus-write.'
-        yield 'accumulate', 'Write data is added to the register.'
-        yield 'subtract', 'Write data is subtracted from the register.'
-        yield 'bit-set', 'Bits that are written 1 are set in the register.'
-        yield 'bit-clear', 'Bits that are written 1 are cleared in the register.'
-        yield 'bit-toggle', 'Bits that are written 1 are toggled in the register.'
+        yield 'disabled', 'write access is disabled.'
+        yield 'error', 'writes always return a slave error.'
+        yield 'enabled', 'normal write access to register. Masked bits are written 0.'
+        yield 'invalid', 'as above, but ignores the write when the register is valid.'
+        yield 'invalid-wait', 'as above, but blocks until register is invalid.'
+        yield 'invalid-only', 'as above, but fails when register is already valid.'
+        yield 'masked', 'write access respects strobe bits. Precludes after-bus-write.'
+        yield 'accumulate', 'write data is added to the register.'
+        yield 'subtract', 'write data is subtracted from the register.'
+        yield 'bit-set', 'bits that are written 1 are set in the register.'
+        yield 'bit-clear', 'bits that are written 1 are cleared in the register.'
+        yield 'bit-toggle', 'bits that are written 1 are toggled in the register.'
 
     @choice
     def after_bus_write():
@@ -172,6 +172,73 @@ class Primitive(Configurable):
                'with the value in the internal data register for this field.')
 
     @choice
+    def full_internal():
+        """Configures driving an internal signal high when the internal data
+        register is valid. This essentially serves as a holding register full
+        signal for stream interface fields."""
+        yield None, 'the feature is disabled.'
+        yield (re.compile(r'[a-zA-Z][a-zA-Z0-9_]*'),
+               'an internal signal with the given name is created (if '
+               'necessary) and driven by the internal valid register of this '
+               'field.')
+    @choice
+    def empty_internal():
+        """Configures driving an internal signal high when the internal data
+        register is invalid. This essentially serves as a holding register
+        empty signal for stream interface fields."""
+        yield None, 'the feature is disabled.'
+        yield (re.compile(r'[a-zA-Z][a-zA-Z0-9_]*'),
+               'an internal signal with the given name is created (if '
+               'necessary) and driven by the one\'s complement of the '
+               'internal valid register of this field.')
+
+    @choice
+    def overflow_internal():
+        """Configures strobing an internal signal when the most significant bit
+        of the internal register flips from high to low during an increment or
+        accumulate operation. This essentially serves as an overflow signal for
+        counter fields."""
+        yield None, 'the feature is disabled.'
+        yield (re.compile(r'[a-zA-Z][a-zA-Z0-9_]*'),
+               'an internal signal with the given name is created (if '
+               'necessary) and strobed when an increment or accumulate '
+               'operation causes the MSB of the data register to be cleared.')
+
+    @choice
+    def underflow_internal():
+        """Configures strobing an internal signal when the most significant bit
+        of the internal register flips from low to high during a decrement or
+        subtract operation. This essentially serves as an underflow signal for
+        counter fields."""
+        yield None, 'the feature is disabled.'
+        yield (re.compile(r'[a-zA-Z][a-zA-Z0-9_]*'),
+               'an internal signal with the given name is created (if '
+               'necessary) and strobed when a decrement or subtract '
+               'operation causes the MSB of the data register to be set.')
+
+    @choice
+    def bit_overflow_internal():
+        """Configures strobing an internal signal when a bit-set operation to
+        a bit that was already set occurs. This essentially serves as an
+        overflow signal for flag fields."""
+        yield None, 'the feature is disabled.'
+        yield (re.compile(r'[a-zA-Z][a-zA-Z0-9_]*'),
+               'an internal signal with the given name is created (if '
+               'necessary) and strobed when a bit-set operation occurs to '
+               'an already-set bit.')
+
+    @choice
+    def bit_underflow_internal():
+        """Configures strobing an internal signal when a bit-clear operation to
+        a bit that was already cleared occurs. This essentially serves as an
+        underflow signal for flag fields."""
+        yield None, 'the feature is disabled.'
+        yield (re.compile(r'[a-zA-Z][a-zA-Z0-9_]*'),
+               'an internal signal with the given name is created (if '
+               'necessary) and strobed when a bit-clear operation occurs to '
+               'an already-cleared bit.')
+
+    @choice
     def overrun_internal():
         """Configures strobing an internal signal when a bus write occurs while
         the stored value was already valid. This is equivalent to an overflow
@@ -221,6 +288,12 @@ class Primitive(Configurable):
 
 @derive(
     drive_internal=None,
+    full_internal=None,
+    empty_internal=None,
+    overflow_internal=None,
+    underflow_internal=None,
+    bit_overflow_internal=None,
+    bit_underflow_internal=None,
     overrun_internal=None,
     underrun_internal=None,
     monitor_internal=None,

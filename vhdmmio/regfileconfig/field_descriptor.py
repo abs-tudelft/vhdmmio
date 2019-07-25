@@ -1,6 +1,7 @@
 """Submodule for `FieldDescriptor` configurable."""
 
 from ..config import configurable, Configurable, choice, parsed, embedded, opt_embedded, select
+from ..core.bitrange import BitRange
 from .metadata import Metadata
 from .access_privileges import AccessPrivileges
 from .interface_options import InterfaceOptions
@@ -40,16 +41,16 @@ class FieldDescriptor(Configurable):
     def address():
         """This is a byte-oriented address offset for `bitrange`."""
         yield 0, 'no offset.'
-        yield int, 'byte-oriented address offset to add to `address`.'
+        yield int, 'byte-oriented address offset to add to `bitrange`.'
 
     @parsed
     def bitrange(self, value):
         """The bitrange determines the size of a field and which addresses it
         is sensitive to. It consists of the following components:
 
-         - a byte address (`address`);
-         - a block size (`size`);
-         - one or two bit indices (`high` and `low`).
+         - a byte address;
+         - a block size;
+         - one or two bit indices.
 
         The address is what you might expect: it is the AXI4-lite address that
         the associated field responds to. A field can be mapped to more than

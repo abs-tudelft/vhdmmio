@@ -27,9 +27,9 @@ Configures what happens when a bus write occurs.
 
 The following values are supported:
 
- - `masked` (default): Write access respects strobe bits. Precludes after-bus-write.
+ - `masked` (default): write access respects strobe bits. Precludes after-bus-write.
 
- - `enabled`: Normal write access to register. Masked bits are written 0.
+ - `enabled`: normal write access to register. Masked bits are written 0.
 
 This key is optional unless required by context. If not specified, the default value (`masked`) is used.
 

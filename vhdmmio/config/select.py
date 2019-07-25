@@ -36,9 +36,10 @@ class Select(Loader):
                 '   ' * level, value, textwrap.dedent(doc).replace('\n', '\n   ')))
 
         markdown.append(
-            'Depending on the value, more configuration keys may be '
-            'supported. Refer to the documentation for the individual values '
-            'for more information.')
+            'Depending on the value, additional configuration keys may be '
+            'supported or required. These must be specified in the same '
+            'dictionary that this key resides in. Refer to the documentation '
+            'for the individual values for more information.')
 
         yield self.key, '\n\n'.join(markdown)
 

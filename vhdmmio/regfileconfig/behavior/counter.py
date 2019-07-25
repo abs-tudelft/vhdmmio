@@ -3,7 +3,7 @@
 import re
 from ...config import derive, checked, ParseError
 from .registry import behavior, behavior_doc
-from .primitive import BasePrimitive
+from .primitive import Primitive
 
 behavior_doc('Fields for counting events:', 1)
 
@@ -29,15 +29,30 @@ behavior_doc('Fields for counting events:', 1)
     ctrl_bit_set=False,
     ctrl_bit_clear=False,
     ctrl_bit_toggle=False,
+    drive_internal=None,
+    full_internal=None,
+    empty_internal=None,
+    overflow_internal=None,
+    underflow_internal=None,
+    overrun_internal=None,
+    underrun_internal=None,
+    monitor_internal=None,
+    monitor_mode='status',
     reset=(False, True, int, 'generic'))
-class Counter(BasePrimitive):
+class Counter(Primitive):
     """Similar to `flag` fields, `counter`s are used to signal events from
     hardware to software. However, counters allow multiple events occurring
     between consecutive software read cycles to be registered by counting
     instead of bit-setting. Like `flag`, software should use fields of this
     type by reading the value and then writing the read value to it in order
     to avoid missing events; the write operation subtracts the written value
-    from the internal register."""
+    from the internal register.
+
+    When a counter overflows, it simply wraps back to zero. Similarly, if a
+    counter is decremented below zero, it wraps to its maximum value.
+    Optionally, `overflow-internal` and `underflow-internal` can be used to
+    detect this condition, in conjuntion with an `internal-flag` field and/or
+    an internal interrupt."""
 
 @behavior(
     'volatile-counter', 'external event counter, reset implicitly by the '

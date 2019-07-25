@@ -13,10 +13,12 @@ will not be cleared, because a zero will be written to it by the write
 action. This event will then be handled the next time the software reads
 the flag register.
 
-It isn't possible to detect how many events have occurred for a single
-flag, just that there was at least one occurrance since the last read of
-the flag. If this information is necessary, the `counter` behavior can be
-used instead.
+It normally isn't possible to detect how many events have occurred for a
+single flag, just that there was at least one occurrance since the last
+read of the flag. If this information is necessary, the `counter` behavior
+can be used instead. If only the knowledge that an overflow occurred is
+needed, `bit-overflow-internal` can be used to drive an `internal-flag`
+field and/or an internal interrupt.
 
 This structure supports the following configuration keys.
 
@@ -47,3 +49,31 @@ The following values are supported:
  - `generic`: the reset value is controlled through a VHDL generic.
 
 This key is optional unless required by context. If not specified, the default value (`no`) is used.
+
+## `bit-overflow-internal`
+
+Configures strobing an internal signal when a bit-set operation to
+a bit that was already set occurs. This essentially serves as an
+overflow signal for flag fields.
+
+The following values are supported:
+
+ - `null` (default): the feature is disabled.
+
+ - a string matching `[a-zA-Z][a-zA-Z0-9_]*`: an internal signal with the given name is created (if necessary) and strobed when a bit-set operation occurs to an already-set bit.
+
+This key is optional unless required by context. If not specified, the default value (`null`) is used.
+
+## `bit-underflow-internal`
+
+Configures strobing an internal signal when a bit-clear operation to
+a bit that was already cleared occurs. This essentially serves as an
+underflow signal for flag fields.
+
+The following values are supported:
+
+ - `null` (default): the feature is disabled.
+
+ - a string matching `[a-zA-Z][a-zA-Z0-9_]*`: an internal signal with the given name is created (if necessary) and strobed when a bit-clear operation occurs to an already-cleared bit.
+
+This key is optional unless required by context. If not specified, the default value (`null`) is used.
