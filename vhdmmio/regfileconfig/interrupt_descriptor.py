@@ -6,7 +6,7 @@ from .metadata import Metadata
 
 @configurable(name='Interrupt descriptors')
 class InterruptDescriptor(Configurable):
-    """In addition to MMIO, `vhdmmio` can handle interrupt routing for you.
+    r"""In addition to MMIO, `vhdmmio` can handle interrupt routing for you.
     Each AXI4-lite bus is equiped with an additional signal in the
     slave-to-master direction that serves as an interrupt request flag. This
     flag is connected to a (masked) wired-or network of any incoming interrupts

@@ -202,7 +202,7 @@ class FieldDescriptor(Configurable):
         """
         address = self.address
         self.address = 0
-        return BitRange.from_spec(self.parent.bus_width, value).move(address)
+        return BitRange.from_spec(self.parent.features.bus_width, value).move(address)
 
     @bitrange.serializer
     def bitrange(value):

@@ -19,7 +19,7 @@ class InterfaceOptions(Configurable):
         """Name of the group record used for ports, if any. The ports for any
         objects that share the same non-null `group` tag are combined into a
         single record pair (`in` and `out`)."""
-        yield None, 'ports are not grouped in an additional record.'
+        yield False, 'ports are not grouped in an additional record.'
         yield (re.compile(r'[a-zA-Z][a-zA-Z0-9_]*'),
                'ports are grouped in a record with the specified name.')
 
@@ -45,7 +45,7 @@ class InterfaceOptions(Configurable):
     @choice
     def generic_group():
         """Same as `group`, but for generics."""
-        yield None, 'generics are not grouped in an additional record.'
+        yield False, 'generics are not grouped in an additional record.'
         yield (re.compile(r'[a-zA-Z][a-zA-Z0-9_]*'),
                'generics are grouped in a record with the specified name.')
 

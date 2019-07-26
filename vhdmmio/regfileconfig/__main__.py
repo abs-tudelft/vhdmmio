@@ -6,7 +6,7 @@ from plumbum import local
 from ..config import document_configurables
 from .register_file import RegisterFile
 
-front_page = """# `vhdmmio`
+FRONT_PAGE = """# `vhdmmio`
 
 `vhdmmio` concerns itself with the generation of register files. To
 `vhdmmio`, a register file is an AXI4-lite slave, consisting of any number
@@ -47,6 +47,6 @@ insanely high. If your active logic requires a high clock speed and
 
 local['rm']('-rf', 'mdbook/src')
 local['mkdir']('-p', 'mdbook/src')
-document_configurables(RegisterFile, front_page, 'mdbook/src')
+document_configurables(RegisterFile, FRONT_PAGE, 'mdbook/src')
 with local.cwd('mdbook'):
     local['mdbook']('build')

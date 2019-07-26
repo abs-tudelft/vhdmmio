@@ -112,8 +112,8 @@ class ListConfig(Loader):
                     sublist = subdict.pop(self.subkey)
                     with ParseError.wrap(self.subkey):
                         generator = self._handle_list(sublist, parent, subdict)
-                    for item in generator:
-                        yield item
+                        for item in generator:
+                            yield item
                     continue
 
                 # Pass the final dict to the configurable for deserialization.

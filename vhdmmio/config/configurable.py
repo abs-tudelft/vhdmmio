@@ -7,13 +7,18 @@ which allows defaults and value overrides to be specified."""
 
 import textwrap
 import inspect
+import os
 from os.path import join as pjoin
+import json
+import yaml
 from .loader import Loader
 
 class Configurable:
     """Base class for objects that can be configured with/deserialized from
     and serialized to JSON/YAML-friendly dictionary form. When using this class
     as an ancestor, also use the `@configurable()` annotation."""
+
+    output_directory = None
 
     def __init__(self, parent=None, dictionary=None, **kwargs):
         # Save the parent.
@@ -64,6 +69,67 @@ class Configurable:
         for loader in self.loaders:
             loader.serialize(dictionary, getattr(self, '_' + loader.key))
         return dictionary
+
+    # Convenience mehods for reading and writing configuration files and such.
+    @classmethod
+    def load(cls, obj, parent=None):
+        """Constructs this object from one of the following:
+
+         - A YAML or JSON filename (if the file extension is `.json` JSON is
+           used, otherwise YAML is assumed);
+         - A file-like object reading a YAML file;
+         - A dictionary representation of the JSON or YAML file.
+
+        Returns the constructed object if the input is valid."""
+
+        loader = yaml.safe_load if hasattr(yaml, 'safe_load') else yaml.load
+
+        if isinstance(obj, dict):
+            return cls(parent, obj)
+
+        if isinstance(obj, str):
+            if obj.lower().endswith('.json'):
+                loader = json.loads
+            with open(obj, 'r') as fil:
+                regfile = cls(parent, loader(fil.read()))
+            regfile.output_directory = os.path.dirname(obj)
+            return regfile
+
+        if hasattr(obj, 'read'):
+            return cls(parent, loader(obj.read()))
+
+        raise TypeError('unsupported input for load() API')
+
+    def save(self, obj=None):
+        """Serializes this object in one of the following ways:
+
+         - If `obj` is a filename string, write the YAML (default) or JSON
+           (if the name ends in `.json`) representation to it;
+         - If `obj` is file-like, write the YAML representation into it;
+         - If `obj` is `None` or not provided, return the dictionary
+           representation."""
+
+        data = self.serialize()
+
+        if obj is None:
+            return data
+
+        if isinstance(obj, str) and obj.lower().endswith('.json'):
+            data = json.dumps(data, sort_keys=True, indent=4)
+        else:
+            dumper = yaml.safe_dump if hasattr(yaml, 'safe_dump') else yaml.dump
+            data = dumper(data, default_flow_style=False)
+
+        if isinstance(obj, str):
+            with open(obj, 'w') as fil:
+                fil.write(data)
+            return None
+
+        if hasattr(obj, 'write'):
+            obj.write(data)
+            return None
+
+        raise TypeError('unsupported input for save() API')
 
     # A key aspect of `Configurable`s is that they can automatically generate
     # markdown documentation for their configuration dictionary. These

@@ -77,7 +77,7 @@ class ParseError(ValueError):
     def invalid(cls, key, value, *expected):
         """Raises an appropriate `ParseError` for an overridden key with the
         wrong value."""
-        if len(expected) < 2:
+        if len(expected) <= 2:
             phrase = ' or '.join(expected)
         else:
             phrase = '%s, or %s' % (', '.join(expected[:-1]), expected[-1])
@@ -88,10 +88,10 @@ class ParseError(ValueError):
         """Raises an appropriate `ParseError` for the given unknown keys in a
         configuration dictionary."""
         assert keys
-        if len(keys) < 2:
-            phrase = '`%s`' % '` or `'.join(keys)
+        if len(keys) <= 2:
+            phrase = '`%s`' % '` and `'.join(keys)
         else:
-            phrase = '`%s`, or `%s`' % ('`, `'.join(keys[:-1]), keys[-1])
+            phrase = '`%s`, and `%s`' % ('`, `'.join(keys[:-1]), keys[-1])
         raise cls('unknown key%s %s in {path}' % ('s' if len(keys) > 1 else '', phrase))
 
     @classmethod
@@ -106,7 +106,7 @@ class ParseError(ValueError):
             def __exit__(self, typ, val, trace):
                 if val is not None:
                     if issubclass(typ, ParseError):
-                        if key:
+                        if key is not None:
                             val.path(key)
                         return
                     raise cls('while parsing {path}: %s' % val, path=key)

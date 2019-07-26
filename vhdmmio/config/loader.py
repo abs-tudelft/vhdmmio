@@ -149,7 +149,10 @@ class ScalarLoader(Loader):
         if self.has_override():
             value = dictionary.pop(self.key, self.override)
             if value != self.override:
-                ParseError.invalid(self.key, value, self.override, Unset)
+                ParseError.invalid(
+                    self.key, value,
+                    friendly_yaml_value(self.override),
+                    friendly_yaml_value(Unset))
             return value
         value = dictionary.pop(self.key, self.default)
         if not self.has_default() and value is Unset:

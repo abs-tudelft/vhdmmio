@@ -1,6 +1,5 @@
 """Submodule for `Primitive` configurable."""
 
-import re
 from ...config import configurable, Configurable
 from .registry import behavior
 
