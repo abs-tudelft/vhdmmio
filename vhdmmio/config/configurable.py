@@ -92,6 +92,8 @@ class Configurable:
         markdown = ['# %s%s' % (name[0].upper(), name[1:])]
         if doc:
             markdown.append(textwrap.dedent(doc))
+            if '\n\n##' in doc:
+                markdown.append('## Configuration keys')
 
         key_markdowns = []
         for loader in cls.loaders:
@@ -234,11 +236,11 @@ def derive(name=None, doc=None, **mods):
     return decorator
 
 
-def document_configurables(root_cfg, output_dir='.'):
+def document_configurables(root_cfg, front_page, output_dir='.'):
     """Outputs markdown documentation for the given configurable and any
     sub-configurables it requires to the given directory."""
 
-    summary = ['# Summary', '']
+    toc = []
     cfgs = set()
 
     def require_cfg(cfg, depth=0):
@@ -248,7 +250,7 @@ def document_configurables(root_cfg, output_dir='.'):
         name = cfg.configuration_name_markdown()
         fname = '%s.md' % cfg.__name__.lower()
 
-        summary.append('%s- [%s](%s)' % ('  ' * depth, name, fname))
+        toc.append('%s- [%s](%s)' % ('  ' * depth, name, fname))
 
         with open(pjoin(output_dir, fname), 'w') as fil:
             fil.write(cfg.configuration_markdown())
@@ -259,5 +261,10 @@ def document_configurables(root_cfg, output_dir='.'):
 
     require_cfg(root_cfg)
 
+    with open(pjoin(output_dir, 'README.md'), 'w') as fil:
+        fil.write('%s\n\n# Table of contents\n\n%s' % (front_page, '\n'.join(toc)))
+
+    toc.insert(0, '- [Index](README.md)')
+
     with open(pjoin(output_dir, 'SUMMARY.md'), 'w') as fil:
-        fil.write('\n'.join(summary))
+        fil.write('# Summary\n\n' + '\n'.join(toc))

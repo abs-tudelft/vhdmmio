@@ -30,15 +30,26 @@ class ListConfig(Loader):
     def markdown(self):
         """Yields markdown documentation for all the keys that this loader can
         make sense of as `(key, markdown)` tuples."""
+        cfg_fname = '%s.md' % self._configurable.__name__.lower()
+
         markdown = [self.doc]
 
+        markdown.append(
+            'This key must be set to a list of dictionaries, of which the '
+            'structure is defined [here](%s).' % cfg_fname)
+
         if self.subkey is not None:
-            markdown.append(
-                'If the `%s` key is present in a configuration dictionary, it '
-                'is recursively interpreted as a list of dictionaries, similar '
-                'to this key, instead of being parsed directly. Any additional '
-                'keys in the dictionary are then used as default values for '
-                'the subdictionaries. For example,' % self.subkey)
+            markdown[-1] += (
+                ' In addition, the `%s` key can be used to define the list '
+                'elements as a tree; if it is present in one of the '
+                'dictionaries, the dictionary becomes a non-leaf node, with '
+                'the `%s` key specifying the list of child nodes. This tree '
+                'is flattened during parsing, in such a way that the '
+                'configuration for a flattened node becomes the root '
+                'dictionary, updated with its child dictionary, all the way '
+                'down to the leaf node; the non-leaf nodes essentially set '
+                'the default values for their children. For example,'
+                % (self.subkey, self.subkey))
             markdown.append(
                 '```\n'
                 '%s:\n'
@@ -68,7 +79,7 @@ class ListConfig(Loader):
             'This key is optional. Not specifying it is equivalent to '
             'specifying an empty list.')
 
-        yield self.key, markdown
+        yield self.key, '\n\n'.join(markdown)
 
     def markdown_more(self):
         """Yields or returns a list of `@configurable` classes that must be

@@ -3,7 +3,7 @@
 import re
 from ..config import configurable, Configurable, opt_checked, ParseError, Unset
 
-@configurable()
+@configurable(name='Metadata')
 class Metadata(Configurable):
     """This configuration structure is used to identify and document objects
     within `vhdmmio`."""

@@ -7,7 +7,7 @@ from .access_privileges import AccessPrivileges
 from .interface_options import InterfaceOptions
 from .behavior import behaviors
 
-@configurable(name='Field descriptor')
+@configurable(name='Field descriptors')
 class FieldDescriptor(Configurable):
     """A field descriptor describes either a single field or an array of
     fields. Each field produced by a field descriptor has exactly the same
@@ -15,7 +15,24 @@ class FieldDescriptor(Configurable):
     array index on the register file interface. These bitranges are described
     by means of a base bitrange (`bitrange`, optionally offset by `address`), a
     repeat count (`repeat`) and the necessary strides (`stride`, `field-stride`
-    and `field-repeat`).
+    and `field-repeat`). Such repetition is useful when you have an array of
+    similar registers, for instance in a DMA controller with multiple channels,
+    where each channel has its own set of status and control flags.
+
+    Note that this means that you can have four kinds of field descriptors:
+
+     - singular scalar fields,
+     - singular vector fields,
+     - repeated/array scalar fields, and
+     - repeated/array vector fields.
+
+    In the VHDL world, scalar vs. vector is distinguished by the base type used
+    for interface signals: `std_logic` for scalar, and
+    `std_logic_vector(N-1 downto 0)` for vectors. By default, ports that belong
+    to the same field are gathered into a record. This record in turn becomes
+    an array of records for repeated fields, indexed using `(0 to N-1)`. This
+    record and/or the arrays of `std_logic_vector`s can be flattened away if
+    needed using the `interface` structure.
 
     The fields themselves as well as the registers they reside in have
     identifiers and documentation attachted to them (`mnemonic`, `name`,
@@ -24,11 +41,58 @@ class FieldDescriptor(Configurable):
     the language backend used. A zero-indexed integer suffix is automatically
     added for arrays of fields.
 
+    ## Field behavior
+
     The behavior of the field is determined by the `behavior` key and
-    associated configuration. Access to the field can optionally be denied
-    based on the AXI4L `aw_prot` and `ar_prot` fields (`read-deny` and
-    `write-deny`). The VHDL code generated for the field can be further
-    customized using the `interface` key."""
+    associated configuration. There are predefined behaviors for a lot of
+    functions commonly and less commonly seen in commercial peripheral register
+    files. On rare occasions where none of the predefined behaviors fit what
+    you need, you can use the `custom` behavior, which lets you specify the
+    field-specific VHDL code directly.
+
+    Access to the field can optionally be denied based on the AXI4L `aw_prot`
+    and `ar_prot` fields (`read-deny` and `write-deny`). The VHDL code
+    generated for the field can be further customized using the `interface`
+    key.
+
+    Field behaviors can be read-write, read-only, or write-only. Read-only
+    fields can overlap with write-only fields.
+
+    ## Logical registers
+
+    When parsing a register file description, `vhdmmio` flattens the field
+    descriptors into fields, and then groups them again by address. Such groups
+    are called logical registers.
+
+    `vhdmmio` ensures that logical registers that span multiple blocks/physical
+    registers are accessed atomically by means of holding registers. It does so
+    by inferring central read/write holding registers as large as the largest
+    logical register in the register file minus the bus width. For reads, the
+    first access to a multi-block read actually performs the read, delivering
+    the low word to the bus immediately, and writing the rest to the holding
+    register. Reads to the subsequent addresses simply return whatever is in
+    the holding register. The inverse is done for writes: the last access
+    actually performs the write, while the preceding accesses write the data
+    and strobe signals to the write holding register.
+
+    The advantage of sharing holding registers is that it reduces the size of
+    the address decoder, but the primary disadvantage is that it only works
+    properly when the physical registers in a logical register are accessed
+    sequentially and completely. It is up to the bus master to enforce this; if
+    it fails to do so, accesses may end up reading or writing garbage. You can
+    therefore generally NOT mix purely AXI4L multi-master systems with
+    multi-block registers. If you need both multi-block registers and have
+    multiple masters, either use full AXI4 arbiters and use the
+    `ar_lock`/`aw_lock` signals appropriately, or ensure mutually-exclusive
+    access by means of software solutions.
+
+    Note that this also has security implications: a malicious piece of code
+    may intentionally try to violate the aforementioned assumptions to
+    manipulate or eavesdrop. This is particularly important when the AXI4L
+    `aw_prot` or `ar_prot` signals are used to restrict access to certain
+    fields. More information on this subject can be found
+    [here](accessprivileges.md)."""
+
     #pylint: disable=E0211,E0213,E0202
 
     @select

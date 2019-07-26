@@ -1,4 +1,4 @@
-# `Metadata`
+# Metadata
 
 This configuration structure is used to identify and document objects
 within `vhdmmio`.

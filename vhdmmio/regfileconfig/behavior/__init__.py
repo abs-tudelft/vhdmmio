@@ -15,3 +15,4 @@ from .memory import Memory
 from .interrupt import (
     Interrupt, InterruptFlag, VolatileInterruptFlag, InterruptPend,
     InterruptEnable, InterruptUnmask, InterruptStatus, InterruptRaw)
+from .custom import Custom

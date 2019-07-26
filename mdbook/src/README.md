@@ -1,12 +1,4 @@
-"""Generates the documentation for the register file description."""
-
-# TODO: work in progress
-
-from plumbum import local
-from ..config import document_configurables
-from .register_file import RegisterFile
-
-front_page = """# `vhdmmio`
+# `vhdmmio`
 
 `vhdmmio` concerns itself with the generation of register files. To
 `vhdmmio`, a register file is an AXI4-lite slave, consisting of any number
@@ -43,10 +35,46 @@ Note that this code style implies that all output ports of `vhdmmio`
 generated entities are register outputs. This should help a little with
 timing closure, but the register files are not intended to be clocked
 insanely high. If your active logic requires a high clock speed and
-`vhdmmio`'s register files can't keep up, consider a multi-clock design."""
+`vhdmmio`'s register files can't keep up, consider a multi-clock design.
 
-local['rm']('-rf', 'mdbook/src')
-local['mkdir']('-p', 'mdbook/src')
-document_configurables(RegisterFile, front_page, 'mdbook/src')
-with local.cwd('mdbook'):
-    local['mdbook']('build')
+# Table of contents
+
+- [Register files](registerfile.md)
+  - [Metadata](metadata.md)
+  - [Register file features](registerfilefeatures.md)
+  - [VHDL interface options](interfaceoptions.md)
+  - [Field descriptors](fielddescriptor.md)
+    - [`primitive` behavior](primitive.md)
+    - [`constant` behavior](constant.md)
+    - [`config` behavior](config.md)
+    - [`status` behavior](status.md)
+    - [`internal-status` behavior](internalstatus.md)
+    - [`latching` behavior](latching.md)
+    - [`control` behavior](control.md)
+    - [`internal-control` behavior](internalcontrol.md)
+    - [`flag` behavior](flag.md)
+    - [`volatile-flag` behavior](volatileflag.md)
+    - [`internal-flag` behavior](internalflag.md)
+    - [`volatile-internal-flag` behavior](volatileinternalflag.md)
+    - [`strobe` behavior](strobe.md)
+    - [`request` behavior](request.md)
+    - [`multi-request` behavior](multirequest.md)
+    - [`counter` behavior](counter.md)
+    - [`volatile-counter` behavior](volatilecounter.md)
+    - [`internal-counter` behavior](internalcounter.md)
+    - [`volatile-internal-counter` behavior](volatileinternalcounter.md)
+    - [`stream-to-mmio` behavior](streamtommio.md)
+    - [`mmio-to-stream` behavior](mmiotostream.md)
+    - [`axi` behavior](axi.md)
+    - [`memory` behavior](memory.md)
+    - [`interrupt` behavior](interrupt.md)
+    - [`interrupt-flag` behavior](interruptflag.md)
+    - [`volatile-interrupt-flag` behavior](volatileinterruptflag.md)
+    - [`interrupt-pend` behavior](interruptpend.md)
+    - [`interrupt-enable` behavior](interruptenable.md)
+    - [`interrupt-unmask` behavior](interruptunmask.md)
+    - [`interrupt-status` behavior](interruptstatus.md)
+    - [`interrupt-raw` behavior](interruptraw.md)
+    - [`custom` behavior](custom.md)
+    - [Access privileges](accessprivileges.md)
+  - [Interrupt descriptors](interruptdescriptor.md)

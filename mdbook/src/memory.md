@@ -1,4 +1,4 @@
-# `axi` behavior
+# `memory` behavior
 
 Not yet implemented!
 

@@ -32,13 +32,17 @@ class SubConfig(Loader):
     def markdown(self):
         """Yields markdown documentation for all the keys that this loader can
         make sense of as `(key, markdown)` tuples."""
-        if self._style is True:
-            yield self.key, self.doc + '\n\nRefer to TODO for more info.'
-            return
-
         cfg_fname = '%s.md' % self._configurable.__name__.lower()
 
         markdown = [self.doc]
+
+        if self._style is True:
+            markdown.append(
+                'This key must be set to a dictionary. Its structure is defined '
+                '[here](%s). Not specifying the key is equivalent to specifying '
+                'an empty dictionary.' % cfg_fname)
+            yield self.key, '\n\n'.join(markdown)
+            return
 
         markdown.append(
             'More information about this structure may be found [here](%s).' % cfg_fname)
