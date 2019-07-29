@@ -508,7 +508,7 @@ class TestConfig(TestCase):
 
     def test_docgen(self):
         """test register file documentation generation"""
-        self.maxDiff = None
+        self.maxDiff = None #pylint: disable=C0103
 
         with tempfile.TemporaryDirectory() as base:
             document_configurables(RegisterFile, '# Front page\n\nSome text.', base)
