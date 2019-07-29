@@ -16,7 +16,7 @@ class BitRange:
 
          - `bus_width`: must be 32 or 64 bits.
          - `address`: the base byte address that the bit indices are relative to.
-         - `size`: the rightshift to apply to the byte address
+         - `size`: the number of LSBs to ignore in the byte address.
          - `*args`: if no extra arguments are specified, the field encompasses
            exactly one bus word. If one argument is specified, it is
            interpreted as a bit index with respect to the LSB of `address` that

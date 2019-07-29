@@ -99,6 +99,12 @@ class Select(Loader):
         if value.parent is not self:
             raise ValueError('value must have been initialized with us as the parent')
 
+    @staticmethod
+    def freeze(value):
+        """Prevents the value managed by this loader (passed to the method)
+        from being mutated further."""
+        value.freeze()
+
 
 def select(method):
     """Method decorator for configuring a `configurable`-annotated class

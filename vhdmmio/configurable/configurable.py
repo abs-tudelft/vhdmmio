@@ -21,6 +21,9 @@ class Configurable:
     output_directory = None
 
     def __init__(self, parent=None, dictionary=None, **kwargs):
+        super().__init__()
+        self._frozen = False
+
         # Save the parent.
         self._parent = parent
 
@@ -131,6 +134,18 @@ class Configurable:
 
         raise TypeError('unsupported input for save() API')
 
+    # Configurables can be frozen to prevent further mutation.
+    @property
+    def frozen(self):
+        """Returns whether this configurable has been frozen."""
+        return self._frozen
+
+    def freeze(self):
+        """Freezes this configurable, shielding it against further mutation."""
+        self._frozen = True
+        for loader in self.loaders:
+            loader.freeze(getattr(self, '_' + loader.key))
+
     # A key aspect of `Configurable`s is that they can automatically generate
     # markdown documentation for their configuration dictionary. These
     # parameters are set by the `@configurable()` annotation.
@@ -230,6 +245,8 @@ def configurable(*loaders, name=None, doc=None):
             # function). define a setter as well.
             if loader.mutable():
                 def setter(self, value, loader=loader):
+                    if self.frozen:
+                        raise ValueError('cannot modify frozen configurable')
                     loader.validate(value)
                     setattr(self, '_' + loader.key, value)
             else:

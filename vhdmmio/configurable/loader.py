@@ -93,6 +93,11 @@ class Loader:
         appropriate ParseError if not. This function only needs to work if
         `mutable()` returns `True`."""
 
+    @staticmethod
+    def freeze(_):
+        """Prevents the value managed by this loader (passed to the method)
+        from being mutated further."""
+
 
 class ScalarLoader(Loader):
     """Base class for scalar configuration key loaders, i.e. loaders that

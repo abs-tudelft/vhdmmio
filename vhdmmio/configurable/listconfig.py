@@ -131,6 +131,12 @@ class ListConfig(Loader):
         """`ListConfig` serializer. See `Loader.serialize()` for more info."""
         dictionary[self.key] = [item.serialize() for item in value]
 
+    @staticmethod
+    def freeze(value):
+        """Prevents the value managed by this loader (passed to the method)
+        from being mutated further."""
+        value.freeze()
+
 
 class ProtectedList:
     """Wrapper for Python list that ensures that the type of objects added to
@@ -140,10 +146,27 @@ class ProtectedList:
         super().__init__()
         self._configurable = configurable
         self._list = []
+        self._frozen = False
         if initial is not None:
             self.extend(initial)
 
-    def validate(self, value):
+    @property
+    def frozen(self):
+        """Returns whether this list has been frozen."""
+        return self._frozen
+
+    def freeze(self):
+        """Freezes the contents of this list."""
+        self._frozen = True
+        for item in self._list:
+            item.freeze()
+
+    def _mutable_check(self):
+        """Raises an exception if we're frozen."""
+        if self.frozen:
+            raise ValueError('cannot mutate frozen protected list')
+
+    def _validate(self, value):
         """Checks the type of the given value to make sure it can go into the
         list."""
 
@@ -161,10 +184,12 @@ class ProtectedList:
         return self._list[index]
 
     def __setitem__(self, index, value):
-        self.validate(value)
+        self._mutable_check()
+        self._validate(value)
         self._list[index] = value
 
     def __delitem__(self, index):
+        self._mutable_check()
         del self._list[index]
 
     def __iter__(self):
@@ -178,29 +203,35 @@ class ProtectedList:
 
     def append(self, value):
         """Appends to the internal list, ensuring value is acceptable."""
-        self.validate(value)
+        self._mutable_check()
+        self._validate(value)
         self._list.append(value)
 
     def extend(self, iterable):
         """Extends the internal list, ensuring value is acceptable."""
+        self._mutable_check()
         for value in iterable:
             self.append(value)
 
     def insert(self, index, value):
         """Inserts into the internal list, ensuring value is acceptable."""
-        self.validate(value)
+        self._mutable_check()
+        self._validate(value)
         self._list.insert(index, value)
 
     def remove(self, value):
         """Removes a value from the list."""
+        self._mutable_check()
         self._list.remove(value)
 
     def pop(self, index=-1):
         """Pops a value from the list."""
+        self._mutable_check()
         return self._list.pop(index)
 
     def clear(self):
         """Clears the list."""
+        self._mutable_check()
         self._list.clear()
 
     def index(self, *args):
@@ -213,10 +244,12 @@ class ProtectedList:
 
     def sort(self, *args, **kwargs):
         """Chains to list.sort()."""
+        self._mutable_check()
         return self._list.sort(*args, **kwargs)
 
     def reverse(self):
         """Chains to list.reverse()."""
+        self._mutable_check()
         return self._list.reverse()
 
     def copy(self):
