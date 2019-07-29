@@ -21,6 +21,7 @@ class TestBitRange(TestCase):
         test(32, '0x34:25', 52, 2, 25)
         test(32, '0x30/4:25..45', 48, 4, 25, 45)
         test(64, '0x30:25..45', 48, 3, 25, 45)
+        test(64, ':25..45', 0, 3, 25, 45)
         with self.assertRaisesRegex(ValueError, r'failed to parse address specification'):
             test(64, 'nope')
 

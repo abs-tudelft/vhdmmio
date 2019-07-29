@@ -24,7 +24,8 @@ import argparse
 from vhdmmio.version import __version__
 import vhdmmio.vhdl as vhdl
 import vhdmmio.html as html
-from .core.regfile import RegisterFile
+from vhdmmio.config import RegisterFile as RegisterFileCfg
+#from .core.regfile import RegisterFile
 
 def run_cli(args=None):
     """Runs the vhdmmio CLI. The command-line arguments are taken from `args`
@@ -64,6 +65,13 @@ def run_cli(args=None):
         '-H', '--html', metavar='dir', const='vhdmmio-doc', nargs='?',
         help='Generate HTML documentation for the register files. [dir] '
         'defaults to \'./vhdmmio-doc\'.')
+
+    parser.add_argument(
+        '--trusted', action='store_true',
+        help='Indicates that the register description source files come from '
+        'a trusted source. This allows the "custom" field behavior to be '
+        'used, which, through vhdmmio\'s template engine, can potentially '
+        'execute arbitrary Python code.')
 
     parser.add_argument(
         '--vhd-annotate', action='store_true',
@@ -106,7 +114,15 @@ def run_cli(args=None):
                         input_files.append(os.path.join(root, name))
 
         # Load the input files.
-        register_files = list(map(RegisterFile.load, input_files))
+        register_files_cfgs = list(map(RegisterFileCfg.load, input_files))
+
+        # Compile the register files.
+        raise NotImplementedError()
+        register_files = [
+            RegisterFile(cfg, trusted=args.trusted)
+            for cfg in register_files_cfgs]
+
+        # Print that the front-end is complete.
         if not register_files:
             print('Warning: no register files found!')
         elif len(register_files) == 1:
