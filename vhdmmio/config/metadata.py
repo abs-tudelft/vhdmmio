@@ -1,10 +1,10 @@
-"""Submodule for `Metadata` configurable."""
+"""Submodule for `MetadataConfig` configurable."""
 
 import re
 from ..configurable import configurable, Configurable, opt_checked, ParseError, Unset
 
 @configurable(name='Metadata')
-class Metadata(Configurable):
+class MetadataConfig(Configurable):
     """This configuration structure is used to identify and document objects
     within `vhdmmio`."""
     #pylint: disable=E0211,E0213,R0201

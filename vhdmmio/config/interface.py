@@ -1,10 +1,10 @@
-"""Submodule for `InterfaceOptions` configurable."""
+"""Submodule for `InterfaceConfig` configurable."""
 
 import re
 from ..configurable import configurable, Configurable, choice
 
-@configurable(name='VHDL interface options')
-class InterfaceOptions(Configurable):
+@configurable(name='VHDL interface configuration')
+class InterfaceConfig(Configurable):
     """Each field and interrupt in `vhdmmio` can register scalar and vector
     inputs and outputs, as well as generics. This configuration structure
     determines how these interfaces are exposed in the entity.

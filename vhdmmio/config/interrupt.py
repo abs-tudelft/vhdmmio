@@ -1,11 +1,11 @@
-"""Submodule for `InterruptDescriptor` configurable."""
+"""Submodule for `InterruptConfig` configurable."""
 
 import re
 from ..configurable import configurable, Configurable, choice, embedded
-from .metadata import Metadata
+from .metadata import MetadataConfig
 
 @configurable(name='Interrupt descriptors')
-class InterruptDescriptor(Configurable):
+class InterruptConfig(Configurable):
     r"""In addition to MMIO, `vhdmmio` can handle interrupt routing for you.
     Each AXI4-lite bus is equiped with an additional signal in the
     slave-to-master direction that serves as an interrupt request flag. This
@@ -91,7 +91,7 @@ class InterruptDescriptor(Configurable):
     def metadata():
         """This configuration structure is used to name and document the
         interrupt."""
-        return Metadata
+        return MetadataConfig
 
     @choice
     def internal():

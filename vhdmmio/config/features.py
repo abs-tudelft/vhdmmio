@@ -1,9 +1,9 @@
-"""Submodule for the `RegisterFileFeatures` configurable."""
+"""Submodule for the `FeatureConfig` configurable."""
 
 from ..configurable import configurable, Configurable, choice, flag
 
-@configurable(name='Register file features')
-class RegisterFileFeatures(Configurable):
+@configurable(name='Register file options')
+class FeatureConfig(Configurable):
     """This configuration structure specifies some miscellaneous options that
     affect the functionality and generation of the register file as a whole."""
     #pylint: disable=E0211,E0213,E0202
@@ -34,7 +34,7 @@ class RegisterFileFeatures(Configurable):
         features normally inferred by `vhdmmio` when any of the fields in the
         register file are sensitive to `aw_prot` or `ar_prot`. This may save
         some area. More information about `vhdmmio`'s security features is
-        available [here](accessprivileges.md)."""
+        available [here](permissionconfig.md)."""
 
     @flag
     def optimize():

@@ -3,7 +3,7 @@
 import tempfile
 import os
 from unittest import TestCase
-from vhdmmio.config import RegisterFile
+from vhdmmio.config import RegisterFileConfig
 from vhdmmio.configurable import document_configurables
 
 EXAMPLE_YAML_1 = """
@@ -492,13 +492,13 @@ class TestConfig(TestCase):
             with open(base + '/test.yaml', 'w') as fil:
                 fil.write(EXAMPLE_YAML_1)
 
-            regfile1 = RegisterFile.load(base + '/test.yaml')
+            regfile1 = RegisterFileConfig.load(base + '/test.yaml')
             regfile1.save(base + '/test_out1.yaml')
 
             with open(base + '/test_out1.yaml', 'r') as fil:
                 out1 = fil.read()
 
-            regfile2 = RegisterFile.load(base + '/test_out1.yaml')
+            regfile2 = RegisterFileConfig.load(base + '/test_out1.yaml')
             regfile2.save(base + '/test_out2.yaml')
 
             with open(base + '/test_out2.yaml', 'r') as fil:
@@ -511,27 +511,27 @@ class TestConfig(TestCase):
         self.maxDiff = None #pylint: disable=C0103
 
         with tempfile.TemporaryDirectory() as base:
-            document_configurables(RegisterFile, '# Front page\n\nSome text.', base)
+            document_configurables(RegisterFileConfig, '# Front page\n\nSome text.', base)
 
             self.assertEqual(sorted(os.listdir(base)), [
                 'README.md',
                 'SUMMARY.md',
-                'accessprivileges.md',
                 'axi.md',
                 'config.md',
                 'constant.md',
                 'control.md',
                 'counter.md',
                 'custom.md',
-                'fielddescriptor.md',
+                'featureconfig.md',
+                'fieldconfig.md',
                 'flag.md',
-                'interfaceoptions.md',
+                'interfaceconfig.md',
                 'internalcontrol.md',
                 'internalcounter.md',
                 'internalflag.md',
                 'internalstatus.md',
                 'interrupt.md',
-                'interruptdescriptor.md',
+                'interruptconfig.md',
                 'interruptenable.md',
                 'interruptflag.md',
                 'interruptpend.md',
@@ -540,12 +540,12 @@ class TestConfig(TestCase):
                 'interruptunmask.md',
                 'latching.md',
                 'memory.md',
-                'metadata.md',
+                'metadataconfig.md',
                 'mmiotostream.md',
                 'multirequest.md',
+                'permissionconfig.md',
                 'primitive.md',
-                'registerfile.md',
-                'registerfilefeatures.md',
+                'registerfileconfig.md',
                 'request.md',
                 'status.md',
                 'streamtommio.md',

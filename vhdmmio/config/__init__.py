@@ -2,10 +2,10 @@
 file loader. Calling __main__ on this module generates markdown documentation
 for this file."""
 
-from .register_file import RegisterFile
-from .register_file_features import RegisterFileFeatures
-from .interface_options import InterfaceOptions
-from .access_privileges import AccessPrivileges
-from .field_descriptor import FieldDescriptor
-from .interrupt_descriptor import InterruptDescriptor
-from .metadata import Metadata
+from .register_file import RegisterFileConfig
+from .features import FeatureConfig
+from .interface import InterfaceConfig
+from .permissions import PermissionConfig
+from .field import FieldConfig
+from .interrupt import InterruptConfig
+from .metadata import MetadataConfig

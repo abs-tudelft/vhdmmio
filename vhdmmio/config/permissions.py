@@ -1,9 +1,9 @@
-"""Submodule for `AccessPrivileges` configurable."""
+"""Submodule for `PermissionConfig` configurable."""
 
 from ..configurable import configurable, Configurable, flag
 
-@configurable(name='Access privileges')
-class AccessPrivileges(Configurable):
+@configurable(name='Permissions')
+class PermissionConfig(Configurable):
     """This configuration structure defines the privilege levels that are
     allowed to access a field based on the `aw_prot` and `ar_prot` AXI4L
     signals. This is primarily intended to help you identify problems during

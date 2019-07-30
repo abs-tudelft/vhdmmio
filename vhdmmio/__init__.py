@@ -14,9 +14,7 @@
 
 """Main module for vhdmmio.
 
-Use `run_cli()` to run vhdmmio as if it was run from the command line. For a
-more script-friendly interface, use `RegisterFile.load()`, `generate_html()`,
-and `generate_vhdl()`."""
+Use `run_cli()` to run vhdmmio as if it was run from the command line."""
 
 import sys
 import os
@@ -24,8 +22,7 @@ import argparse
 from vhdmmio.version import __version__
 import vhdmmio.vhdl as vhdl
 import vhdmmio.html as html
-from vhdmmio.config import RegisterFile as RegisterFileCfg
-#from .core.regfile import RegisterFile
+from vhdmmio.config import RegisterFileConfig
 
 def run_cli(args=None):
     """Runs the vhdmmio CLI. The command-line arguments are taken from `args`
@@ -114,7 +111,7 @@ def run_cli(args=None):
                         input_files.append(os.path.join(root, name))
 
         # Load the input files.
-        register_files_cfgs = list(map(RegisterFileCfg.load, input_files))
+        register_files_cfgs = list(map(RegisterFileConfig.load, input_files))
 
         # Compile the register files.
         raise NotImplementedError()

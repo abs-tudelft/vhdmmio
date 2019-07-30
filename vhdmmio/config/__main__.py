@@ -4,7 +4,7 @@
 
 from plumbum import local
 from ..configurable import document_configurables
-from .register_file import RegisterFile
+from .register_file import RegisterFileConfig
 
 FRONT_PAGE = """# `vhdmmio`
 
@@ -47,6 +47,6 @@ insanely high. If your active logic requires a high clock speed and
 
 local['rm']('-rf', 'mdbook/src')
 local['mkdir']('-p', 'mdbook/src')
-document_configurables(RegisterFile, FRONT_PAGE, 'mdbook/src')
+document_configurables(RegisterFileConfig, FRONT_PAGE, 'mdbook/src')
 with local.cwd('mdbook'):
     local['mdbook']('build')

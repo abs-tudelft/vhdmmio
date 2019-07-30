@@ -1,15 +1,15 @@
-"""Submodule for `FieldDescriptor` configurable."""
+"""Submodule for `FieldConfig` configurable."""
 
 from ..configurable import (
     configurable, Configurable, choice, parsed, embedded, opt_embedded, select)
 from ..core.bitrange import BitRange
-from .metadata import Metadata
-from .access_privileges import AccessPrivileges
-from .interface_options import InterfaceOptions
+from .metadata import MetadataConfig
+from .permissions import PermissionConfig
+from .interface import InterfaceConfig
 from .behavior import behaviors
 
 @configurable(name='Field descriptors')
-class FieldDescriptor(Configurable):
+class FieldConfig(Configurable):
     """A field descriptor describes either a single field or an array of
     fields. Each field produced by a field descriptor has exactly the same
     characteristics, but maps to a different bitrange, and uses a different
@@ -92,7 +92,7 @@ class FieldDescriptor(Configurable):
     manipulate or eavesdrop. This is particularly important when the AXI4L
     `aw_prot` or `ar_prot` signals are used to restrict access to certain
     fields. More information on this subject can be found
-    [here](accessprivileges.md)."""
+    [here](permissionconfig.md)."""
 
     #pylint: disable=E0211,E0213,E0202
 
@@ -269,7 +269,7 @@ class FieldDescriptor(Configurable):
     def metadata():
         """This configuration structure is used to name and document the
         field."""
-        return Metadata
+        return MetadataConfig
 
     @opt_embedded
     def register_metadata():
@@ -281,7 +281,7 @@ class FieldDescriptor(Configurable):
         register contains a `register-metadata` tag, the lowest-indexed
         read-mode field takes precedence, unless the register is write-only,
         in which case the lowest-indexed write-mode field takes precedence."""
-        return 'register', Metadata
+        return 'register', MetadataConfig
 
     @embedded
     def read():
@@ -289,7 +289,7 @@ class FieldDescriptor(Configurable):
         read transactions. By default, the `ar_prot` field is ignored, so all
         masters can read from the field(s). These keys have no effect for
         write-only fields."""
-        return 'read-allow', AccessPrivileges
+        return 'read-allow', PermissionConfig
 
     @embedded
     def write():
@@ -297,9 +297,9 @@ class FieldDescriptor(Configurable):
         write transactions. By default, the `aw_prot` field is ignored, so all
         masters can write to the field(s). These keys have no effect for
         read-only fields."""
-        return 'write-allow', AccessPrivileges
+        return 'write-allow', PermissionConfig
 
     @embedded
     def interface():
         """These keys specify how the VHDL entity interface is generated."""
-        return InterfaceOptions
+        return InterfaceConfig
