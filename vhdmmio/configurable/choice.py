@@ -22,11 +22,15 @@ class Choice(ScalarLoader):
     something whose `str()` representation performs the inverse of the
     conversion function."""
 
-    def __init__(self, key, doc, *choices, default=Unset):
-        if default is Unset:
+    class _AutoGenDefault:
+        pass
+
+    def __init__(self, key, doc, *choices, default=_AutoGenDefault):
+        if default is Choice._AutoGenDefault:
             default = choices[0][0]
-        if not isinstance(default, (int, str, bool)) and default is not None:
-            raise ValueError('invalid default value')
+        if not isinstance(default, (int, str, bool)):
+            if default is not None and default is not Unset:
+                raise ValueError('invalid default value')
         super().__init__(key, doc, default, Unset)
         self._choices = choices
 
@@ -52,7 +56,11 @@ class Choice(ScalarLoader):
                     return index
 
             elif isinstance(choice_desc, tuple):
-                if isinstance(value, int):
+                if hasattr(choice_desc[0], 'fullmatch'):
+                    if isinstance(value, str) and choice_desc[0].fullmatch(value):
+                        return index
+
+                elif isinstance(value, int):
                     if choice_desc[0] is None or value >= choice_desc[0]:
                         if choice_desc[1] is None or value < choice_desc[1]:
                             return index
@@ -100,6 +108,10 @@ class Choice(ScalarLoader):
 
             elif hasattr(choice_desc, 'fullmatch'):
                 friendly_choices.append('a string matching `%s`' % choice_desc.pattern)
+                strings_found = True
+
+            elif isinstance(choice_desc, tuple) and hasattr(choice_desc[0], 'fullmatch'):
+                friendly_choices.append(choice_desc[1])
                 strings_found = True
 
             elif isinstance(choice_desc, tuple):
@@ -232,6 +244,12 @@ def choice(method):
     the name of the method, and the markdown documentation for the key is set
     to the method's docstring."""
     return Choice(method.__name__, method.__doc__, *method())
+
+
+def required_choice(method):
+    """Same as `choice`, but instead of generating the default value from the
+    first choice, there is no default value, making the key required.."""
+    return Choice(method.__name__, method.__doc__, *method(), default=Unset)
 
 
 def flag(method):

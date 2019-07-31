@@ -1,8 +1,11 @@
 """Submodule for `FieldConfig` configurable."""
 
+import re
 from ..configurable import (
-    configurable, Configurable, choice, parsed, embedded, opt_embedded, select)
-from ..core.bitrange import BitRange
+    configurable, Configurable, choice, required_choice,
+    embedded, opt_embedded, select, listconfig)
+from .conditions import ConditionConfig
+from .subaddress import SubAddressConfig
 from .metadata import MetadataConfig
 from .permissions import PermissionConfig
 from .interface import InterfaceConfig
@@ -42,7 +45,7 @@ class FieldConfig(Configurable):
     the language backend used. A zero-indexed integer suffix is automatically
     added for arrays of fields.
 
-    ## Field behavior
+    ## Behavior
 
     The behavior of the field is determined by the `behavior` key and
     associated configuration. There are predefined behaviors for a lot of
@@ -59,161 +62,263 @@ class FieldConfig(Configurable):
     Field behaviors can be read-write, read-only, or write-only. Read-only
     fields can overlap with write-only fields.
 
-    ## Logical registers
+    ## Logical registers and blocks
 
     When parsing a register file description, `vhdmmio` flattens the field
-    descriptors into fields, and then groups them again by address. Such groups
-    are called logical registers.
+    descriptors into fields, and then groups them again by address and
+    operation (read/write). Such groups are called logical registers.
 
-    `vhdmmio` ensures that logical registers that span multiple blocks/physical
-    registers are accessed atomically by means of holding registers. It does so
-    by inferring central read/write holding registers as large as the largest
-    logical register in the register file minus the bus width. For reads, the
-    first access to a multi-block read actually performs the read, delivering
-    the low word to the bus immediately, and writing the rest to the holding
-    register. Reads to the subsequent addresses simply return whatever is in
-    the holding register. The inverse is done for writes: the last access
-    actually performs the write, while the preceding accesses write the data
-    and strobe signals to the write holding register.
+    It is important to note here that even though each field essentially
+    describes the shape of the logical register that surrounds it using the
+    addressing keys, logical registers cannot overlap. The only exception
+    is that a logical register with only write-only fields can overlap/differ
+    from a logical register with only read-only fields.
+
+    A logical register consists of one or more blocks. A block is a single
+    addressable unit, consisting of a base addess and a mask. The mask allows
+    the block to be bigger than a single bus word, by ignoring one or more
+    bits in the comparison. Some field behaviors use these ignored bits for
+    purposes other than address matching; for example, the AXI passthrough
+    behavior uses them to construct the downstream bus addresses.
+
+    Multiple blocks are assigned to a logical register when it has fields
+    mapped to it with bit indices beyond the width of the bus; the higher-order
+    bits carry over into a neighboring block until all fields have a place.
+    Either little- or big-endian mode can be specified for this; in
+    little-endian mode the LSB of the logical register resides in the first
+    block, while in big-endian mode the MSB resides in the first block.
+
+    The addresses of the blocks are computed by binary-incrementing the
+    non-masked bits address. For example, if the base address for a field is
+    specified to end with binary `10--10--`, consecutive blocks will be at
+    addresses `10--11--`, `11--00--`, `11--01--`, and so on.
+
+    ## Atomic access to multi-block registers
+
+    `vhdmmio` ensures that logical registers that span multiple blocks are
+    accessed atomically by means of holding registers. It does so by inferring
+    central read/write holding registers as large as the largest logical
+    register in the register file minus the bus width. For reads, reading from
+    the first block actually performs the read, delivering the low/high word to
+    the bus immediately (little-/big-endian), and saving the rest in the read
+    holding register. Reads to the subsequent blocks simply return whatever is
+    in the holding register. The inverse is done for writes: writing to the
+    last block actually performs the write, while the preceding accesses write
+    the data and strobe signals to the write holding register.
 
     The advantage of sharing holding registers is that it reduces the size of
-    the address decoder, but the primary disadvantage is that it only works
-    properly when the physical registers in a logical register are accessed
+    the address decoder and read multiplexer; many addresses taking data from
+    the same source is advantageous for both area and timing. The primary
+    disadvantage is that it only works properly when the blocks are accessed
     sequentially and completely. It is up to the bus master to enforce this; if
     it fails to do so, accesses may end up reading or writing garbage. You can
     therefore generally NOT mix purely AXI4L multi-master systems with
-    multi-block registers. If you need both multi-block registers and have
-    multiple masters, either use full AXI4 arbiters and use the
-    `ar_lock`/`aw_lock` signals appropriately, or ensure mutually-exclusive
-    access by means of software solutions.
+    multi-block registers.
 
-    Note that this also has security implications: a malicious piece of code
-    may intentionally try to violate the aforementioned assumptions to
-    manipulate or eavesdrop. This is particularly important when the AXI4L
-    `aw_prot` or `ar_prot` signals are used to restrict access to certain
-    fields. More information on this subject can be found
+    If you need both multi-block registers and have multiple masters, either
+    use full AXI4 arbiters and use the `ar_lock`/`aw_lock` signals
+    appropriately, ensure mutually-exclusive access by means of software
+    solutions, or implement the desired behavior yourself. The necessary write
+    holding registers are essentially just `control` fields, while the read
+    holding registers are `latching` fields.
+
+    Multi-block registers with shared holding registers also has security
+    implications: a malicious piece of code may intentionally try to violate
+    the aforementioned assumptions to manipulate or eavesdrop accesses made
+    by another program/bus master. This is particularly important when the
+    AXI4L `aw_prot` or `ar_prot` signals are used to restrict access to
+    certain fields. More information on this subject can be found
     [here](permissionconfig.md)."""
 
     #pylint: disable=E0211,E0213,E0202
 
     @select
     def behavior():
-        """Describes the behavior of this field or array of fields."""
+        """This key describes the behavior of this field or array of fields."""
         for name, cls, brief, level in behaviors():
             yield name, cls, brief, level
 
-    @choice
+    @required_choice
     def address():
-        """This is a byte-oriented address offset for `bitrange`."""
-        yield 0, 'no offset.'
-        yield int, 'byte-oriented address offset to add to `bitrange`.'
+        """This key specifies the base address and block mask for the logical
+        register that the first field described by this descriptor resides
+        in."""
+        int_re = r'(0x[0-9A-Fa-f]+|0b[01]+|[0-9]+)'
+        dc_int_re = r'(0x[-0-9A-Fa-f]+|0b[-01]+|[0-9]+)'
+        yield ((0, None), 'specifies the byte address. The address LSBs that '
+               'index bytes within the bus word are ignored per the AXI4L '
+               'specification.')
+        yield ((re.compile(dc_int_re), 'a hex/bin/dec integer'),
+               'as before, but specified as a string representation of a '
+               'hexadecimal, binary, or decimal integer. Don\'t cares (`-`) '
+               'can be used in the hexadecimal and binary forms to mask out '
+               'address bits in addition to the byte index LSBs.')
+        yield ((re.compile(dc_int_re + r'/[0-9]+'), '`<address>/<size>`'),
+               'as before, but the number of ignored LSBs is explicitly set. '
+               'This is generally a more convenient notation to use when '
+               'assigning large blocks of memory to a field.')
+        yield ((re.compile(int_re + r'\|' + int_re), '`<address>|<ignore>`'),
+               'specifies the byte address and ignored bits using two '
+               'integers. Both integers can be specified in hexadecimal, '
+               'binary, or decimal. A bit which is set in the `<ignore>` '
+               'value is ignored by the address matcher.')
+        yield ((re.compile(int_re + r'\&' + int_re), '`<address>&<mask>`'),
+               'specifies the byte address and mask using two integers. '
+               'Both integers can be specified in hexadecimal, binary, or '
+               'decimal. A bit which is not set in the `<ignore>` value is '
+               'ignored by the address matcher.')
 
-    @parsed
-    def bitrange(self, value):
-        """The bitrange determines the size of a field and which addresses it
-        is sensitive to. It consists of the following components:
+    @listconfig
+    def conditions():
+        """This key specifies additional address match conditions for the
+        logical register surrounding the fields described by this descriptor.
+        These are primarily intended to construct paged or indirect-access
+        register files, which may be useful when not enough address space is
+        allocated to the register file to fit all the registers, or when you
+        want to emulate legacy register files such as a 16550 UART.
 
-         - a byte address;
-         - a block size;
-         - one or two bit indices.
+        The value for this key must match for all fields in the register, so
+        if you use this, it is recommended to use the `subfields` key to group
+        all fields that belong to the register together so you only have to
+        specify it once. In the future, `vhdmmio` may be extended to allow this
+        value to be field-specific."""
+        return ConditionConfig
 
-        The address is what you might expect: it is the AXI4-lite address that
-        the associated field responds to. A field can be mapped to more than
-        one address however; in this case the byte address is the base address
-        (i.e. the lowest address that is part of the bitrange).
+    @choice
+    def endianness():
+        """This key specifies the endianness of the logical register
+        surrounding the fields described by this descriptor."""
+        yield (None, 'the endianness is taken from the global default '
+               '(little), the register file default specified in the '
+               '`features` key, or from other fields within the register that '
+               'do specify a value.')
+        yield ('little', 'the logical register is little endian. That is, '
+               'when multiple blocks are needed to describe the field(s), bit '
+               '0 of the register resides in the *first* block.')
+        yield ('big', 'the logical register is big endian. That is, when '
+               'multiple blocks are needed to describe the field(s), bit '
+               '0 of the register resides in the *last* block.')
 
-        The block size parameter essentially controls how many of the LSBs in
-        the AXI4L address are ignored when matching against the base address.
-        Normally this is 2 for 32-bit busses and 3 for 64-bit busses, since
-        AXI4L addresses are byte-oriented regardless of the bus width and all
-        accesses must be aligned. This is also the lower limit.
-
-        When you increase the size parameter beyond the lower limit, the bits
-        that are ignored in the address matcher can instead be used by the
-        field. Whether the field does anything with this information depends on
-        the field type. Examples of fields which use this are memory fields and
-        AXI4L passthrough fields.
-
-        The high and low bits (or single bit index) determine the size and
-        position of the field in the surrounding logical register. When you
-        specify only a single bit index, the field is scalar (think
-        `std_logic`); when you specify two, the field is a vector (think
-        `std_logic_vector(high downto low)`).
+    @choice
+    def bitrange():
+        """This key specifies the position of the first field described by this
+        descriptor within the surrounding logical register, and specifies its
+        vectorness.
 
         Bit indices cannot go below 0, but they can be greater than or equal to
         the bus width. In this case, the field "spills over" into the
-        subsequent block. For instance, for a 32-bit bus, `8:47..8` maps to:
+        subsequent block. For instance, for a 32-bit bus and little-endian
+        endianness, `8:47..8` maps to:
 
-        | Address | 31..24 | 23..16 | 15..8  | 7..0   |
-        |---------|--------|--------|--------|--------|
-        | 0x08    | 23..16 | 15..8  |  7..0  |        |
-        | 0x0C    |        |        | 39..32 | 31..24 |
+        | Address | 31..24 | 23..16 | 15..8  | 7..0   | Block name |
+        |---------|--------|--------|--------|--------|------------|
+        | 0x08    | 23..16 | 15..8  |  7..0  |        | `...L`     |
+        | 0x0C    |        |        | 39..32 | 31..24 | `...H`     |
+
+        For big-endian it would be:
+
+        | Address | 31..24 | 23..16 | 15..8  | 7..0   | Block name |
+        |---------|--------|--------|--------|--------|------------|
+        | 0x08    |        |        | 39..32 | 31..24 | `...H`     |
+        | 0x0C    | 23..16 | 15..8  |  7..0  |        | `...L`     |
 
         Following the usual nomenclature, 0x08 and 0x0C would be two different
         registers, usually called `high` and `low` or some abbreviation
-        thereof. `vhdmmio` calls 0x08 and 0x0C physical registers, which
-        together form a single logical register.
+        thereof. `vhdmmio` calls 0x08 and 0x0C physical registers (or, more
+        generally, blocks, which can have an arbitrary bitmask for the
+        address), which together form a single logical register.
 
-        While you would rarely (if ever) do this in practice, `vhdmmio`
-        supports combining non-default block sizes with logical registers that
-        are wider than the bus. Consider `8/3:47..8` with a 32-bit bus:
+        Some output formats require unique names/mnemonics for blocks. Since
+        names can only be specified for logical registers as a whole, `vhdmmio`
+        needs to uniquify the identifiers on its own. It does this using the
+        following rules:
 
-        | Address |   31..24   |   23..16   |   15..8    |   7..0     |
-        |---------|------------|------------|------------|------------|
-        | 0x08    | 23..16 [0] | 15..8 [0]  |  7..0 [0]  |            |
-        | 0x0C    | 23..16 [1] | 15..8 [1]  |  7..0 [1]  |            |
-        | 0x10    |            |            | 39..32 [0] | 31..24 [0] |
-        | 0x14    |            |            | 39..32 [1] | 31..24 [1] |
+         - logical registers with one block do not receive any name/mnemonic
+           suffix.
+         - logical registers with two blocks receive `_high`/`H` and `_low`/`L`
+           suffixes for their name/mnemonic based on endianness.
+         - logical registers with more than two blocks receive alphabetical
+           suffixes based on the block index (that is, regardless of
+           endianness). The name suffixes have the form `_<lowercase>`, while
+           the mnemonic suffixes are simply an uppercase letter.
 
-        For array fields, `address` specifies the bitrange for index 0. The
-        bitranges for the remaining indices are generated based on `stride`,
-        `field-stride` and `field-repeat`.
+        When the block address bitmask is nontrivial, the "subsequent block"
+        concept requires further elaboration. Consider for instance the address
+        `0b10--10--` in a 32-bit register file. You could argue that the next
+        block is `0b11--10--` or `0b10--11--`. `vhdmmio` opts for the latter.
+        Specifically, the final block addresses for each block and each of the
+        the four subaddresses would become:
 
-        ### Representation
+        | Block | Mask          | Sub 0 | Sub 1 | Sub 2 | Sub 3 |
+        |-------|---------------|-------|-------|-------|-------|
+        | 0     | ` 0b10--10--` | 0x088 | 0x098 | 0x0A8 | 0x0B8 |
+        | 1     | ` 0b10--11--` | 0x08C | 0x09C | 0x0AC | 0x0BC |
+        | 2     | ` 0b11--00--` | 0x0C0 | 0x0D0 | 0x0E0 | 0x0F0 |
+        | 3     | ` 0b11--01--` | 0x0C4 | 0x0D4 | 0x0E4 | 0x0F4 |
+        | 4     | ` 0b11--10--` | 0x0C8 | 0x0D8 | 0x0E8 | 0x0F8 |
+        | 5     | ` 0b11--11--` | 0x0CC | 0x0DC | 0x0EC | 0x0FC |
+        | 6     | `0b100--00--` | 0x100 | 0x110 | 0x120 | 0x130 |
+        | ...   | ...           | ...   | ...   | ...   | ...   |
 
-        The bitrange is represented as a string with the following components:
+        For field descriptors that describe an array of fields through the
+        `repeat` key, this bitrange specifies the position of the first field
+        in the array. Subsequent field positions are inferred based on
+        `field-stride` and `field-repeat`."""
+        yield (None, 'the field occupies the entire bus word, and is thus a '
+               'vector of the same size as the bus.')
+        yield ((0, None), 'the field occupies a single bit with the specified '
+               'index, and is thus a scalar.')
+        yield ((re.compile(r'[0-9]+\.\.[0-9]+'), '`<high>..<low>`'),
+               'the field occupies the given inclusive bitrange, and is thus '
+               'a vector of size `<high>` - `<low>` + 1.')
 
-         - `<address>`: byte address represented in decimal, hexadecimal
-           (`0x...`), octal (`0...`), or binary (`0b...`). The value set by the
-           `address` key is added to this. If no address is specified here, it
-           defaults to 0.
-         - `/<size>`: the block size represented as an integer.
-           Defaults to 2 for 32-bit busses or 3 for 64-bit busses. This syntax
-           is kind of like IP subnets, but in reverse; IP subnets specify the
-           number of MSBs that *are* matched, whereas bitranges specify the
-           number of LSBs that are *not* matched.
-         - `:<high>`: the high bit or singular bit that the field
-           maps to. If not specified, the field maps to the entire block. That
-           is, `high` defaults to the bus width minus one, and `low` defaults
-           to 0.
-         - `..<low>` (only allowed when `high` is specified): the low bit that
-           the field maps to. If not specified, the field maps to a singular
-           bit (i.e. it is scalar). Note that `:x..x` differs from `:x`; the
-           former generates a vector field of size 1, whereas the latter
-           generates a scalar field.
+    @listconfig
+    def subaddress():
+        """This key specifies how the subaddress for this field is generated.
+        This subaddress is used for memory-like fields, that need an address in
+        addition to read/write data.
 
-        All these components are optional. Some examples:
+        If you leave this list empty or unspecified, the default is to build
+        the subaddress by concatenating the masked word address bits. This is
+        usually what you want. For instance, putting a 64-bit AXI field into a
+        32-bit register file yields an address like `0b----0--`. The block with
+        the first halfword then resides at that address, while the block with
+        the second halfword is at `0b----1--`. The four don't-cares to the left
+        of the block index bit form the subaddress, which the AXI field uses as
+        a 64-bit word address, leading to natural ordering.
 
-         - `0x10:7..0`: 8-bit range residing at the LSB of address 0x10.
-         - `0x10`: 32- or 64-bit range at 0x10, depending on bus width.
-         - `0x10:5`: single-bit range at bit 5 of address 0x10.
-         - `0x10:5..5`: like above, but represents a unit-length array.
-         - `0x300/6`: represents an address range from 0x300 to 0x33F.
-         - `/10`: represents an address range from 0x000 to 0x3FF.
-        """
-        address = self.address
-        self.address = 0
-        return BitRange.from_spec(self.parent.features.bus_width, value).move(address)
+        For more advanced use cases, you can use this key to specify the
+        structure of the subaddress manually. It must be a list of so-called
+        components, each of which represents one or more subaddress bits taken
+        from some source. The source can be the incoming address, an internal
+        signal, an external input signal, or constant zero. The components are
+        then concatenated in LSB to MSB order, and optionally summed with
+        `subaddress_offset` to get the final subaddress."""
+        return SubAddressConfig
 
-    @bitrange.serializer
-    def bitrange(value):
-        """Serializer for `bitrange`."""
-        return BitRange.to_spec(value)
+    @choice
+    def subaddress_offset():
+        """This key allows you to specify a constant offset for the subaddress.
+        The value is added to the result of the logic specified by the
+        `subaddress` key using a full adder before it is passed to the field.
+        This behavior can not always be emulated by entries in the `subaddress`
+        key alone due to the ripple carry logic.
+
+        Note that subaddresses are usually word-oriented. Fields can be
+        non-power-of-two-bytes wide, so byte addresses are often
+        meaningless."""
+        yield 0, 'no offset is applied.'
+        yield int, 'the given (word) offset is applied to the subaddress.'
 
     @choice
     def repeat():
         """This value specifies whether this field descriptor describes a
-        single field or an array of fields."""
+        single field or an array of fields.
+
+        By default, the individual fields are placed in the same register,
+        as if they were concatenated in LSB to MSB order. This can be
+        customized using the `field-repeat`, `stride`, and `field-stride`
+        keys."""
         yield None, 'the descriptor describes a single field.'
         yield (1, None), 'the descriptor describes an array field of the given size.'
 

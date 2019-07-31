@@ -72,7 +72,7 @@ fields:
       group: control
 
     subfields:
-      - bitrange: :3..0
+      - bitrange: 3..0
         mnemonic: DSS
         name: data_size_select
         brief: Data Size Select.
@@ -96,7 +96,7 @@ fields:
           | 0xE   | 15-bit transfer |
           | 0xF   | 16-bit transfer |
 
-      - bitrange: :5..4
+      - bitrange: 5..4
         mnemonic: FRF
         name: frame_format
         brief: Frame Format.
@@ -108,7 +108,7 @@ fields:
           | 0x2   | Microwire     |
           | 0x3   | Not supported |
 
-      - bitrange: :6
+      - bitrange: 6
         mnemonic: CPOL
         name: clock_polarity
         brief: Clock Out Polarity.
@@ -119,7 +119,7 @@ fields:
 
           When 1, the SSP controller maintains the bus clock high between frames.
 
-      - bitrange: :7
+      - bitrange: 7
         mnemonic: CPHA
         name: clock_phase
         brief: Clock Out Phase.
@@ -134,7 +134,7 @@ fields:
           transition of the frame, that is, the transition back to the inter-frame
           state of the clock line.
 
-      - bitrange: :15..8
+      - bitrange: 15..8
         mnemonic: SCR
         name: prescaler_b
         brief: Serial Clock Rate.
@@ -155,7 +155,7 @@ fields:
       group: control
 
     subfields:
-      - bitrange: :0
+      - bitrange: 0
         mnemonic: LBM
         name: loopback
         brief: Loop Back Mode.
@@ -164,7 +164,7 @@ fields:
           serial output (MOSI or MISO) rather than the serial input pin (MISO or MOSI
           respectively).
 
-      - bitrange: :1
+      - bitrange: 1
         mnemonic: SSE
         name: enable
         brief: SSP Enable.
@@ -174,7 +174,7 @@ fields:
           control information to the other SSP registers and interrupt controller
           registers, before setting this bit.
 
-      - bitrange: :2
+      - bitrange: 2
         mnemonic: MS
         name: mode
         brief: Master/Slave Mode.
@@ -187,7 +187,7 @@ fields:
 
         ctrl-lock: yes
 
-      - bitrange: :3
+      - bitrange: 3
         mnemonic: SOD
         name: output_disable
         brief: Slave Output Disable.
@@ -195,7 +195,8 @@ fields:
           This bit is relevant only in slave mode (MS = 1). If it is 1, this blocks
           this SSP controller from driving the transmit data line (MISO).
 
-  - bitrange: 0x0008:15..0
+  - address: 0x0008
+    bitrange: 15..0
     register-name: DR
     register-brief: SSP Data Register.
     register-doc: |
@@ -245,35 +246,35 @@ fields:
       group: status
 
     subfields:
-      - bitrange: :0
+      - bitrange: 0
         mnemonic: TFE
         name: tx_fifo_empty
         brief: Transmit FIFO Empty.
         doc: |
           This bit is 1 if the Transmit FIFO is empty, 0 if not.
 
-      - bitrange: :1
+      - bitrange: 1
         mnemonic: TNF
         name: tx_fifo_not_full
         brief: Transmit FIFO Not Full.
         doc: |
           This bit is 0 if the Tx FIFO is full, 1 if not.
 
-      - bitrange: :2
+      - bitrange: 2
         mnemonic: RNE
         name: rx_fifo_not_empty
         brief: Receive FIFO Not Empty.
         doc: |
           This bit is 0 if the Receive FIFO is empty, 1 if not.
 
-      - bitrange: :3
+      - bitrange: 3
         mnemonic: RFF
         name: rx_fifo_full
         brief: Receive FIFO Full.
         doc: |
           This bit is 1 if the Receive FIFO is full, 0 if not.
 
-      - bitrange: :4
+      - bitrange: 4
         mnemonic: BSY
         name: busy
         brief: Busy.
@@ -303,7 +304,7 @@ fields:
       group: control
 
     subfields:
-      - bitrange: :7..0
+      - bitrange: 7..0
         mnemonic: CPSDVSR
         name: prescaler_a
         brief: Prescaler value.
@@ -324,7 +325,7 @@ fields:
     behavior: interrupt-unmask
 
     subfields:
-      - bitrange: :0
+      - bitrange: 0
         interrupt: rx_overrun
         name: rorim
         brief: Receive overrun interrupt enable.
@@ -334,7 +335,7 @@ fields:
           received. The ARM spec implies that the preceding frame data is overwritten
           by the new frame data when this occurs.
 
-      - bitrange: :1
+      - bitrange: 1
         interrupt: rx_timeout
         name: rtim
         brief: Receive timeout interrupt enable.
@@ -345,7 +346,7 @@ fields:
           same for master and slave modes and is determined by the SSP bit rate: 32
           bits at PCLK / (CPSDVSR x [SCR+1]).
 
-      - bitrange: :2
+      - bitrange: 2
         interrupt: rx_half_full
         name: rxim
         brief: Rx FIFO half-full interrupt enable.
@@ -353,7 +354,7 @@ fields:
           Software should set this bit to enable interrupt when the Rx FIFO is
           atleast half full.
 
-      - bitrange: :3
+      - bitrange: 3
         interrupt: tx_half_empty
         name: txim
         brief: Tx FIFO half-empty interrupt enable.
@@ -372,7 +373,7 @@ fields:
     behavior: interrupt-status
 
     subfields:
-      - bitrange: :0
+      - bitrange: 0
         interrupt: rx_overrun
         name: rorris
         brief: Receive overrun raw interrupt status.
@@ -381,7 +382,7 @@ fields:
           was full. The ARM spec implies that the preceding frame data is overwritten
           by the new frame data when this occurs.
 
-      - bitrange: :1
+      - bitrange: 1
         interrupt: rx_timeout
         name: rtris
         brief: Receive timeout raw interrupt status.
@@ -390,14 +391,14 @@ fields:
           time-out period. The time-out period is the same for master and slave modes
           and is determined by the SSP bit rate: 32 bits at PCLK / (CPSDVSR x [SCR+1]).
 
-      - bitrange: :2
+      - bitrange: 2
         interrupt: rx_half_full
         name: rxris
         brief: Rx FIFO half-full raw interrupt status.
         doc: |
           This bit is 1 if the Rx FIFO is at least half full.
 
-      - bitrange: :3
+      - bitrange: 3
         interrupt: tx_half_empty
         name: txris
         brief: Tx FIFO half-empty raw interrupt status.
@@ -416,7 +417,7 @@ fields:
     write: disabled
 
     subfields:
-      - bitrange: :0
+      - bitrange: 0
         interrupt: rx_overrun
         name: rormis
         brief: Receive overrun masked interrupt status.
@@ -424,7 +425,7 @@ fields:
           This bit is 1 if another frame was completely received while the Rx FIFO
           was full, and this interrupt is enabled.
 
-      - bitrange: :1
+      - bitrange: 1
         interrupt: rx_timeout
         name: rtmis
         brief: Receive timeout masked interrupt status.
@@ -434,7 +435,7 @@ fields:
           master and slave modes and is  determined by the SSP bit rate: 32 bits at
           PCLK / (CPSDVSR x [SCR+1]).
 
-      - bitrange: :2
+      - bitrange: 2
         interrupt: rx_half_full
         name: rxmis
         brief: Rx FIFO half-full masked interrupt status.
@@ -442,7 +443,7 @@ fields:
           This bit is 1 if the Rx FIFO is at least half full, and this interrupt is
           enabled.
 
-      - bitrange: :3
+      - bitrange: 3
         interrupt: tx_half_empty
         name: txmis
         brief: Tx FIFO half-empty masked interrupt status.
@@ -463,7 +464,7 @@ fields:
     read: disabled
 
     subfields:
-      - bitrange: :0
+      - bitrange: 0
         interrupt: rx_overrun
         name: roric
         brief: Receive overrun interrupt clear.
@@ -471,7 +472,7 @@ fields:
           Writing a 1 to this bit clears the “frame was received when Rx FIFO was
           full” interrupt.
 
-      - bitrange: :1
+      - bitrange: 1
         interrupt: rx_timeout
         name: rtic
         brief: Receive timeout interrupt clear.
@@ -517,6 +518,7 @@ class TestConfig(TestCase):
                 'README.md',
                 'SUMMARY.md',
                 'axi.md',
+                'conditionconfig.md',
                 'config.md',
                 'constant.md',
                 'control.md',
@@ -550,6 +552,7 @@ class TestConfig(TestCase):
                 'status.md',
                 'streamtommio.md',
                 'strobe.md',
+                'subaddressconfig.md',
                 'volatilecounter.md',
                 'volatileflag.md',
                 'volatileinternalcounter.md',
