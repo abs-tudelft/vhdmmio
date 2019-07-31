@@ -2,32 +2,21 @@
 paging."""
 
 from collections import namedtuple, OrderedDict
+from .shaped import Shaped
 
-class AddressSignal:
+class AddressSignal(Shaped):
     """Represents a signal that is mapped to one or more internal address
     bits. Intended to be subclassed based on the signal type, its origin, etc.
-    Needed by the base class are a name for documentation and an xwidth to
-    represent the signal's vectorness."""
+    Needed by the base class are a name for documentation and a shape."""
 
-    def __init__(self, name, xwidth=None):
-        super().__init__()
+    def __init__(self, name, shape=None):
+        super().__init__(shape=shape)
         self._name = name
-        self._xwidth = xwidth
 
     @property
     def name(self):
         """Name of the signal, mostly intended for the documentation output."""
         return self._name
-
-    @property
-    def xwidth(self):
-        """Width of the signal in bits for vectors, None for scalar signals."""
-        return self._xwidth
-
-    @property
-    def width(self):
-        """Width of the signal in bits regardless of vectorness."""
-        return self._xwidth if self._xwidth is not None else 1
 
     def __hash__(self):
         return id(self)
@@ -39,10 +28,10 @@ class AddressSignal:
         return self is not other
 
     def __str__(self):
-        return self._name
+        return self.name
 
     def __repr__(self):
-        return 'AddressSignal(%r, %r)' % (self._name, self._xwidth)
+        return 'AddressSignal(%r, %r)' % (self.name, self.shape)
 
     def doc_represent(self, value):
         """Represents an address matching operation for this signal against the

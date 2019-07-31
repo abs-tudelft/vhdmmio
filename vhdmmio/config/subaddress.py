@@ -11,8 +11,8 @@ class SubAddressConfig(Configurable):
     called a subaddress. This configuration structure specifies part of a
     custom subaddress format.
 
-    Note that exactly one of the `address`, `internal`, `input`, and `blank`
-    keys must be specified."""
+    Note that exactly one of the `address`, `internal`, and `blank` keys must
+    be specified."""
 
     #pylint: disable=E0211,E0213,E0202
 
@@ -41,20 +41,6 @@ class SubAddressConfig(Configurable):
         yield (re.compile(r'[a-zA-Za-z][a-zA-Z0-9_]*:[0-9]+'), 'a vector '
                'internal with the given name and width is inserted into the '
                'subaddress at the current position.')
-
-    @choice
-    def input():
-        """This key specifies that this component of the subaddress is based
-        on the value of an external input signal."""
-        yield (None, 'this subaddress component is not based on an external '
-               'input signal.')
-        yield (re.compile(r'[a-zA-Za-z][a-zA-Z0-9_]*'), 'a scalar external '
-               'input signal with the given name is inserted into the '
-               'subaddress at the current position.')
-        yield (re.compile(r'[a-zA-Za-z][a-zA-Z0-9_]*:[0-9]+'), 'a vector '
-               'external input signal with the given name and width is '
-               'inserted into the subaddress at the current position.')
-
     @choice
     def blank():
         """This key specifies that a number of blank bits should be inserted as
@@ -67,10 +53,10 @@ class SubAddressConfig(Configurable):
 
     @choice
     def slice():
-        """For component based on vector signals (`internal` and `input`), this
-        key allows you to use only a subset of the signal for this component.
-        In conjunction with other subaddress components based on the same
-        signal, this allows bits to be reordered."""
+        """For component based on vector internal signals, this key allows you
+        to use only a subset of the signal for this component. In conjunction
+        with other subaddress components based on the same signal, this allows
+        bits to be reordered."""
         yield None, 'the entire vector is used.'
         yield (0, None), 'only the specified bit within the vector is used.'
         yield ((re.compile(r'[0-9]+\.\.[0-9]+'), '`<high>..<low>`'),

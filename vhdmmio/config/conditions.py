@@ -1,7 +1,7 @@
 """Submodule for `ConditionConfig` configurable."""
 
 import re
-from ..configurable import configurable, Configurable, choice
+from ..configurable import configurable, Configurable, choice, required_choice
 
 @configurable(name='Additional address match conditions')
 class ConditionConfig(Configurable):
@@ -14,30 +14,14 @@ class ConditionConfig(Configurable):
 
     #pylint: disable=E0211,E0213,E0202
 
-    @choice
+    @required_choice
     def internal():
         """This key specifies the internal signal to use for the match
-        condition, if applicable. Either this key or `input` must be
-        specified."""
-        yield (None, 'no internal is specified, `input` must be specified '
-               'instead.')
+        condition."""
         yield (re.compile('[a-zA-Za-z][a-zA-Z0-9_]*'), 'a scalar internal '
                'with the given name is used for the match condition.')
         yield (re.compile('[a-zA-Za-z][a-zA-Z0-9_]*:[0-9]+'), 'a vector '
                'internal with the given name and width is used for the match '
-               'condition.')
-
-    @choice
-    def input():
-        """This key specifies the external input signal to use for the match
-        condition, if applicable. Either this key or `internal` must be
-        specified."""
-        yield (None, 'no external input is specified, `internal` must be '
-               'specified instead.')
-        yield (re.compile('[a-zA-Za-z][a-zA-Z0-9_]*'), 'a scalar input signal '
-               'with the given name is used for the match condition.')
-        yield (re.compile('[a-zA-Za-z][a-zA-Z0-9_]*:[0-9]+'), 'a vector input '
-               'signal with the given name and width is used for the match '
                'condition.')
 
     @choice

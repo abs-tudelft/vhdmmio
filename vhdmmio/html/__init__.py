@@ -2,9 +2,9 @@
 
 import os
 from markdown2 import Markdown
-from vhdmmio.core.bitrange import BitRange
 
-#get#xdg-open#to#interpret#this#as#a#python#file#...##################
+#get#xdg-open#to#interpret#this#as#a#python#file#...######
+######################################################
 
 _HEADER = """<!DOCTYPE html>
 <html>
@@ -120,13 +120,14 @@ def _bitfield_table_body(address, read_bitmap, write_bitmap):
                     bitrange_args = [reg_index]
                 else:
                     bitrange_args = [reg_index + width - 1, reg_index]
-                bitrange = BitRange(
-                    field.bitrange.bus_width,
-                    address,
-                    field.bitrange.size,
-                    *bitrange_args)
+                #bitrange = BitRange(
+                    #field.bitrange.bus_width,
+                    #address,
+                    #field.bitrange.size,
+                    #*bitrange_args) TODO
+                _ = address, bitrange_args
 
-                tooltip = '%s (%s)<br/>= %s' % (bitrange.to_spec(), field_mode, long_name)
+                tooltip = '%s (%s)<br/>= %s' % ('bitrange.to_spec() TODO', field_mode, long_name)
 
                 if len(name) > width*2:
                     abbreviated = name[:width*2-1] + '…'
