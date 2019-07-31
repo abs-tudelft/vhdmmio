@@ -94,25 +94,25 @@ This key is optional unless required by context. If not specified, the default v
 This configuration structure is used to name and document the
 interrupt.
 
-More information about this structure may be found [here](metadata.md).
+More information about this structure may be found [here](metadataconfig.md).
 
 The following configuration keys are used to configure this structure.
 
 ### `mnemonic`
 
-This key is documented [here](metadata.md#mnemonic).
+This key is documented [here](metadataconfig.md#mnemonic).
 
 ### `name`
 
-This key is documented [here](metadata.md#name).
+This key is documented [here](metadataconfig.md#name).
 
 ### `brief`
 
-This key is documented [here](metadata.md#brief).
+This key is documented [here](metadataconfig.md#brief).
 
 ### `doc`
 
-This key is documented [here](metadata.md#doc).
+This key is documented [here](metadataconfig.md#doc).
 
 ## `internal`
 

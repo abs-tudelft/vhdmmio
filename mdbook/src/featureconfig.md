@@ -1,4 +1,4 @@
-# Register file features
+# Register file options
 
 This configuration structure specifies some miscellaneous options that
 affect the functionality and generation of the register file as a whole.
@@ -43,7 +43,7 @@ This key allows you to disable the multi-word register protection
 features normally inferred by `vhdmmio` when any of the fields in the
 register file are sensitive to `aw_prot` or `ar_prot`. This may save
 some area. More information about `vhdmmio`'s security features is
-available [here](accessprivileges.md).
+available [here](permissionconfig.md).
 
 The value must be a boolean (default `no`).
 

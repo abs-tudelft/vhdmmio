@@ -148,11 +148,11 @@ class FieldConfig(Configurable):
         yield ((0, None), 'specifies the byte address. The address LSBs that '
                'index bytes within the bus word are ignored per the AXI4L '
                'specification.')
-        yield ((re.compile(dc_int_re), 'a hex/bin/dec integer'),
+        yield ((re.compile(dc_int_re), 'a hex/bin integer with don\'t cares'),
                'as before, but specified as a string representation of a '
-               'hexadecimal, binary, or decimal integer. Don\'t cares (`-`) '
-               'can be used in the hexadecimal and binary forms to mask out '
-               'address bits in addition to the byte index LSBs.')
+               'hexadecimal or binary integer which may contain don\'t cares '
+               '(`-`). The don\'t care bits mask out address bits in addition '
+               'to the byte index LSBs.')
         yield ((re.compile(dc_int_re + r'/[0-9]+'), '`<address>/<size>`'),
                'as before, but the number of ignored LSBs is explicitly set. '
                'This is generally a more convenient notation to use when '

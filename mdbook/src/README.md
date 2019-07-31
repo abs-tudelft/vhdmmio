@@ -39,11 +39,11 @@ insanely high. If your active logic requires a high clock speed and
 
 # Table of contents
 
-- [Register files](registerfile.md)
-  - [Metadata](metadata.md)
-  - [Register file features](registerfilefeatures.md)
-  - [VHDL interface options](interfaceoptions.md)
-  - [Field descriptors](fielddescriptor.md)
+- [Register files](registerfileconfig.md)
+  - [Metadata](metadataconfig.md)
+  - [Register file options](featureconfig.md)
+  - [VHDL interface configuration](interfaceconfig.md)
+  - [Field descriptors](fieldconfig.md)
     - [`primitive` behavior](primitive.md)
     - [`constant` behavior](constant.md)
     - [`config` behavior](config.md)
@@ -76,5 +76,7 @@ insanely high. If your active logic requires a high clock speed and
     - [`interrupt-status` behavior](interruptstatus.md)
     - [`interrupt-raw` behavior](interruptraw.md)
     - [`custom` behavior](custom.md)
-    - [Access privileges](accessprivileges.md)
-  - [Interrupt descriptors](interruptdescriptor.md)
+    - [Additional address match conditions](conditionconfig.md)
+    - [Subaddress components](subaddressconfig.md)
+    - [Permissions](permissionconfig.md)
+  - [Interrupt descriptors](interruptconfig.md)

@@ -1,4 +1,4 @@
-# Access privileges
+# Permissions
 
 This configuration structure defines the privilege levels that are
 allowed to access a field based on the `aw_prot` and `ar_prot` AXI4L
