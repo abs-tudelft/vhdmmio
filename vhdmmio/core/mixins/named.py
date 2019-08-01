@@ -1,16 +1,24 @@
 """Submodule for namespace management."""
 
-from ..configurable import Unset
+from ...configurable import Unset
+from ...config import MetadataConfig
 
 class Named:
     """Base class for register file components that have a mnemonic, name, and
     documentation attached to them."""
 
-    def __init__(self, metadata,
+    def __init__(self, metadata=None, name=None,
                  mnemonic_suffix='', name_suffix='',
                  doc_index='', brief_override=None, doc_override=None,
                  **kwargs):
         super().__init__(**kwargs)
+
+        assert metadata is not None or name is not None
+
+        # Instead of supplying a complete metadata object, just a name is okay
+        # too.
+        if metadata is None:
+            metadata = MetadataConfig(name=name)
 
         # Check for context-sensitive configuration errors.
         if metadata.mnemonic is Unset and metadata.name is Unset:
@@ -73,6 +81,9 @@ class Named:
 
     def __str__(self):
         return '%s %s' % (type(self).__name__, self.name)
+
+    def __repr__(self):
+        return '%s(name=%r)' % (type(self).__name__, self.name)
 
 
 class Namespace:

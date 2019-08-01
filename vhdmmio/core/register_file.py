@@ -1,6 +1,6 @@
 """Submodule for the root class for a complete register file."""
 
-from .named import Named
+from .mixins import Named
 from .internals import InternalManager
 from .addressing import AddressManager
 

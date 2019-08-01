@@ -2,49 +2,7 @@
 paging."""
 
 from collections import namedtuple, OrderedDict
-from .shaped import Shaped
-
-class AddressSignal(Shaped):
-    """Represents a signal that is mapped to one or more internal address
-    bits. Intended to be subclassed based on the signal type, its origin, etc.
-    Needed by the base class are a name for documentation and a shape."""
-
-    def __init__(self, name, shape=None):
-        super().__init__(shape=shape)
-        self._name = name
-
-    @property
-    def name(self):
-        """Name of the signal, mostly intended for the documentation output."""
-        return self._name
-
-    def __hash__(self):
-        return id(self)
-
-    def __eq__(self, other):
-        return self is other
-
-    def __ne__(self, other):
-        return self is not other
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return 'AddressSignal(%r, %r)' % (self.name, self.shape)
-
-    def doc_represent(self, value):
-        """Represents an address matching operation for this signal against the
-        given representation of the to-be-matched value itself for usage in
-        documentation output. The value is expected to be a string returned by
-        `MaskedAddress.doc_represent()`. If the string is `'-'` (a don't care)
-        `None` may be returned to suppress the match operation in the
-        documentation, but subclasses may also choose to always output the
-        match."""
-        if value == '-':
-            return None
-        return '`%s`=%s' % (self._name, value)
-
+from .mixins import Shaped, Named, Unique
 
 _MaskedAddress = namedtuple('_MaskedAddress', ['address', 'mask'])
 
@@ -157,28 +115,23 @@ class AddressSignalMap:
     `AddressSignalMap.BUS` signal, which represents the incoming AXI4-lite bus
     address."""
 
-    class _BusAddress(AddressSignal):
+    class _BusAddress(Shaped, Named, Unique):
         """Singleton class representing the incoming AXI4L bus address. The
         singleton to use is `AddressSignalMap.BUS`."""
 
         def __init__(self):
-            super().__init__('address', 32)
-
-        def doc_represent(self, value):
-            """Always represent match operations with the incoming address in the
-            documentation. Furthermore, the name of the signal is implicit."""
-            return value
+            super().__init__(name='address', shape=32)
 
     BUS = _BusAddress()
 
     def __init__(self):
         super().__init__()
 
-        # Ordered mapping from AddressSignal object to the size of the
-        # signal in bits, or None to indicate that the signal is scalar.
+        # Ordered mapping from `Shaped+Named+Unique` objects to the offset of
+        # the signal within the internal address.
         self._signals = OrderedDict()
         self._width = 0
-        self.append(self.BUS)
+        self._add_signal(self.BUS)
 
     @property
     def width(self):
@@ -190,9 +143,9 @@ class AddressSignalMap:
         yielding `(signal, offset)` tuples in insertion order = LSB to MSB."""
         return self._signals.items()
 
-    def append(self, address_signal):
-        """Adds an address signal to this mapping. No-op if the signal is
-        already mapped."""
+    def _add_signal(self, address_signal):
+        """Adds an address signal represented as a `Shaped+Named+Unique` object
+        to this mapping. No-op if the signal is already mapped."""
 
         # If the signal is already in the map, this is no-op.
         if address_signal in self._signals:
@@ -208,11 +161,12 @@ class AddressSignalMap:
     def construct_address(self, mapping):
         """Constructs a `MaskedAddress` for the internal address structured as
         defined by this `AddressSignalMap` based on the requirements in
-        `mapping`, which should be a mapping object from `AddressSignal`
-        objects contained in this `AddressSignalMap` to `MaskedAddress`
-        objects."""
+        `mapping`, which should be a mapping object from `Shaped+Named+Unique`
+        signal objects to `MaskedAddress` objects. If a signal object is not
+        part of the internal address yet, it is added automatically."""
         address = ALL_ADDRESSES
-        for signal, sub_address in mapping.items():
+        for signal, sub_address in sorted(mapping.items(), key=lambda x: x[0].name):
+            self._add_signal(signal)
             offset = self._signals[signal]
             address += (sub_address & ((1 << signal.width) - 1)) << offset
         return address
@@ -233,9 +187,11 @@ class AddressSignalMap:
         this object for use within markdown documentation."""
         doc_components = []
         for signal, sub_address in self.split_address(address).items():
-            doc_component = signal.doc_represent(sub_address.doc_represent(signal.width))
-            if doc_component:
-                doc_components.append(doc_component)
+            value = sub_address.doc_represent(signal.width)
+            if signal is self.BUS:
+                doc_components.append(value)
+            elif value != '-':
+                doc_components.append('`%s`=%s' % (signal.name, value))
         return ', '.join(doc_components)
 
 
@@ -321,11 +277,13 @@ class AddressManager:
         """The managed write address decoder map."""
         return self._write
 
-    def add_mapping(self, obj, bus_address, read=True, write=True, paging=None):
-        """Adds a mapping for obj with the specified read/write mode."""
+    def add_mapping(self, obj, bus_address, read=True, write=True, conditions=None):
+        """Adds a mapping for obj with the specified read/write mode.
+        `conditions` should be a mapping object from `Shaped+Named+Unique`
+        signal objects to `MaskedAddress` objects if specified."""
         subaddresses = {AddressSignalMap.BUS: bus_address}
-        if paging is not None:
-            subaddresses.update(paging)
+        if conditions is not None:
+            subaddresses.update(conditions)
         address = self.signals.construct_address(subaddresses)
         for enable, decoder, mode in ((read, self.read, 'read'), (write, self.write, 'write')):
             if not enable:

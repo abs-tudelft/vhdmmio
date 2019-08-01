@@ -35,7 +35,7 @@ class Configurable:
         # previous, this allows a `Configurable` to be instantiated using
         # Pythonic keyword arguments in addition to the normal dictionary
         # deserialization method.
-        for kwarg_key, value in kwargs:
+        for kwarg_key, value in kwargs.items():
             dict_key = kwarg_key.replace('_', '-')
             dictionary[dict_key] = value
 

@@ -1,21 +1,15 @@
 """Submodule for handling internal signals."""
 
-from .shaped import Shaped
+from .mixins import Shaped, Named, Unique
 
-class Internal(Shaped):
+class Internal(Shaped, Named, Unique):
     """Represents an internal signal."""
 
     def __init__(self, name, shape):
-        super().__init__(shape=shape)
-        self._name = name
+        super().__init__(shape=shape, name=name)
         self._driver = None
         self._strobers = []
         self._users = []
-
-    @property
-    def name(self):
-        """The name of the internal signal."""
-        return self._name
 
     def _check_shape(self, obj, expected_shape):
         """Raises a sensible error when `expected_shape` does not match the
