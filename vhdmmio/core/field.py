@@ -9,7 +9,7 @@ class Field(Named, BitRange, Configured, Unique):
     """Represents a parsed field descriptor. That is, a single field or a
     number of fields in an array."""
 
-    def __init__(self, descriptor, cfg, index, address, bitrange):
+    def __init__(self, resources, descriptor, cfg, index, address, bitrange):
         index_str = '' if cfg.repeat is None else str(index)
         super().__init__(
             cfg=cfg,

@@ -23,6 +23,7 @@ from vhdmmio.version import __version__
 import vhdmmio.vhdl as vhdl
 import vhdmmio.html as html
 from vhdmmio.config import RegisterFileConfig
+from vhdmmio.core import RegisterFile
 
 def run_cli(args=None):
     """Runs the vhdmmio CLI. The command-line arguments are taken from `args`
@@ -114,7 +115,6 @@ def run_cli(args=None):
         register_files_cfgs = list(map(RegisterFileConfig.load, input_files))
 
         # Compile the register files.
-        raise NotImplementedError()
         register_files = [
             RegisterFile(cfg, trusted=args.trusted)
             for cfg in register_files_cfgs]

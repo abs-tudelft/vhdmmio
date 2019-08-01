@@ -8,8 +8,8 @@ class Internal(Named, Shaped, Unique):
     def __init__(self, name, shape):
         super().__init__(shape=shape, name=name)
         self._driver = None
-        self._strobers = []
-        self._users = []
+        self._strobers = set()
+        self._users = set()
 
     def _check_shape(self, obj, expected_shape):
         """Raises a sensible error when `expected_shape` does not match the
@@ -29,9 +29,9 @@ class Internal(Named, Shaped, Unique):
         if self._strobers:
             raise ValueError(
                 'internal %s cannot both be driven by %s and strobed by %s' % (
-                    self.name, driver, self._strobers[0]))
+                    self.name, driver, next(iter(self._strobers))))
         self._check_shape(driver, expected_shape)
-        self._users.append(driver)
+        self._driver = driver
 
     def strobe(self, strober, expected_shape):
         """Registers a strober for this internal signal."""
@@ -40,12 +40,12 @@ class Internal(Named, Shaped, Unique):
                 'internal %s cannot both be driven by %s and strobed by %s' % (
                     self.name, self._driver, strober))
         self._check_shape(strober, expected_shape)
-        self._strobers.append(strober)
+        self._strobers.add(strober)
 
     def use(self, user, expected_shape):
         """Registers a user for this internal signal."""
         self._check_shape(user, expected_shape)
-        self._users.append(user)
+        self._users.add(user)
 
     def verify(self):
         """Raises sensible errors when this internal is missing drivers or
@@ -76,24 +76,47 @@ class InternalManager:
             self._internals[ident] = internal
         return internal
 
-    def drive(self, driver, internal, shape):
+    @staticmethod
+    def _parse_internal(internal, shape):
+        """Parses an internal name that may include shape information using
+        `<name>:<width>` syntax. If no width is specified in the name,
+        `shape` is used instead."""
+        internal, *shape_config = internal.split(':')
+        assert not shape_config or shape is None
+        if shape_config:
+            shape = int(shape_config)
+        return internal, shape
+
+    def drive(self, driver, internal, shape=None):
         """Registers a driver for an internal signal with name `internal` and
-        shape `shape`."""
+        shape `shape`. If `shape` is `None` or left unspecified, the vector
+        width can also be specified in `internal` using the `<name>:<width>`
+        notation used in various configuration structures."""
+        internal, shape = self._parse_internal(internal, shape)
         self._ensure_exists(internal, shape).drive(driver, shape)
 
-    def strobe(self, strober, internal, shape):
+    def strobe(self, strober, internal, shape=None):
         """Registers a strober for an internal signal with name `internal` and
-        shape `shape`."""
+        shape `shape`. If `shape` is `None` or left unspecified, the vector
+        width can also be specified in `internal` using the `<name>:<width>`
+        notation used in various configuration structures."""
+        internal, shape = self._parse_internal(internal, shape)
         self._ensure_exists(internal, shape).strobe(strober, shape)
 
-    def use(self, user, internal, shape):
+    def use(self, user, internal, shape=None):
         """Registers a user for an internal signal with name `internal` and
-        shape `shape`."""
+        shape `shape`. If `shape` is `None` or left unspecified, the vector
+        width can also be specified in `internal` using the `<name>:<width>`
+        notation used in various configuration structures."""
+        internal, shape = self._parse_internal(internal, shape)
         self._ensure_exists(internal, shape).use(user, shape)
 
-    def make_input(self, internal, shape):
+    def make_input(self, internal, shape=None):
         """Registers that the given internal should be driven by an input
-        signal of the same name."""
+        signal of the same name. If `shape` is `None` or left unspecified, the
+        vector width can also be specified in `internal` using the
+        `<name>:<width>` notation used in various configuration structures."""
+        internal, shape = self._parse_internal(internal, shape)
         self.drive('an input port', internal, shape)
         ident = internal.lower()
         if ident in self._io:
@@ -102,9 +125,12 @@ class InternalManager:
                 % internal)
         self._io[ident] = ('in', self._internals[ident])
 
-    def make_output(self, internal, shape):
+    def make_output(self, internal, shape=None):
         """Registers that an output signal should be driven by an internal
-        signal of the same name."""
+        signal of the same name. If `shape` is `None` or left unspecified, the
+        vector width can also be specified in `internal` using the
+        `<name>:<width>` notation used in various configuration structures."""
+        internal, shape = self._parse_internal(internal, shape)
         self.drive('an output port', internal, shape)
         ident = internal.lower()
         if ident in self._io:
@@ -112,10 +138,6 @@ class InternalManager:
                 'there is already an I/O port for internal signal %s'
                 % internal)
         self._io[ident] = ('out', self._internals[ident])
-
-    def get(self, name):
-        """Retrieves the `Internal` with the specified name."""
-        return self._internals[name.lower()]
 
     def __iter__(self):
         """Iterates over all the `Internal` objects."""

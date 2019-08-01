@@ -9,7 +9,7 @@ class FieldDescriptor(Named, Shaped, Configured, Unique):
     """Represents a parsed field descriptor. That is, a single field or a
     number of fields in an array."""
 
-    def __init__(self, regfile, cfg):
+    def __init__(self, resources, regfile, cfg):
         super().__init__(
             cfg=cfg,
             metadata=cfg.metadata,
@@ -18,7 +18,7 @@ class FieldDescriptor(Named, Shaped, Configured, Unique):
         with self.context:
             self._regfile = regfile
             self._fields = tuple((
-                Field(self, cfg, index, address, bitrange)
+                Field(resources, self, cfg, index, address, bitrange)
                 for index, (address, bitrange)
                 in enumerate(self._compute_field_locations())))
 

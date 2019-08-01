@@ -387,6 +387,64 @@ class AddressManager:
         """The managed write address decoder map."""
         return self._write
 
+    def construct_internal_address(self, resources, address, conditions):
+        """Constructs an internal address from the given `MaskedAddress` for
+        the incoming bus address, a list of `ConditionConfig` objects, and a
+        `RegisterFileResources` object to get the internal signal objects
+        from."""
+        subaddresses = {AddressSignalMap.BUS: address}
+        for condition in conditions:
+            internal = resources.internals.use(
+                'address matching', condition.internal)
+            value = MaskedAddress.parse_config(
+                condition.value, signal_width=internal.width)
+            subaddresses[internal] = value
+        return self.signals.construct_address(subaddresses)
+
+    def read_map(self, internal_address, constructor, *args, **kwargs):
+        """Returns the current read mapping for `internal_address`, or
+        constructs the mapping by calling `constructor(*args, **kwargs)` if
+        there is no mapping yet. If this new mapping conflicts with existing
+        mappings, an exception is raised."""
+        mapping = self.read.get(internal_address, None)
+        if mapping is None:
+            mapping = constructor(*args, **kwargs)
+            try:
+                self.read[internal_address] = mapping
+            except AddressConflictError as exc:
+                raise ValueError(
+                    'address conflict between %s (%s) and %s (%s) at %s in read mode' % (
+                        mapping,
+                        self.signals.doc_represent_address(exc.address_a),
+                        self.read[exc.address_b],
+                        self.signals.doc_represent_address(exc.address_b),
+                        self.signals.doc_represent_address(MaskedAddress(
+                            exc.address_a.common(exc.address_b),
+                            (1 << self.signals.width) - 1))))
+        return mapping
+
+    def write_map(self, internal_address, constructor, *args, **kwargs):
+        """Returns the current write mapping for `internal_address`, or
+        constructs the mapping by calling `constructor(*args, **kwargs)` if
+        there is no mapping yet. If this new mapping conflicts with existing
+        mappings, an exception is raised."""
+        mapping = self.write.get(internal_address, None)
+        if mapping is None:
+            mapping = constructor(*args, **kwargs)
+            try:
+                self.write[internal_address] = mapping
+            except AddressConflictError as exc:
+                raise ValueError(
+                    'address conflict between %s (%s) and %s (%s) at %s in write mode' % (
+                        mapping,
+                        self.signals.doc_represent_address(exc.address_a),
+                        self.write[exc.address_b],
+                        self.signals.doc_represent_address(exc.address_b),
+                        self.signals.doc_represent_address(MaskedAddress(
+                            exc.address_a.common(exc.address_b),
+                            (1 << self.signals.width) - 1))))
+        return mapping
+
     def add_mapping(self, obj, bus_address, read=True, write=True, conditions=None):
         """Adds a mapping for obj with the specified read/write mode.
         `conditions` should be a mapping object from `Shaped+Named+Unique`
