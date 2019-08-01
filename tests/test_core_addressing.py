@@ -11,6 +11,18 @@ class Signal(Shaped, Named, Unique):
 class TestAddressing(TestCase):
     """Tests for the classes defined in `vhdmmio.core.addressing`."""
 
+    def test_subsequent(self):
+        """test the masked adder logic for finding subsequent blocks"""
+        # Adding:
+        #     0b01011010
+        #     0b01101100
+        #  (C=0b11110000)
+        #     ---------- +
+        #     0b11000110
+        addr = MaskedAddress.parse_config('0b0-1--0--11--0-10')
+        addr += 0b01101100
+        self.assertEqual(addr, MaskedAddress.parse_config('0b1-1--0--00--1-10'))
+
     def test_16550(self):
         """test an AddressManager with 16550's DLAB madness"""
         self.maxDiff = None #pylint: disable=C0103

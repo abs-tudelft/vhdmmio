@@ -144,7 +144,7 @@ class FieldConfig(Configurable):
         register that the first field described by this descriptor resides
         in."""
         int_re = r'(0x[0-9A-Fa-f]+|0b[01]+|[0-9]+)'
-        dc_int_re = r'(0x[-0-9A-Fa-f]+|0b[-01]+|[0-9]+)'
+        dc_int_re = r'(0x([-0-9A-Fa-f]|\[[-01]{4}\])+|0b[-01]+|[0-9]+)'
         yield ((0, None), 'specifies the byte address. The address LSBs that '
                'index bytes within the bus word are ignored per the AXI4L '
                'specification.')
@@ -152,17 +152,19 @@ class FieldConfig(Configurable):
                'as before, but specified as a string representation of a '
                'hexadecimal or binary integer which may contain don\'t cares '
                '(`-`). The don\'t care bits mask out address bits in addition '
-               'to the byte index LSBs.')
+               'to the byte index LSBs. In hexadecimal integers, bit-granular '
+               'don\'t-cares can be specified by inserting four-bit binary '
+               'blocks enclosed in square braces in place of a hex digit.')
         yield ((re.compile(dc_int_re + r'/[0-9]+'), '`<address>/<size>`'),
                'as before, but the number of ignored LSBs is explicitly set. '
                'This is generally a more convenient notation to use when '
                'assigning large blocks of memory to a field.')
-        yield ((re.compile(int_re + r'\|' + int_re), '`<address>|<ignore>`'),
+        yield ((re.compile(dc_int_re + r'\|' + int_re), '`<address>|<ignore>`'),
                'specifies the byte address and ignored bits using two '
                'integers. Both integers can be specified in hexadecimal, '
                'binary, or decimal. A bit which is set in the `<ignore>` '
                'value is ignored by the address matcher.')
-        yield ((re.compile(int_re + r'\&' + int_re), '`<address>&<mask>`'),
+        yield ((re.compile(dc_int_re + r'\&' + int_re), '`<address>&<mask>`'),
                'specifies the byte address and mask using two integers. '
                'Both integers can be specified in hexadecimal, binary, or '
                'decimal. A bit which is not set in the `<ignore>` value is '
@@ -350,14 +352,15 @@ class FieldConfig(Configurable):
 
     @choice
     def stride():
-        """This value specifies by how many bytes the bitrange address should
-        be advanced when moving to the next logical register due to
+        """This value specifies by how many blocks the address should be
+        advanced when moving to the next logical register due to
         `field-repeat` < `repeat`."""
-        yield None, ('the address is incremented by the field\'s block size. Note that '
-                     'this default is not correct when the logical register is wider '
-                     'than the bus.')
-        yield int, ('the address is incremented by this amount of bytes each time. '
-                    'Negative addresses can be used for big-endian indexation.')
+        yield 1, ('the address is incremented by one block. Note that this '
+                  'default is not correct when the logical register is wider '
+                  'than the bus.')
+        yield int, ('the address is incremented by this amount of blocks each '
+                    'time. Negative numbers can be used for big-endian '
+                    'indexation.')
 
     @choice
     def field_stride():
@@ -389,7 +392,7 @@ class FieldConfig(Configurable):
         return 'register', MetadataConfig
 
     @embedded
-    def read():
+    def read_allow():
         """These keys describe which AXI4L `ar_prot` values are acceptable for
         read transactions. By default, the `ar_prot` field is ignored, so all
         masters can read from the field(s). These keys have no effect for
@@ -397,7 +400,7 @@ class FieldConfig(Configurable):
         return 'read-allow', PermissionConfig
 
     @embedded
-    def write():
+    def write_allow():
         """These keys describe which AXI4L `aw_prot` values are acceptable for
         write transactions. By default, the `aw_prot` field is ignored, so all
         masters can write to the field(s). These keys have no effect for

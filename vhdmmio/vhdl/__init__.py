@@ -132,7 +132,7 @@ class Generator:
         self._tple['r'] = regfile
 
         # Interface builder.
-        self._interface = Interface(regfile.meta.name, regfile.iface_opts)
+        self._interface = Interface(regfile.meta.name)
 
         # Address decoder builders.
         self._read_decoder = Decoder('r_addr', 32, optimize=regfile.optimize)

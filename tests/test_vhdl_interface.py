@@ -2,7 +2,9 @@
 
 from unittest import TestCase
 import vhdmmio.vhdl.types as types
-from vhdmmio.vhdl.interface import Interface, InterfaceOptions
+from vhdmmio.vhdl.interface import Interface
+from vhdmmio.config import InterfaceConfig
+from vhdmmio.core import InterfaceOptions
 
 class TestVhdlInterface(TestCase):
     """Unit tests for the VHDL entity interface generator."""
@@ -13,44 +15,44 @@ class TestVhdlInterface(TestCase):
     def gen_basic_interface(group, flatten):
         """Generates a simple interface with the given grouping and
         flattening."""
-        options = InterfaceOptions(
-            port_group=group, port_flatten=flatten,
-            generic_group=group, generic_flatten=flatten)
-        iface = Interface('tns', options)
+        options = InterfaceOptions(InterfaceConfig(
+            group=group, flatten=flatten,
+            generic_group=group, generic_flatten=flatten))
+        iface = Interface('tns')
 
         objs = [iface]
 
         objs.append(iface.add(
             'foo', 'field foo: a scalar field.', 'f', None,
-            'data', 'i', types.std_logic_vector, 8))
+            'data', 'i', types.std_logic_vector, 8, options))
         objs.append(iface.add(
             'foo', 'field foo: a scalar field.', 'f', None,
-            'valid', 'i', types.std_logic, None))
+            'valid', 'i', types.std_logic, None, options))
         objs.append(iface.add(
             'foo', 'field foo: a scalar field.', 'f', None,
-            'ready', 'o', types.std_logic, None))
+            'ready', 'o', types.std_logic, None, options))
         objs.append(iface.add(
             'foo', 'field foo: a scalar field.', 'f', None,
-            'enable', 'g', types.boolean, None))
+            'enable', 'g', types.boolean, None, options))
 
         objs.append(iface.add(
             'bar', 'field bar: a vector field.', 'f', 4,
-            'data', 'o', types.std_logic_vector, 8))
+            'data', 'o', types.std_logic_vector, 8, options))
         objs.append(iface.add(
             'bar', 'field bar: a vector field.', 'f', 4,
-            'valid', 'o', types.std_logic, None))
+            'valid', 'o', types.std_logic, None, options))
         objs.append(iface.add(
             'bar', 'field bar: a vector field.', 'f', 4,
-            'ready', 'i', types.std_logic, None))
+            'ready', 'i', types.std_logic, None, options))
         objs.append(iface.add(
             'bar', 'field bar: a vector field.', 'f', 4,
-            'enable', 'g', types.boolean, None))
+            'enable', 'g', types.boolean, None, options))
 
         return tuple(objs)
 
     def test_ungrouped_unflattened(self):
         """test ungrouped, unflattened interface generation"""
-        result = self.gen_basic_interface(False, 'never')
+        result = self.gen_basic_interface(False, False)
         iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface for field foo: a scalar field.',
@@ -125,7 +127,7 @@ class TestVhdlInterface(TestCase):
 
     def test_grouped_unflattened(self):
         """test grouped, unflattened interface generation"""
-        result = self.gen_basic_interface('test', 'never')
+        result = self.gen_basic_interface('test', False)
         iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface group for:',
@@ -316,7 +318,7 @@ class TestVhdlInterface(TestCase):
 
     def test_ungrouped_flattened(self):
         """test ungrouped, array-flattened interface generation"""
-        result = self.gen_basic_interface(False, 'all')
+        result = self.gen_basic_interface(False, True)
         iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface for field foo: a scalar field.',
@@ -350,7 +352,7 @@ class TestVhdlInterface(TestCase):
 
     def test_grouped_flattened(self):
         """test grouped, array-flattened interface generation"""
-        result = self.gen_basic_interface('test', 'all')
+        result = self.gen_basic_interface('test', True)
         iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface group for:',
@@ -410,47 +412,39 @@ class TestVhdlInterface(TestCase):
 
         iface = Interface('tns')
 
-        options = InterfaceOptions(
-            port_group=False, port_flatten=False,
-            generic_group='foo', generic_flatten=True)
+        options = InterfaceOptions(InterfaceConfig(
+            group=False, flatten=False,
+            generic_group='foo', generic_flatten=True))
 
         iface.add(
             'foo', 'field foo: a scalar field.', 'f', None,
-            'data', 'i', types.std_logic_vector, 8,
-            options=options)
+            'data', 'i', types.std_logic_vector, 8, options)
         iface.add(
             'foo', 'field foo: a scalar field.', 'f', None,
-            'valid', 'i', types.std_logic, None,
-            options=options)
+            'valid', 'i', types.std_logic, None, options)
         iface.add(
             'foo', 'field foo: a scalar field.', 'f', None,
-            'ready', 'o', types.std_logic, None,
-            options=options)
+            'ready', 'o', types.std_logic, None, options)
         iface.add(
             'foo', 'field foo: a scalar field.', 'f', None,
-            'enable', 'g', types.boolean, None,
-            options=options)
+            'enable', 'g', types.boolean, None, options)
 
-        options = InterfaceOptions(
-            port_group='bar', port_flatten=True,
-            generic_group=False, generic_flatten=False)
+        options = InterfaceOptions(InterfaceConfig(
+            group='bar', flatten=True,
+            generic_group=False, generic_flatten=False))
 
         iface.add(
             'bar', 'field bar: a vector field.', 'f', 4,
-            'data', 'o', types.std_logic_vector, 8,
-            options=options)
+            'data', 'o', types.std_logic_vector, 8, options)
         iface.add(
             'bar', 'field bar: a vector field.', 'f', 4,
-            'valid', 'o', types.std_logic, None,
-            options=options)
+            'valid', 'o', types.std_logic, None, options)
         iface.add(
             'bar', 'field bar: a vector field.', 'f', 4,
-            'ready', 'i', types.std_logic, None,
-            options=options)
+            'ready', 'i', types.std_logic, None, options)
         iface.add(
             'bar', 'field bar: a vector field.', 'f', 4,
-            'enable', 'g', types.boolean, None,
-            options=options)
+            'enable', 'g', types.boolean, None, options)
 
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface for field foo: a scalar field.',
@@ -518,19 +512,19 @@ class TestVhdlInterface(TestCase):
     def test_type_inference(self):
         """test interface generator VHDL type inference"""
 
-        options = InterfaceOptions(
-            port_group=False, port_flatten=True,
-            generic_group=False, generic_flatten=True)
+        options = InterfaceOptions(InterfaceConfig(
+            group=False, flatten=True,
+            generic_group=False, generic_flatten=True))
 
         for count, abs_type, vhd_type in [
                 (8, types.StdLogicVector, 'std_logic_vector(7 downto 0)@:= (others => \'0\')'),
                 (1, types.StdLogicVector, 'std_logic_vector(0 downto 0)@:= (others => \'0\')'),
                 (None, types.StdLogic, 'std_logic@:= \'0\'')]:
 
-            iface = Interface('tns', options)
+            iface = Interface('tns')
             obj = iface.add(
                 'foo', 'field foo: a scalar field.', 'f', None,
-                'data', 'i', None, count)
+                'data', 'i', None, count, options)
             self.assertTrue(isinstance(obj.typ, abs_type))
             self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
                 '@ Interface for field foo: a scalar field.',
@@ -547,50 +541,13 @@ class TestVhdlInterface(TestCase):
                 'signal count is not None, but signal type is not an incomplete array'):
             iface.add(
                 'foo', 'field foo: a scalar field.', 'f', None,
-                'data', 'i', types.std_logic, 8)
+                'data', 'i', types.std_logic, 8,
+                InterfaceOptions(InterfaceConfig()))
 
         with self.assertRaisesRegex(
                 ValueError,
                 'signal type is an incomplete array, but signal count is None'):
             iface.add(
                 'foo', 'field foo: a scalar field.', 'f', None,
-                'data', 'i', types.std_logic_vector, None)
-
-    def test_options(self):
-        """test interface generator options object"""
-
-        def test(port_group, port_flatten, generic_group, generic_flatten, dictionary):
-            options = InterfaceOptions.from_dict(dictionary)
-            self.assertEqual(options.port_group, port_group)
-            self.assertEqual(options.port_flatten, port_flatten)
-            self.assertEqual(options.generic_group, generic_group)
-            self.assertEqual(options.generic_flatten, generic_flatten)
-            options = InterfaceOptions.from_dict(options.to_dict())
-            self.assertEqual(options.port_group, port_group)
-            self.assertEqual(options.port_flatten, port_flatten)
-            self.assertEqual(options.generic_group, generic_group)
-            self.assertEqual(options.generic_flatten, generic_flatten)
-
-        test(None, None, None, None, {})
-
-        test('test', 'all', False, 'never', {
-            'port-group': 'test',
-            'port-flatten': True,
-            'generic-group': False,
-            'generic-flatten': False})
-
-        test(None, 'all', None, 'record', {
-            'port-flatten': 'all',
-            'generic-flatten': 'record'})
-
-        test(None, 'never', None, None, {
-            'port-flatten': 'never'})
-
-        with self.assertRaisesRegex(ValueError, 'invalid value for interface.port-flatten'):
-            InterfaceOptions.from_dict({'port-flatten': 'hello'})
-
-        with self.assertRaisesRegex(ValueError, 'invalid value for interface.port-group'):
-            InterfaceOptions.from_dict({'port-group': True})
-
-        with self.assertRaisesRegex(ValueError, 'unexpected key in interface options: foo'):
-            InterfaceOptions.from_dict({'foo': True})
+                'data', 'i', types.std_logic_vector, None,
+                InterfaceOptions(InterfaceConfig()))

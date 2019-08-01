@@ -22,7 +22,7 @@ class Choice(ScalarLoader):
     something whose `str()` representation performs the inverse of the
     conversion function."""
 
-    class _AutoGenDefault:
+    class _AutoGenDefault: #pylint: disable=R0903
         pass
 
     def __init__(self, key, doc, *choices, default=_AutoGenDefault):

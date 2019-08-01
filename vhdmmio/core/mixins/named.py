@@ -3,6 +3,11 @@
 from ...configurable import Unset
 from ...config import MetadataConfig
 
+class ContextualError(Exception): #pylint: disable=R0903
+    """Used for reraising exceptions with the name and type of the `Named`
+    class causing the exception included as contextual information."""
+
+
 class Named:
     """Base class for register file components that have a mnemonic, name, and
     documentation attached to them."""
@@ -11,8 +16,6 @@ class Named:
                  mnemonic_suffix='', name_suffix='',
                  doc_index='', brief_override=None, doc_override=None,
                  **kwargs):
-        super().__init__(**kwargs)
-
         assert metadata is not None or name is not None
 
         # Instead of supplying a complete metadata object, just a name is okay
@@ -36,24 +39,30 @@ class Named:
             name = metadata.mnemonic.lower()
         self._name = name + name_suffix
 
-        # Determine brief.
-        if brief_override is not None:
-            self._brief = brief_override
-        elif metadata.brief is Unset:
-            self._brief = self._name + '.'
-        else:
-            self._brief = metadata.brief.replace('{index}', doc_index)
+        # Now that we have a name, context will work.
+        with self.context:
 
-        # Determine doc.
-        if doc_override is not None:
-            doc = doc_override
-        elif metadata.doc is Unset:
-            doc = None
-        else:
-            doc = metadata.doc.replace('{index}', doc_index)
-        self._doc = self._brief[:1].upper() + self._brief[1:]
-        if doc is not None:
-            self._doc += '\n\n' + doc
+            # Determine brief.
+            if brief_override is not None:
+                self._brief = brief_override
+            elif metadata.brief is Unset:
+                self._brief = self._name + '.'
+            else:
+                self._brief = metadata.brief.replace('{index}', doc_index)
+
+            # Determine doc.
+            if doc_override is not None:
+                doc = doc_override
+            elif metadata.doc is Unset:
+                doc = None
+            else:
+                doc = metadata.doc.replace('{index}', doc_index)
+            self._doc = self._brief[:1].upper() + self._brief[1:]
+            if doc is not None:
+                self._doc += '\n\n' + doc
+
+            # Chain to next class in the MRO.
+            super().__init__(**kwargs)
 
     @property
     def mnemonic(self):
@@ -78,6 +87,28 @@ class Named:
         """Complete documentation for this object, including brief. Multiple
         lines of markdown-formatted text."""
         return self._doc
+
+    @property
+    def context(self):
+        """Adds contextual information to any exceptions thrown within a
+        `with` block applied to this value."""
+        class Context:
+            """Context manager class that reraises exceptions thrown within the
+            context as `ContextualError`s carrying information about the parent
+            `Named` class."""
+            @staticmethod
+            def __enter__():
+                pass
+            @staticmethod
+            def __exit__(exc_typ, exc_val, _):
+                if exc_val is None:
+                    return
+                message = str(exc_val)
+                if exc_typ is not ContextualError:
+                    message = '%s: %s' % (exc_typ.__name__, message)
+                raise ContextualError('within %s %s: %s' % (
+                    type(self).__name__, self.name, message))
+        return Context()
 
     def __str__(self):
         return '%s %s' % (type(self).__name__, self.name)

@@ -16,6 +16,17 @@ class FeatureConfig(Configurable):
         yield 64, 'the bus uses 64-bit data words.'
 
     @choice
+    def endianness():
+        """This key specifies the default endianness used for multi-block
+        fields."""
+        yield ('little', 'the default is little endian. That is, when '
+               'multiple blocks are needed to describe the field(s), bit '
+               '0 of the register resides in the *first* block.')
+        yield ('big', 'the default is big endian. That is, when multiple '
+               'blocks are needed to describe the field(s), bit 0 of the '
+               'register resides in the *last* block.')
+
+    @choice
     def max_outstanding():
         """This key specifies the maximum number of outstanding requests per
         operation (read/write) for fields that support this. This value is

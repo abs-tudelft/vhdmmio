@@ -45,6 +45,12 @@ class Configurable:
                 self, '_' + loader.key,
                 loader.deserialize(dictionary, self))
 
+        # Raise a TypeError when we were passed a keyword arguments that was
+        # not recognized by the deserializers.
+        for kwarg_key in kwargs:
+            if kwarg_key.replace('_', '-') in dictionary:
+                raise TypeError('unexpected keyword argument %s' % kwarg_key)
+
     @property
     def parent(self):
         """Returns the parent of this configurable. This is always another

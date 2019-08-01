@@ -28,14 +28,28 @@ class ConditionConfig(Configurable):
     def value():
         """This key specifies the value that the signal must have for the
         logical register to be addressed."""
+        int_re = r'(0x[0-9A-Fa-f]+|0b[01]+|[0-9]+)'
+        dc_int_re = r'(0x([-0-9A-Fa-f]|\[[-01]{4}\])+|0b[-01]+|[0-9]+)'
         yield False, 'the signal value needs to be 0.'
         yield True, 'the signal value needs to be 1.'
-        yield int, 'the signal value needs to match the specified value.'
-
-    @choice
-    def ignore():
-        """This key specifies the value that the signal must have for the
-        logical register to be addressed."""
-        yield 0, 'all bits must match.'
-        yield (int, 'the bits set in this value are ignored when matching '
-               'against `value`.')
+        yield (0, None), 'the signal needs to have the specified value.'
+        yield ((re.compile(dc_int_re), 'a hex/bin integer with don\'t cares'),
+               'the signal value is matched against the given number, '
+               'specified as a string representation of a hexadecimal or '
+               'binary integer which may contain don\'t cares (`-`). In '
+               'hexadecimal integers, bit-granular don\'t-cares can be '
+               'specified by inserting four-bit binary blocks enclosed in '
+               'square braces in place of a hex digit.')
+        yield ((re.compile(dc_int_re + r'/[0-9]+'), '`<address>/<size>`'),
+               'as before, but the given number of LSBs are ignored in '
+               'addition.')
+        yield ((re.compile(int_re + r'\|' + int_re), '`<address>|<ignore>`'),
+               'specifies the required signal value and ignored bits using '
+               'two integers. Both integers can be specified in hexadecimal, '
+               'binary, or decimal. A bit which is set in the `<ignore>` '
+               'value is ignored in the matching process.')
+        yield ((re.compile(int_re + r'\&' + int_re), '`<address>&<mask>`'),
+               'specifies the required signal value and bitmask using two '
+               'integers. Both integers can be specified in hexadecimal, '
+               'binary, or decimal. A bit which is not set in the `<ignore>` '
+               'value is ignored in the matching process.')

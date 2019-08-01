@@ -18,6 +18,100 @@ class MaskedAddress(_MaskedAddress):
             raise ValueError('cannot match an infinite amount of bits')
         return new
 
+    @classmethod
+    def parse_config(cls, value, ignore_lsbs=0, signal_width=32):
+        """Parses the `field.address` and `condition.value` configuration key
+        syntax into a `MaskedAddress`. `ignore_lsbs` specifies the number of LSBs
+        that are ignored by default. `signal_width` specifies the width of the
+        signal, needed for the `ignore` syntax."""
+        full_mask = (1 << signal_width) - 1
+        default_mask = full_mask & (-1 << ignore_lsbs)
+
+        # Handle values that have already been parsed by YAML.
+        if value is False:
+            return cls(0, full_mask)
+        if value is True:
+            return cls(1, full_mask)
+        if isinstance(value, int):
+            return cls(value & default_mask, default_mask)
+
+        # Handle mask suffix syntax.
+        if '/' in value:
+            value, size = value.split('/')
+            mask = -1 << int(size)
+        elif '|' in value:
+            value, ignore = value.split('|')
+            mask = ~int(ignore, 0)
+        elif '&' in value:
+            value, mask = value.split('&')
+            mask = int(mask, 0)
+        else:
+            mask = default_mask
+
+        # Handle hexadecimal numbers with don't cares.
+        if value.startswith('0x'):
+            value = value[2:]
+            parsed_value = 0
+            parsed_mask = 0
+            while value:
+                if value[0] == '-':
+                    parsed_value <<= 4
+                    parsed_mask <<= 4
+                    value = value[1:]
+                elif value[0] == '[':
+                    for idx in range(1, 5):
+                        parsed_value <<= 1
+                        parsed_mask <<= 1
+                        if value[idx] == '1':
+                            parsed_value |= 1
+                            parsed_mask |= 1
+                        elif value[idx] == '0':
+                            parsed_mask |= 1
+                        else:
+                            assert value[idx] == '-'
+                    assert value[5] == ']'
+                    value = value[6:]
+                elif value[0] != '_':
+                    parsed_value <<= 4
+                    parsed_mask <<= 4
+                    parsed_value |= int(value[0], 16)
+                    parsed_mask |= 15
+                    value = value[1:]
+            value = parsed_value
+            mask &= parsed_mask
+
+        # Handle binary numbers with don't cares.
+        elif value.startswith('0b'):
+            value = value[2:]
+            parsed_value = 0
+            parsed_mask = 0
+            while value:
+                if value[0] == '_':
+                    continue
+                parsed_value <<= 1
+                parsed_mask <<= 1
+                if value[0] == '1':
+                    parsed_value |= 1
+                    parsed_mask |= 1
+                elif value[0] == '0':
+                    parsed_mask |= 1
+                else:
+                    assert value[0] == '-'
+                value = value[1:]
+            value = parsed_value
+            mask &= parsed_mask
+
+        # Handle decimal numbers.
+        else:
+            value = int(value)
+
+        # Post-process to make the mask and value valid for the given signal
+        # width.
+        mask &= full_mask
+        value &= mask
+
+        return cls(value, mask)
+
     def __contains__(self, address):
         """Returns whether the specified address is contained in the mask."""
         return (address & self.mask) == (self.address & self.mask)
@@ -48,7 +142,23 @@ class MaskedAddress(_MaskedAddress):
         integer mask."""
         return MaskedAddress(self.address & mask, self.mask & mask)
 
-    def __add__(self, other):
+    def __add__(self, value):
+        """Adds a number to the non-masked bits in the address."""
+        address = self.address
+        carry = 0
+        for bit in range(self.mask.bit_length()):
+            bitm = 1 << bit
+            if not self.mask & bitm:
+                continue
+            in_bit = value & 1
+            value >>= 1
+            in_bits_set = in_bit + carry + bool(address & bitm)
+            if (in_bits_set & 1) ^ bool(address & bitm):
+                address ^= bitm
+            carry = in_bits_set >> 1
+        return MaskedAddress(address, self.mask)
+
+    def __mul__(self, other):
         """Combines two addresses with non-overlapping masks. The result is a
         `MaskedAddress` that matches iff both incoming `MaskedAddress`es
         match."""
@@ -115,7 +225,7 @@ class AddressSignalMap:
     `AddressSignalMap.BUS` signal, which represents the incoming AXI4-lite bus
     address."""
 
-    class _BusAddress(Shaped, Named, Unique):
+    class _BusAddress(Named, Shaped, Unique):
         """Singleton class representing the incoming AXI4L bus address. The
         singleton to use is `AddressSignalMap.BUS`."""
 
@@ -168,7 +278,7 @@ class AddressSignalMap:
         for signal, sub_address in sorted(mapping.items(), key=lambda x: x[0].name):
             self._add_signal(signal)
             offset = self._signals[signal]
-            address += (sub_address & ((1 << signal.width) - 1)) << offset
+            address *= (sub_address & ((1 << signal.width) - 1)) << offset
         return address
 
     def split_address(self, address):

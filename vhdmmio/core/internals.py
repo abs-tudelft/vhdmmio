@@ -2,7 +2,7 @@
 
 from .mixins import Shaped, Named, Unique
 
-class Internal(Shaped, Named, Unique):
+class Internal(Named, Shaped, Unique):
     """Represents an internal signal."""
 
     def __init__(self, name, shape):
@@ -28,7 +28,7 @@ class Internal(Shaped, Named, Unique):
                     self.name, self._driver, driver))
         if self._strobers:
             raise ValueError(
-                'internal %s cannot be both driven by %s and strobed by %s' % (
+                'internal %s cannot both be driven by %s and strobed by %s' % (
                     self.name, driver, self._strobers[0]))
         self._check_shape(driver, expected_shape)
         self._users.append(driver)
@@ -37,7 +37,7 @@ class Internal(Shaped, Named, Unique):
         """Registers a strober for this internal signal."""
         if self._driver is not None:
             raise ValueError(
-                'internal %s cannot be both driven by %s and strobed by %s' % (
+                'internal %s cannot both be driven by %s and strobed by %s' % (
                     self.name, self._driver, strober))
         self._check_shape(strober, expected_shape)
         self._strobers.append(strober)
