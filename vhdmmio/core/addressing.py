@@ -387,7 +387,7 @@ class AddressManager:
         """The managed write address decoder map."""
         return self._write
 
-    def construct_internal_address(self, resources, address, conditions):
+    def construct(self, resources, address, conditions):
         """Constructs an internal address from the given `MaskedAddress` for
         the incoming bus address, a list of `ConditionConfig` objects, and a
         `RegisterFileResources` object to get the internal signal objects

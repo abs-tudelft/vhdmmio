@@ -7,5 +7,7 @@ from .features import FeatureConfig
 from .interface import InterfaceConfig
 from .permissions import PermissionConfig
 from .field import FieldConfig
+from .conditions import ConditionConfig
+from .subaddress import SubAddressConfig
 from .interrupt import InterruptConfig
 from .metadata import MetadataConfig

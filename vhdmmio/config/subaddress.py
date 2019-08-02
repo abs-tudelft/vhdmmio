@@ -41,18 +41,9 @@ class SubAddressConfig(Configurable):
         yield (re.compile(r'[a-zA-Za-z][a-zA-Z0-9_]*:[0-9]+'), 'a vector '
                'internal with the given name and width is inserted into the '
                'subaddress at the current position.')
-    @choice
-    def blank():
-        """This key specifies that a number of blank bits should be inserted as
-        the next component. The bits are always zero; use the
-        `subaddress-offset` key in the field descriptor to set a different
-        value."""
-        yield (None, 'this subaddress component is not a blank.')
-        yield ((1, None), 'the specified number of blank (zero) bits are '
-               'inserted.')
 
     @choice
-    def slice():
+    def internal_bitrange():
         """For component based on vector internal signals, this key allows you
         to use only a subset of the signal for this component. In conjunction
         with other subaddress components based on the same signal, this allows
@@ -63,3 +54,12 @@ class SubAddressConfig(Configurable):
                'the specified subset of the vector is used. The range is '
                'inclusive, so the number of bits in the subaddress component '
                'is `<high>` - `<low>` + 1.')
+    @choice
+    def blank():
+        """This key specifies that a number of blank bits should be inserted as
+        the next component. The bits are always zero; use the
+        `subaddress-offset` key in the field descriptor to set a different
+        value."""
+        yield (None, 'this subaddress component is not a blank.')
+        yield ((1, None), 'the specified number of blank (zero) bits are '
+               'inserted.')

@@ -3,6 +3,7 @@
 from .mixins import Named, Configured, Unique
 from .internals import InternalManager
 from .addressing import AddressManager
+from .subaddresses import SubAddressManager
 from .field_descriptor import FieldDescriptor
 
 class RegisterFileResources:
@@ -13,7 +14,8 @@ class RegisterFileResources:
     def __init__(self):
         super().__init__()
         self._internals = InternalManager()
-        self._addresses = AddressManager()
+        self._addressing = AddressManager()
+        self._subaddresses = SubAddressManager()
 
     @property
     def internals(self):
@@ -21,9 +23,14 @@ class RegisterFileResources:
         return self._internals
 
     @property
-    def addresses(self):
+    def addressing(self):
         """Resource manager for the address decoder."""
-        return self._addresses
+        return self._addressing
+
+    @property
+    def subaddresses(self):
+        """Resource manager for subaddress signals."""
+        return self._subaddresses
 
 
 class RegisterFile(Named, Configured, Unique):

@@ -1,11 +1,10 @@
 """Submodule for the field descriptor class."""
 
 from .mixins import Named, Configured, Unique
-from .bitrange import BitRange
 from .permissions import Permissions
 from .interface_options import InterfaceOptions
 
-class Field(Named, BitRange, Configured, Unique):
+class Field(Named, Configured, Unique):
     """Represents a parsed field descriptor. That is, a single field or a
     number of fields in an array."""
 
@@ -16,16 +15,17 @@ class Field(Named, BitRange, Configured, Unique):
             metadata=cfg.metadata,
             doc_index=index_str,
             mnemonic_suffix=index_str,
-            name_suffix=index_str,
-            high_bit=bitrange.high_bit,
-            low_bit=bitrange.low_bit if bitrange.is_vector() else None)
+            name_suffix=index_str)
         with self.context:
             self._descriptor = descriptor
             self._index = index
             self._address = address
-            # TODO: behavior
-            # TODO: conditions
-            # TODO: subaddress construction
+            self._internal_address = resources.addressing.construct(
+                resources, address, cfg.conditions)
+            self._bitrange = bitrange
+            self._subaddress = resources.subaddresses.construct(
+                resources, self)
+            self._behavior = None # TODO
             self._read_allow = Permissions(cfg.read_allow)
             self._write_allow = Permissions(cfg.write_allow)
             self._interface_options = InterfaceOptions(
@@ -43,8 +43,29 @@ class Field(Named, BitRange, Configured, Unique):
 
     @property
     def address(self):
-        """The bus address for this field."""
+        """The bus address for this field as a `MaskedAddress`."""
         return self._address
+
+    @property
+    def internal_address(self):
+        """The internal address for this field, including conditions, as a
+        `MaskedAddress`."""
+        return self._internal_address
+
+    @property
+    def bitrange(self):
+        """The bitrange for this field."""
+        return self._bitrange
+
+    @property
+    def behavior(self):
+        """The behavior object for this field."""
+        return self._behavior
+
+    @property
+    def subaddress(self):
+        """The subaddress construction logic for this field."""
+        return self._subaddress
 
     @property
     def read_allow(self):
