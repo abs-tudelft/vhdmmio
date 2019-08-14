@@ -1,7 +1,7 @@
 """Submodule for the field descriptor class."""
 
 from .mixins import Named, Configured, Unique
-from .permissions import Permissions
+from .behavior import Behavior
 from .interface_options import InterfaceOptions
 
 class Field(Named, Configured, Unique):
@@ -25,9 +25,9 @@ class Field(Named, Configured, Unique):
             self._bitrange = bitrange
             self._subaddress = resources.subaddresses.construct(
                 resources, self)
-            self._behavior = None # TODO
-            self._read_allow = Permissions(cfg.read_allow)
-            self._write_allow = Permissions(cfg.write_allow)
+            self._behavior = Behavior.construct(
+                resources, self,
+                cfg.behavior, cfg.read_allow, cfg.write_allow)
             self._interface_options = InterfaceOptions(
                 descriptor.regfile.cfg.interface, cfg.interface)
 
@@ -66,16 +66,6 @@ class Field(Named, Configured, Unique):
     def subaddress(self):
         """The subaddress construction logic for this field."""
         return self._subaddress
-
-    @property
-    def read_allow(self):
-        """The read permissions for this field."""
-        return self._read_allow
-
-    @property
-    def write_allow(self):
-        """The write permissions for this field."""
-        return self._write_allow
 
     @property
     def interface_options(self):

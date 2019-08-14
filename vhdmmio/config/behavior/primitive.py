@@ -76,7 +76,10 @@ class Primitive(Configurable):
         yield 'disabled', 'no write port is generated.'
         yield 'status', 'the register is constantly driven by a port and is always valid.'
         yield 'enabled', 'a record consisting of a write enable flag and data is generated.'
-        yield 'stream', 'like enabled, but the write only occurs when the register is invalid.'
+        yield 'stream', ('like enabled, but the write only occurs when the register is invalid. '
+                         'Furthermore, the `write_data` signal is renamed to `data`, and the '
+                         '`write_enable` signal is renamed to `valid`, in order to comply with '
+                         'AXI-stream naming conventions.')
         yield 'accumulate', 'like enabled, but the data is accumulated instead of written.'
         yield 'subtract', 'like enabled, but the data is subtracted instead of written.'
         yield 'set', 'like enabled, but bits that are written 1 are set in the register.'

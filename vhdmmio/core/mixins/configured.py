@@ -10,6 +10,5 @@ class Configured: #pylint: disable=R0903
 
     @property
     def cfg(self):
-        """The frozen `RegisterFileConfig` object used to construct this
-        object."""
+        """The frozen `Configurable` object used to construct this object."""
         return self._cfg

@@ -93,7 +93,9 @@ class InternalManager:
         width can also be specified in `internal` using the `<name>:<width>`
         notation used in various configuration structures."""
         internal, shape = self._parse_internal(internal, shape)
-        self._ensure_exists(internal, shape).drive(driver, shape)
+        internal_ob = self._ensure_exists(internal, shape)
+        internal_ob.drive(driver, shape)
+        return internal_ob
 
     def strobe(self, strober, internal, shape=None):
         """Registers a strober for an internal signal with name `internal` and
@@ -101,7 +103,9 @@ class InternalManager:
         width can also be specified in `internal` using the `<name>:<width>`
         notation used in various configuration structures."""
         internal, shape = self._parse_internal(internal, shape)
-        self._ensure_exists(internal, shape).strobe(strober, shape)
+        internal_ob = self._ensure_exists(internal, shape)
+        internal_ob.strobe(strober, shape)
+        return internal_ob
 
     def use(self, user, internal, shape=None):
         """Registers a user for an internal signal with name `internal` and
@@ -109,7 +113,9 @@ class InternalManager:
         width can also be specified in `internal` using the `<name>:<width>`
         notation used in various configuration structures."""
         internal, shape = self._parse_internal(internal, shape)
-        self._ensure_exists(internal, shape).use(user, shape)
+        internal_ob = self._ensure_exists(internal, shape)
+        internal_ob.use(user, shape)
+        return internal_ob
 
     def make_input(self, internal, shape=None):
         """Registers that the given internal should be driven by an input
