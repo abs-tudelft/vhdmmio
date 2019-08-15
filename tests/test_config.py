@@ -507,6 +507,13 @@ class TestConfig(TestCase):
 
             self.assertEqual(out1, out2)
 
+            # TODO: make this a better test case
+            from vhdmmio.core import RegisterFile
+            #self.maxDiff = None
+            RegisterFile(regfile1, True)
+            #regfile =
+            #self.assertEqual(regfile.registers, ())
+
     def test_docgen(self):
         """test register file documentation generation"""
         self.maxDiff = None #pylint: disable=C0103

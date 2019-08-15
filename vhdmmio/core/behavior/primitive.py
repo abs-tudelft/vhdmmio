@@ -48,7 +48,7 @@ class PrimitiveBehavior(Behavior):
             for ctrl_signal in (
                     'validate', 'invalidate', 'ready', 'clear', 'reset',
                     'increment', 'decrement', 'bit_set', 'bit_clear', 'bit_toggle'):
-                if getattr(self, 'ctrl_%s' % ctrl_signal):
+                if getattr(behavior_cfg, 'ctrl_%s' % ctrl_signal):
                     raise ValueError('status fields cannot be combined with a '
                                      '%s control signal' % ctrl_signal)
             if is_ext_stat and behavior_cfg.monitor_internal is not None:

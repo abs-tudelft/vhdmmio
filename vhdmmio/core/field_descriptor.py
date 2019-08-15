@@ -16,6 +16,7 @@ class FieldDescriptor(Named, Shaped, Configured, Unique):
             doc_index='' if cfg.repeat is None else '*0..%d*' % (cfg.repeat - 1),
             shape=cfg.repeat)
         with self.context:
+            resources.descriptor_namespace.add(self)
             self._regfile = regfile
             self._fields = tuple((
                 Field(resources, self, cfg, index, address, bitrange)

@@ -1,5 +1,6 @@
 """Submodule for named/user-documented objects."""
 
+import re
 from ...configurable import Unset
 from ...config import MetadataConfig
 
@@ -107,11 +108,34 @@ class Named:
                 if exc_typ is not ContextualError:
                     message = '%s: %s' % (exc_typ.__name__, message)
                 raise ContextualError('within %s %s: %s' % (
-                    type(self).__name__, self.name, message))
+                    self.get_type_name(), self.name, message))
         return Context()
 
+    def context_if(self, condition):
+        """Returns a context manager that adds contextual information to any
+        exceptions thrown, if the given condition is true. Otherwise a no-op
+        context manager is returned."""
+        if condition:
+            return self.context
+        class Context:
+            """Dummy context manager."""
+            @staticmethod
+            def __enter__():
+                pass
+            @staticmethod
+            def __exit__(*_):
+                pass
+        return Context()
+
+    def get_type_name(self):
+        """Returns a friendly representation of this object's type, used for
+        context in user-facing error messages. By default, this just converts
+        TitleCase to lowercase words. If this isn't good enough, the method can
+        be overridden."""
+        return ' '.join(re.findall(r'\w[a-z0-9_]+', type(self).__name__)).lower()
+
     def __str__(self):
-        return '%s %s' % (type(self).__name__, self.name)
+        return '%s %s' % (self.get_type_name(), self.name)
 
     def __repr__(self):
         return '%s(name=%r)' % (type(self).__name__, self.name)

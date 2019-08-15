@@ -4,8 +4,8 @@ parsed register files."""
 from .register_file import RegisterFile
 from .field_descriptor import FieldDescriptor
 from .field import Field
-# register
-# block
+from .logical_register import LogicalRegister
+from .block import Block
 # interrupt
 
 from .interface_options import InterfaceOptions

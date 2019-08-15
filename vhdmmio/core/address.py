@@ -467,13 +467,9 @@ class AddressManager:
                 'mapping exists yet' % (internal_address,))
         self.write[internal_address] = new_mapping
 
-    def doc_iter(self):
-        """Iterates over the addresses and mapped objects in this address
-        manager in a natural order for documentation output. The elements are
-        yielded as `(subaddresses, address_repr, read_ob, write_ob)` tuples,
-        where `address_repr` is a human-readable string representation of the
-        address, and `read_ob`/`write_ob` are `None` if the address range is
-        write-only/read-only."""
+    def _natural_iter(self):
+        """Iterates over the addresses in this address manager in natural
+        order."""
 
         # Get the set of all addresses.
         addresses = set(self.read) | set(self.write)
@@ -484,9 +480,22 @@ class AddressManager:
         addresses = [(self.signals.split_address(address), address) for address in addresses]
         addresses.sort(key=lambda x: tuple(x[0].values()))
 
+        return iter(addresses)
+
+    def __iter__(self):
+        return map(lambda x: x[1], self._natural_iter())
+
+    def doc_iter(self):
+        """Iterates over the addresses and mapped objects in this address
+        manager in a natural order for documentation output. The elements are
+        yielded as `(subaddresses, address_repr, read_ob, write_ob)` tuples,
+        where `address_repr` is a human-readable string representation of the
+        address, and `read_ob`/`write_ob` are `None` if the address range is
+        write-only/read-only."""
+
         # Iterate over the addresses, gathering additional information as we
         # go.
-        for subaddresses, address in addresses:
+        for subaddresses, address in self._natural_iter():
             address_repr = self.signals.doc_represent_address(address)
             read_ob = self.read.get(address, None)
             write_ob = self.write.get(address, None)

@@ -5,6 +5,8 @@ but are ultimately private to the constructed register files."""
 from .internal import InternalManager
 from .address import AddressManager
 from .subaddress import SubAddressManager
+from .defer_tag import DeferTagManager
+from .namespace import Namespace
 
 class Resources:
     """Class containing the resource managers used while constructing the
@@ -16,6 +18,11 @@ class Resources:
         self._internals = InternalManager()
         self._addresses = AddressManager()
         self._subaddresses = SubAddressManager()
+        self._read_tags = DeferTagManager()
+        self._write_tags = DeferTagManager()
+        self._descriptor_namespace = Namespace('field descriptor', check_mnemonics=False)
+        self._register_namespace = Namespace('register')
+        self._interrupt_namespace = Namespace('interrupt')
 
     @property
     def internals(self):
@@ -44,3 +51,28 @@ class Resources:
         Convenience method for `self.subaddresses.construct()`, which takes this
         object as an argument."""
         return self.subaddresses.construct(self, field)
+
+    @property
+    def read_tags(self):
+        """The deferral tag manager for read accesses."""
+        return self._read_tags
+
+    @property
+    def write_tags(self):
+        """The deferral tag manager for write accesses."""
+        return self._write_tags
+
+    @property
+    def descriptor_namespace(self):
+        """Namespace manager for field descriptors and fields."""
+        return self._descriptor_namespace
+
+    @property
+    def register_namespace(self):
+        """Namespace manager for logical registers and fields."""
+        return self._register_namespace
+
+    @property
+    def interrupt_namespace(self):
+        """Namespace manager for interrupts."""
+        return self._interrupt_namespace

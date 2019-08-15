@@ -16,7 +16,7 @@ class SubAddress(Shaped, Configured):
         # Handle default subaddress construction from the masked bits in the
         # incoming address.
         if not cfg:
-            bus_width = field.descriptor.regfile.features.bus_width
+            bus_width = field.descriptor.regfile.cfg.features.bus_width
             ignore_lsbs = bus_width.bit_length() - 4
             mask = field.address.mask
 

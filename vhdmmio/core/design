@@ -12,7 +12,7 @@
           |                           |                           |
           | 1                         | 1                         | 1              index               bits    op                          idx
 .--------------------.*    1.--------------------.1    *.--------------------.1    +.--------------------.+    2.--------------------.1    +.--------------------.
-|     Interrupt      |<---->|    RegisterFile    |<---->|  FieldDescriptor   |<---->|       Field        |<---->|      Register      |<---->|       Block        |
+|     Interrupt      |<---->|    RegisterFile    |<---->|  FieldDescriptor   |<---->|       Field        |<---->|  LogicalRegister   |<---->|       Block        |
 '--------------------'      '--------------------'      '--------------------'      '--------------------'      '--------------------'      '--------------------'
  - metadata:                 - metadata                  - metadata           -----> - metadata                  - metadata           -----> - metadata
    name/mnem unique in                                     name unique in     suffix   name unique in              name/mnem unique   suffix   name/mnem unique

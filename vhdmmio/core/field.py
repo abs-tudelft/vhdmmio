@@ -16,7 +16,10 @@ class Field(Named, Configured, Unique):
             doc_index=index_str,
             mnemonic_suffix=index_str,
             name_suffix=index_str)
-        with self.context:
+
+        with self.context_if(descriptor.is_vector()):
+            if descriptor.is_vector():
+                resources.descriptor_namespace.add(self)
             self._descriptor = descriptor
             self._index = index
             self._address = address
@@ -27,14 +30,18 @@ class Field(Named, Configured, Unique):
             self._behavior = Behavior.construct(
                 resources, self,
                 cfg.behavior, cfg.read_allow, cfg.write_allow)
-            if self._behavior.can_read():
+            if self._behavior.bus.can_read():
                 resources.addresses.read_map(
-                    self._internal_address, list).append(self)
-            if self._behavior.can_write():
+                    self._internal_address, set).add(self)
+            if self._behavior.bus.can_write():
                 resources.addresses.write_map(
-                    self._internal_address, list).append(self)
+                    self._internal_address, set).add(self)
             self._interface_options = InterfaceOptions(
                 descriptor.regfile.cfg.interface, cfg.interface)
+
+            self._registers_assigned = False
+            self._register_read = None
+            self._register_write = None
 
     @property
     def descriptor(self):
@@ -58,6 +65,24 @@ class Field(Named, Configured, Unique):
         return self._internal_address
 
     @property
+    def register_read(self):
+        """The `LogicalRegister` associated with this field in read mode, or
+        `None` if this field is write-only."""
+        if not self._registers_assigned:
+            with self.context:
+                raise ValueError('registers have not been assigned yet')
+        return self._register_read
+
+    @property
+    def register_write(self):
+        """The `LogicalRegister` associated with this field in write mode, or
+        `None` if this field is write-only."""
+        if not self._registers_assigned:
+            with self.context:
+                raise ValueError('registers have not been assigned yet')
+        return self._register_write
+
+    @property
     def bitrange(self):
         """The bitrange for this field."""
         return self._bitrange
@@ -76,3 +101,15 @@ class Field(Named, Configured, Unique):
     def interface_options(self):
         """VHDL interface configuration."""
         return self._interface_options
+
+    def assign_registers(self, read_reg, write_reg):
+        """Assigns registers to this field once they've been constructed. Note
+        that this can only be called once, and is supposed to be called during
+        register file construction. This object is frozen after register file
+        construction completes."""
+        if self._registers_assigned:
+            with self.context:
+                raise ValueError('registers have already been assigned')
+        self._register_read = read_reg
+        self._register_write = write_reg
+        self._registers_assigned = True

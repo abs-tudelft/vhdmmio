@@ -3,6 +3,7 @@
 from .mixins import Named, Configured, Unique
 from .resources import Resources
 from .field_descriptor import FieldDescriptor
+from .logical_register import construct_logical_register
 
 class RegisterFile(Named, Configured, Unique):
     """Compiled representation of a register file."""
@@ -16,16 +17,46 @@ class RegisterFile(Named, Configured, Unique):
             self._resources = Resources()
 
             # Parse the field descriptors.
-            self._field_descriptors = ((
+            self._field_descriptors = tuple((
                 FieldDescriptor(self._resources, self, fd_cfg)
                 for fd_cfg in cfg.fields))
 
             # The `FieldDescriptor` constructor calls the `Field` constructor,
             # which in turn maps the field addresses to lists of `Field`s in
             # `self._resources.addresses`. We can now convert these lists to
-            # `Register`s, of which the constructor also constructs the
+            # `LogicalRegister`s, of which the constructor also constructs the
             # `Block`s.
-            # TODO
+            registers = []
+            addresses = self._resources.addresses
+            for address in addresses:
+
+                # Construct the register(s) for this address.
+                read_reg, write_reg = construct_logical_register(
+                    self._resources, self,
+                    addresses.read.get(address, None),
+                    addresses.write.get(address, None))
+
+                # Replace the field lists with the constructed register
+                # objects in the address managers.
+                if read_reg is not None:
+                    addresses.read[address] = read_reg
+                elif address in addresses.read:
+                    del addresses.read[address]
+
+                if write_reg is not None:
+                    addresses.write[address] = write_reg
+                elif address in addresses.write:
+                    del addresses.write[address]
+
+                # Add the constructed registers to the list of all registers in
+                # this register file.
+                if read_reg is not None:
+                    registers.append(read_reg)
+                if write_reg is not None and write_reg is not read_reg:
+                    registers.append(write_reg)
+
+            # Convert the register list to a tuple to make it immutable.
+            self._registers = tuple(registers)
 
     @property
     def trusted(self):
@@ -38,3 +69,8 @@ class RegisterFile(Named, Configured, Unique):
     def field_descriptors(self):
         """Returns the field descriptors of this register file as a tuple."""
         return self._field_descriptors
+
+    @property
+    def registers(self):
+        """Returns the logical registers of this register file as a tuple."""
+        return self._registers

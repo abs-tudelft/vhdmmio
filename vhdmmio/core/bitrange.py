@@ -47,16 +47,18 @@ class BitRange(Shaped):
             return cls(width - 1, 0)
 
         # Handle scalar bitrange notation.
-        if isinstance(int, value):
+        if isinstance(value, int):
             if value >= width:
                 raise ValueError('bitrange index out of range')
             return cls(value)
 
         # Handle vector bitrange notation.
         high, low = value.split('..')
+        high = int(high)
+        low = int(low)
         if high >= width:
             raise ValueError('bitrange index out of range')
-        return cls(int(high), int(low))
+        return cls(high, low)
 
     def __lshift__(self, value):
         """Shifts the bitrange left."""

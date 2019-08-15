@@ -381,14 +381,40 @@ class FieldConfig(Configurable):
 
     @opt_embedded
     def register_metadata():
-        """This optional configuration structure is used to name and document
-        the logical register that this field resides in. At least one field
-        must carry this information for each logical register, unless a single
-        field spans the entire register; in this case, the register metadata
-        defaults to the field metadata. If more than one field in a logical
-        register contains a `register-metadata` tag, the lowest-indexed
-        read-mode field takes precedence, unless the register is write-only,
-        in which case the lowest-indexed write-mode field takes precedence."""
+        """This optional configuration structure can be used to name and
+        document the logical register that this field resides in.
+
+        Registers can have the same or different metadata attached to them
+        based on the bus access mode (read/write). In the presence of multiple
+        metadata sources, the first one encountered in the following list is
+        used for the read metadata:
+
+         - the register metadata for the least significant readable field in
+           the logical register that carries it;
+         - the register metadata for the least significant writable field in
+           the logical register that carries it;
+         - generated from the field metadata for the least significant readable
+           field.
+         - generated from the field metadata for the least significant writable
+           field.
+
+        The generated metadata copies the mnemonic from the field, and uses the
+        field's name with `'_reg'` suffix for the name. The generated brief
+        just lists the fields in the register.
+
+        The priority list is the same for writes, but with points 1 and 2
+        flipped around (3 and 4 are NOT flipped). If the metadata for the two
+        access modes resolves to the same object, the register is documented
+        once as being R/W, even if some fields are read- or write-only and/or
+        overlap that way. Otherwise, it is documented twice, once as read-only
+        and once as write-only.
+
+        For example, in the 16550 UART, register 0/DLAB 0 is commonly referred
+        to as the receiver buffer register (`RBR`) in read mode and the
+        transmitter holding register (`THR`) in write mode, so you might want
+        to document them separately. On the other hand, you could also document
+        them once as a FIFO access register (`FAR`, for instance). This is
+        mostly a matter of taste."""
         return 'register', MetadataConfig
 
     @embedded
