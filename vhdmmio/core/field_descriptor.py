@@ -1,7 +1,7 @@
 """Submodule for the `FieldDescriptor` class."""
 
 from .mixins import Shaped, Named, Configured, Unique
-from .addressing import MaskedAddress
+from .address import MaskedAddress
 from .bitrange import BitRange
 from .field import Field
 

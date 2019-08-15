@@ -1,9 +1,9 @@
-"""Tests for the classes defined in `vhdmmio.core.addressing`."""
+"""Tests for the classes defined in `vhdmmio.core.address`."""
 
 from collections import OrderedDict
 from unittest import TestCase
 from vhdmmio.core.mixins import Shaped, Named, Unique
-from vhdmmio.core.addressing import AddressSignalMap, MaskedAddress, AddressManager
+from vhdmmio.core.address import AddressSignalMap, MaskedAddress, AddressManager
 
 class Signal(Shaped, Named, Unique):
     """Generic `Shaped+Named+Unique` class for testing purposes."""
@@ -22,8 +22,8 @@ def add_mapping(mgr, obj, bus_address, read=True, write=True, conditions=None):
         mgr.write_map(address, lambda: obj)
 
 
-class TestAddressing(TestCase):
-    """Tests for the classes defined in `vhdmmio.core.addressing`."""
+class TestAddresses(TestCase):
+    """Tests for the classes defined in `vhdmmio.core.address`."""
 
     def test_subsequent(self):
         """test the masked adder logic for finding subsequent blocks"""

@@ -393,8 +393,7 @@ class AddressManager:
     def construct(self, resources, address, conditions):
         """Constructs an internal address from the given `MaskedAddress` for
         the incoming bus address, a list of `ConditionConfig` objects, and a
-        `RegisterFileResources` object to get the internal signal objects
-        from."""
+        `Resources` object to get the internal signal objects from."""
         subaddresses = {AddressSignalMap.BUS: address}
         for condition in conditions:
             internal = resources.internals.use(

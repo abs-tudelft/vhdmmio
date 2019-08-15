@@ -20,19 +20,18 @@ class Field(Named, Configured, Unique):
             self._descriptor = descriptor
             self._index = index
             self._address = address
-            self._internal_address = resources.addressing.construct(
-                resources, address, cfg.conditions)
+            self._internal_address = resources.construct_address(
+                address, cfg.conditions)
             self._bitrange = bitrange
-            self._subaddress = resources.subaddresses.construct(
-                resources, self)
+            self._subaddress = resources.construct_subaddress(self)
             self._behavior = Behavior.construct(
                 resources, self,
                 cfg.behavior, cfg.read_allow, cfg.write_allow)
             if self._behavior.can_read():
-                resources.addressing.read_map(
+                resources.addresses.read_map(
                     self._internal_address, list).append(self)
             if self._behavior.can_write():
-                resources.addressing.write_map(
+                resources.addresses.write_map(
                     self._internal_address, list).append(self)
             self._interface_options = InterfaceOptions(
                 descriptor.regfile.cfg.interface, cfg.interface)
