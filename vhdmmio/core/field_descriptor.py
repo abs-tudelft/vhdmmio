@@ -1,4 +1,4 @@
-"""Submodule for the field descriptor class."""
+"""Submodule for the `FieldDescriptor` class."""
 
 from .mixins import Shaped, Named, Configured, Unique
 from .addressing import MaskedAddress

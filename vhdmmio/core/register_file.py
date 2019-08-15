@@ -49,6 +49,13 @@ class RegisterFile(Named, Configured, Unique):
                 FieldDescriptor(self._resources, self, fd_cfg)
                 for fd_cfg in cfg.fields))
 
+            # The `FieldDescriptor` constructor calls the `Field` constructor,
+            # which in turn maps the field addresses to lists of `Field`s in
+            # `self._resources.addressing`. We can now convert these lists to
+            # `Register`s, of which the constructor also constructs the
+            # `Block`s.
+            # TODO
+
     @property
     def trusted(self):
         """Whether source of the configuration used to construct this register

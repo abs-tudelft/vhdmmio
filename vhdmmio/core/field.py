@@ -1,4 +1,4 @@
-"""Submodule for the field descriptor class."""
+"""Submodule for the `Field` class."""
 
 from .mixins import Named, Configured, Unique
 from .behavior import Behavior
@@ -28,6 +28,12 @@ class Field(Named, Configured, Unique):
             self._behavior = Behavior.construct(
                 resources, self,
                 cfg.behavior, cfg.read_allow, cfg.write_allow)
+            if self._behavior.can_read():
+                resources.addressing.read_map(
+                    self._internal_address, list).append(self)
+            if self._behavior.can_write():
+                resources.addressing.write_map(
+                    self._internal_address, list).append(self)
             self._interface_options = InterfaceOptions(
                 descriptor.regfile.cfg.interface, cfg.interface)
 
