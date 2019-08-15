@@ -8,6 +8,20 @@ from vhdmmio.core.addressing import AddressSignalMap, MaskedAddress, AddressMana
 class Signal(Shaped, Named, Unique):
     """Generic `Shaped+Named+Unique` class for testing purposes."""
 
+def add_mapping(mgr, obj, bus_address, read=True, write=True, conditions=None):
+    """Adds a mapping for obj with the specified read/write mode.
+    `conditions` should be a mapping object from `Shaped+Named+Unique`
+    signal objects to `MaskedAddress` objects if specified."""
+    subaddresses = {AddressSignalMap.BUS: bus_address}
+    if conditions is not None:
+        subaddresses.update(conditions)
+    address = mgr.signals.construct_address(subaddresses)
+    if read:
+        mgr.read_map(address, lambda: obj)
+    if write:
+        mgr.write_map(address, lambda: obj)
+
+
 class TestAddressing(TestCase):
     """Tests for the classes defined in `vhdmmio.core.addressing`."""
 
@@ -28,17 +42,17 @@ class TestAddressing(TestCase):
         self.maxDiff = None #pylint: disable=C0103
         dlab = Signal(name='dlab')
         mgr = AddressManager()
-        mgr.add_mapping('RBR', MaskedAddress(0, 0xFFFFFFFF), 1, 0, {dlab: MaskedAddress(0, 1)})
-        mgr.add_mapping('THR', MaskedAddress(0, 0xFFFFFFFF), 0, 1, {dlab: MaskedAddress(0, 1)})
-        mgr.add_mapping('IER', MaskedAddress(1, 0xFFFFFFFF), 1, 1, {dlab: MaskedAddress(0, 1)})
-        mgr.add_mapping('ISR', MaskedAddress(2, 0xFFFFFFFF), 1, 0)
-        mgr.add_mapping('FCR', MaskedAddress(2, 0xFFFFFFFF), 0, 1)
-        mgr.add_mapping('LCR', MaskedAddress(3, 0xFFFFFFFF), 1, 1)
-        mgr.add_mapping('MCR', MaskedAddress(4, 0xFFFFFFFF), 1, 1)
-        mgr.add_mapping('LSR', MaskedAddress(5, 0xFFFFFFFF), 1, 1)
-        mgr.add_mapping('MSR', MaskedAddress(6, 0xFFFFFFFE), 1, 1)
-        mgr.add_mapping('DLL', MaskedAddress(0, 0xFFFFFFFF), 1, 1, {dlab: MaskedAddress(1, 1)})
-        mgr.add_mapping('DLH', MaskedAddress(1, 0xFFFFFFFF), 1, 1, {dlab: MaskedAddress(1, 1)})
+        add_mapping(mgr, 'RBR', MaskedAddress(0, 0xFFFFFFFF), 1, 0, {dlab: MaskedAddress(0, 1)})
+        add_mapping(mgr, 'THR', MaskedAddress(0, 0xFFFFFFFF), 0, 1, {dlab: MaskedAddress(0, 1)})
+        add_mapping(mgr, 'IER', MaskedAddress(1, 0xFFFFFFFF), 1, 1, {dlab: MaskedAddress(0, 1)})
+        add_mapping(mgr, 'ISR', MaskedAddress(2, 0xFFFFFFFF), 1, 0)
+        add_mapping(mgr, 'FCR', MaskedAddress(2, 0xFFFFFFFF), 0, 1)
+        add_mapping(mgr, 'LCR', MaskedAddress(3, 0xFFFFFFFF), 1, 1)
+        add_mapping(mgr, 'MCR', MaskedAddress(4, 0xFFFFFFFF), 1, 1)
+        add_mapping(mgr, 'LSR', MaskedAddress(5, 0xFFFFFFFF), 1, 1)
+        add_mapping(mgr, 'MSR', MaskedAddress(6, 0xFFFFFFFE), 1, 1)
+        add_mapping(mgr, 'DLL', MaskedAddress(0, 0xFFFFFFFF), 1, 1, {dlab: MaskedAddress(1, 1)})
+        add_mapping(mgr, 'DLH', MaskedAddress(1, 0xFFFFFFFF), 1, 1, {dlab: MaskedAddress(1, 1)})
         self.assertEqual(list(mgr.doc_iter()), [
             (
                 OrderedDict((
@@ -106,4 +120,4 @@ class TestAddressing(TestCase):
         with self.assertRaisesRegex(
                 ValueError, r'address conflict between SPR \(0x00000007\) and '
                 r'MSR \(0x00000006/1\) at 0x00000007, `dlab`=0 in read mode'):
-            mgr.add_mapping('SPR', MaskedAddress(7, 0xFFFFFFFF), 1, 1)
+            add_mapping(mgr, 'SPR', MaskedAddress(7, 0xFFFFFFFF), 1, 1)

@@ -350,6 +350,9 @@ class AddressMap:
     def __delitem__(self, address):
         del self._map[address]
 
+    def __contains__(self, address):
+        return address in self._map
+
     def __iter__(self):
         return iter(self._map)
 
@@ -423,6 +426,16 @@ class AddressManager:
                             (1 << self.signals.width) - 1))))
         return mapping
 
+    def read_replace(self, internal_address, new_mapping):
+        """Replaces a mapping previously added with `read_map()` with a
+        different object. This allows a builder object to be mapped initially,
+        to eventually be replaced with a frozen, completed object."""
+        if internal_address not in self.read:
+            raise ValueError(
+                'cannot replace read mapping for address %s, because no '
+                'mapping exists yet' % (internal_address,))
+        self.read[internal_address] = new_mapping
+
     def write_map(self, internal_address, constructor, *args, **kwargs):
         """Returns the current write mapping for `internal_address`, or
         constructs the mapping by calling `constructor(*args, **kwargs)` if
@@ -445,27 +458,15 @@ class AddressManager:
                             (1 << self.signals.width) - 1))))
         return mapping
 
-    def add_mapping(self, obj, bus_address, read=True, write=True, conditions=None):
-        """Adds a mapping for obj with the specified read/write mode.
-        `conditions` should be a mapping object from `Shaped+Named+Unique`
-        signal objects to `MaskedAddress` objects if specified."""
-        subaddresses = {AddressSignalMap.BUS: bus_address}
-        if conditions is not None:
-            subaddresses.update(conditions)
-        address = self.signals.construct_address(subaddresses)
-        for enable, decoder, mode in ((read, self.read, 'read'), (write, self.write, 'write')):
-            if not enable:
-                continue
-            try:
-                decoder[address] = obj
-            except AddressConflictError as exc:
-                raise ValueError(
-                    'address conflict between %s (%s) and %s (%s) at %s in %s mode' % (
-                        obj, self.signals.doc_represent_address(exc.address_a),
-                        decoder[exc.address_b], self.signals.doc_represent_address(exc.address_b),
-                        self.signals.doc_represent_address(MaskedAddress(
-                            exc.address_a.common(exc.address_b), (1 << self.signals.width) - 1)),
-                        mode))
+    def write_replace(self, internal_address, new_mapping):
+        """Replaces a mapping previously added with `write_map()` with a
+        different object. This allows a builder object to be mapped initially,
+        to eventually be replaced with a frozen, completed object."""
+        if internal_address not in self.write:
+            raise ValueError(
+                'cannot replace write mapping for address %s, because no '
+                'mapping exists yet' % (internal_address,))
+        self.write[internal_address] = new_mapping
 
     def doc_iter(self):
         """Iterates over the addresses and mapped objects in this address
