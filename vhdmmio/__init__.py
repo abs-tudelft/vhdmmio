@@ -21,7 +21,7 @@ import os
 import argparse
 from vhdmmio.version import __version__
 import vhdmmio.vhdl as vhdl
-import vhdmmio.html as html
+from vhdmmio.html import HtmlDocumentationGenerator
 from vhdmmio.config import RegisterFileConfig
 from vhdmmio.core import RegisterFile
 
@@ -138,7 +138,8 @@ def run_cli(args=None):
 
         # Handle the HTML generator.
         if args.html:
-            html.generate(register_files, args.html)
+            gen = HtmlDocumentationGenerator(register_files)
+            gen.generate(args.html)
 
         return 0
 

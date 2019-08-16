@@ -18,6 +18,7 @@ class Resources:
         super().__init__()
         self._internals = InternalManager()
         self._addresses = AddressManager()
+        self._block_addresses = AddressManager()
         self._subaddresses = SubAddressManager()
         self._read_tags = DeferTagManager()
         self._write_tags = DeferTagManager()
@@ -33,8 +34,13 @@ class Resources:
 
     @property
     def addresses(self):
-        """Resource manager for the address decoder."""
+        """Resource manager for the logical register addresses."""
         return self._addresses
+
+    @property
+    def block_addresses(self):
+        """Resource manager for the physical block addresses."""
+        return self._block_addresses
 
     def construct_address(self, address, conditions):
         """Constructs an internal address from the given `MaskedAddress` for

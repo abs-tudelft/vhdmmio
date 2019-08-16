@@ -84,14 +84,11 @@ class Named:
 
             # Determine doc.
             if doc_override is not None:
-                doc = doc_override
+                self._doc = doc_override
             elif metadata.doc is Unset:
-                doc = None
+                self._doc = None
             else:
-                doc = metadata.doc.replace('{index}', doc_index)
-            self._doc = self._brief[:1].upper() + self._brief[1:]
-            if doc is not None:
-                self._doc += '\n\n' + doc
+                self._doc = metadata.doc.replace('{index}', doc_index)
 
             # Chain to next class in the MRO.
             super().__init__(**kwargs)
@@ -116,9 +113,18 @@ class Named:
 
     @property
     def doc(self):
+        """Extended documentation of this object, to be read in addition to
+        `brief`. Multiple lines of markdown-formatted text."""
+        return self._doc
+
+    @property
+    def extended_doc(self):
         """Complete documentation for this object, including brief. Multiple
         lines of markdown-formatted text."""
-        return self._doc
+        extended_doc = self.brief[:1].upper() + self.brief[1:]
+        if self.doc is not None:
+            extended_doc += '\n\n' + extended_doc
+        return extended_doc
 
     @property
     def context(self):
@@ -162,7 +168,7 @@ class Named:
         return ' '.join(re.findall(r'\w[a-z0-9_]+', type(self).__name__)).lower()
 
     def __str__(self):
-        return '%s %s' % (self.get_type_name(), self.name)
+        return '%s "%s"' % (self.get_type_name(), self.name)
 
     def __repr__(self):
         return '%s(name=%r)' % (type(self).__name__, self.name)

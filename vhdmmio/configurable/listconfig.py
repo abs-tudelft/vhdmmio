@@ -1,6 +1,7 @@
 """Submodule for the `SubConfig` `Loader`, which can be used to
 create/configure hierarchical object structures in various ways."""
 
+import copy
 from .loader import Loader
 from .utils import ParseError
 
@@ -103,7 +104,7 @@ class ListConfig(Loader):
 
                 # Merge the dictionary with the prototype, if there is one.
                 if prototype:
-                    updated_prototype = prototype.copy()
+                    updated_prototype = copy.deepcopy(prototype)
                     updated_prototype.update(subdict)
                     subdict = updated_prototype
 

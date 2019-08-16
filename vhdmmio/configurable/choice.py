@@ -79,7 +79,7 @@ class Choice(ScalarLoader):
         for documentation and error messages. If there is an override, a list
         with just the override item is returned."""
         if self.has_override():
-            return ['%r (default)' % (self.override,)]
+            return ['%s (default)' % (friendly_yaml_value(self.override))]
 
         friendly_choices = []
         ints_found = False

@@ -41,7 +41,8 @@ class FieldDescriptor(Named, Shaped, Configured, Unique):
         bus_width = self.regfile.cfg.features.bus_width
         address = MaskedAddress.parse_config(
             self.cfg.address, ignore_lsbs=bus_width.bit_length() - 4)
-        bitrange = BitRange.parse_config(self.cfg.bitrange, width=bus_width)
+        bitrange = BitRange.parse_config(
+            self.cfg.bitrange, width=bus_width, flexible=True)
 
         # Load and substitute defaults for the relative placement configurations.
         field_repeat = self.cfg.field_repeat

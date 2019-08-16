@@ -1,7 +1,193 @@
 """Module for generating HTML documentation of the register files."""
 
 import os
+from os.path import join as pjoin
+import shutil
 from markdown2 import Markdown
+from ..core.address import AddressSignalMap
+from ..template import TemplateEngine, annotate_block
+
+_MODULE_DIR = os.path.dirname(__file__)
+
+_SECTION = annotate_block("""
+$header$
+$if defined('EXTENDED')
+<div class="brief">
+$ BRIEF
+</div>
+<div class="extended">
+$ EXTENDED
+</div>
+$else
+$BRIEF
+$endif
+""", comment='--')
+
+
+class DocumentationFlags:
+    """Maintains a set of documentation "flags", which can then be coverted to
+    HTML to be put at the top of the documentation section for an object. In
+    this context, flags are just short pieces of text or icons with a title
+    text containing more info, to quickly let the user see the features of some
+    object, a bit like badges at the top of a readme file on github."""
+
+    def __init__(self):
+        super().__init__()
+        self._flags = []
+
+    def append(self, cls, brief, extended):
+        """Adds a flag."""
+        self._flags.append((cls, brief, extended))
+
+    def to_html(self):
+        """Converts the flags to HTML."""
+        html = ['<ul class="flags">']
+        for cls, brief, extended in self._flags:
+            html.append('  <li class="flag-%s" title="%s">%s</li>' % (
+                cls, extended.replace('&', '&amp;').replace('"', '&quot;'), brief))
+        html.append('</ul>')
+        return '\n'.join(html)
+
+
+class HtmlDocumentationGenerator:
+    """Generator for HTML documentation."""
+
+    def __init__(self, regfiles):
+        super().__init__()
+        self._regfiles = regfiles
+        self._markdowner = Markdown(extras=["tables"])
+
+    def _md_to_html(self, markdown):
+        """Converts markdown to HTML."""
+        return self._markdowner.convert(markdown)
+
+    @staticmethod
+    def _named_header_to_html(named, depth=1):
+        """Generates a HTML header for the given `Named`."""
+        if named.mnemonic == named.name.upper():
+            name = '<code>%s</code>' % (named.name,)
+        else:
+            name = '<code>%s</code> (<code>%s</code>)' % (named.name, named.mnemonic)
+        typ = named.get_type_name()
+        typ = typ[0].upper() + typ[1:]
+        return '<h%d>%s %s</h%d>' % (depth, typ, name, depth)
+
+    def _named_brief_to_html(self, named):
+        """Generates the HTML for the brief documentation of the given
+        `Named`."""
+        brief_md = named.brief[0].upper() + named.brief[1:]
+        return self._md_to_html(brief_md)
+
+    def _field_to_html(self, field, depth=1):
+        """Generates the documentation section for the given field."""
+        tple = TemplateEngine()
+        tple['header'] = self._named_header_to_html(field, depth)
+        tple.append_block('BRIEF', self._named_brief_to_html(field))
+        if field.doc is not None:
+            tple.append_block('EXTENDED', self._md_to_html(field.doc))
+        return tple.apply_str_to_str(_SECTION)
+
+    def _register_to_html(self, subaddresses, register, depth=1):
+        """Generates the documentation section for the given register."""
+        tple = TemplateEngine()
+        tple['header'] = self._named_header_to_html(register, depth)
+
+        flags = DocumentationFlags()
+
+        # Add address information flags.
+        for signal, subaddress in subaddresses.items():
+            subaddress = subaddress.doc_represent(signal.width)
+            if signal is AddressSignalMap.BUS:
+                flags.append(
+                    'address',
+                    subaddress,
+                    'This register is located at bus address %s.' % subaddress)
+            elif subaddress != '-':
+                flags.append(
+                    'condition',
+                    '%s=%s' % (signal.name, subaddress),
+                    'Additional address match condition: %s = %s.' % (signal, subaddress))
+
+        # Add bus access mode flag.
+        if register.can_read() and register.can_write():
+            flags.append('access', 'R/W', 'This register is read/write.')
+        elif register.can_write():
+            flags.append('access', 'W/O', 'This register is write-only.')
+        else:
+            flags.append('access', 'R/O', 'This register is read-only.')
+
+        # Add endianness flag if the register has multiple blocks.
+        if register.little_endian:
+            flags.append(
+                'endian', 'LE',
+                'This is a %d-block little-endian compound register.'
+                % len(register.blocks))
+        if register.big_endian:
+            flags.append(
+                'endian', 'BE',
+                'This is a %d-block big-endian compound register.'
+                % len(register.blocks))
+
+        tple.append_block('BRIEF', flags.to_html())
+        tple.append_block('BRIEF', self._named_brief_to_html(register))
+        if register.doc is not None:
+            tple.append_block('EXTENDED', self._md_to_html(register.doc))
+
+        for field in register.fields:
+            tple.append_block('EXTENDED', self._field_to_html(field, depth + 1))
+
+        return tple.apply_str_to_str(_SECTION)
+
+    def _interrupt_to_html(self, interrupt, depth=1):
+        """Generates the documentation section for the given interrupt."""
+        tple = TemplateEngine()
+        tple['header'] = self._named_header_to_html(interrupt, depth)
+        tple.append_block('BRIEF', self._named_brief_to_html(interrupt))
+        if interrupt.doc is not None:
+            tple.append_block('EXTENDED', self._md_to_html(interrupt.doc))
+        return tple.apply_str_to_str(_SECTION)
+
+    def _regfile_to_html(self, regfile, depth=1):
+        """Generates the documentation section for the given register file."""
+        tple = TemplateEngine()
+        tple['header'] = self._named_header_to_html(regfile, depth)
+        tple.append_block('BRIEF', self._named_brief_to_html(regfile))
+        if regfile.doc is not None:
+            tple.append_block('EXTENDED', self._md_to_html(regfile.doc))
+
+        for subaddresses, _, read_reg, write_reg in regfile.doc_iter_registers():
+            if read_reg is write_reg:
+                tple.append_block('EXTENDED', self._register_to_html(
+                    subaddresses, read_reg, depth + 1))
+            else:
+                if read_reg is not None:
+                    tple.append_block('EXTENDED', self._register_to_html(
+                        subaddresses, read_reg, depth + 1))
+                if write_reg is not None:
+                    tple.append_block('EXTENDED', self._register_to_html(
+                        subaddresses, write_reg, depth + 1))
+
+        for interrupt in regfile.interrupts:
+            tple.append_block('EXTENDED', self._interrupt_to_html(interrupt, depth + 1))
+
+        return tple.apply_str_to_str(_SECTION)
+
+    def generate(self, output_dir):
+        """Generates the HTML documentation files for the register files in the
+        given directory."""
+        tple = TemplateEngine()
+        for regfile in self._regfiles:
+            tple.append_block('BODY', self._regfile_to_html(regfile))
+        tple['title'] = 'TODO'
+        tple.apply_file_to_file(
+            pjoin(_MODULE_DIR, 'base.template.html'),
+            pjoin(output_dir, 'index.html'))
+        shutil.copyfile(
+            pjoin(_MODULE_DIR, 'style.css'),
+            pjoin(output_dir, 'style.css'))
+
+
+# TODO: old code below here, to be removed
 
 #get#xdg-open#to#interpret#this#as#a#python#file#...######
 ######################################################

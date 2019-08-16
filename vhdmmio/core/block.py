@@ -89,14 +89,17 @@ class Block(Named, Unique, Accessed):
     def __init__(self, resources, register, index, count):
         # Determine the suffix for the block name.
         if count == 1:
-            suffix = ''
+            mnem_suffix = ''
+            name_suffix = ''
         elif count == 2:
             if register.endianness == 'little':
-                suffix = 'LH'[index]
+                mnem_suffix = 'LH'[index]
             else:
-                suffix = 'HL'[index]
+                mnem_suffix = 'HL'[index]
+            name_suffix = '_low' if mnem_suffix == 'L' else '_high'
         elif count <= 26:
             suffix = chr(ord('A') + index)
+            name_suffix = '_' + suffix.lower()
         else:
             raise ValueError('cannot have more than 26 blocks per register')
 
@@ -109,8 +112,8 @@ class Block(Named, Unique, Accessed):
 
         # Generate the metadata for this block based on the above.
         metadata = MetadataConfig(
-            mnemonic=register.mnemonic + suffix,
-            name=register.name + suffix,
+            mnemonic=register.mnemonic + mnem_suffix,
+            name=register.name + name_suffix,
             brief='Block containing bits %d..%d of %s.' % (
                 offset + bus_width - 1, offset, register))
 
@@ -118,7 +121,15 @@ class Block(Named, Unique, Accessed):
         self._register = register
         self._index = index
         self._offset = offset
+        self._internal_address = register.internal_address + index
         self._col_count = bus_width
+
+        # Register ourselves with the address manager while checking for
+        # conflicts.
+        if self.can_read():
+            resources.block_addresses.read_set(self.internal_address, self)
+        if self.can_write():
+            resources.block_addresses.write_set(self.internal_address, self)
 
         # If there are multiple blocks, register each block in the register
         # namespace as well. The blocks will get their own definitions and such
@@ -212,6 +223,12 @@ class Block(Named, Unique, Accessed):
         """The bit offset to add to the bus word bit indices to get the logical
         register bit indices."""
         return self._offset
+
+    @property
+    def internal_address(self):
+        """Internal address of this block (concatenation of the bus address and
+        any other match conditions)."""
+        return self._internal_address
 
     @property
     def mappings(self):

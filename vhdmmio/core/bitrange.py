@@ -37,10 +37,11 @@ class BitRange(Shaped):
         return self._low
 
     @classmethod
-    def parse_config(cls, value, width):
+    def parse_config(cls, value, width, flexible=False):
         """Parses the `field.bitrange` configuration key syntax into a
         `BitRange`. `width` specifies the width of the signal, used when the
-        bitrange is omitted from the configuration."""
+        bitrange is omitted from the configuration. Unless `flexible` is set,
+        this is also limits the maximum bit index."""
 
         # Handle default.
         if value is None:
@@ -48,7 +49,7 @@ class BitRange(Shaped):
 
         # Handle scalar bitrange notation.
         if isinstance(value, int):
-            if value >= width:
+            if value >= width and not flexible:
                 raise ValueError('bitrange index out of range')
             return cls(value)
 
@@ -56,7 +57,7 @@ class BitRange(Shaped):
         high, low = value.split('..')
         high = int(high)
         low = int(low)
-        if high >= width:
+        if high >= width and not flexible:
             raise ValueError('bitrange index out of range')
         return cls(high, low)
 

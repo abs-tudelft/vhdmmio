@@ -7,16 +7,12 @@ from .primitive import BasePrimitive
 
 behavior_doc('Control fields for configuring hardware:', 1)
 
-@behavior(
-    'control', 'basic control field, i.e. written by software and read by '
-    'hardware.', 2)
 @derive(
     name='`control` behavior',
     bus_read=('enabled', 'error', 'disabled'),
     after_bus_read='nothing',
     bus_write=('masked', 'enabled', 'invalid', 'invalid-only'),
     after_bus_write=('nothing', 'validate'),
-    hw_read=('simple', 'enabled'),
     hw_write='disabled',
     after_hw_write='nothing',
     ctrl_validate=False,
@@ -28,7 +24,16 @@ behavior_doc('Control fields for configuring hardware:', 1)
     ctrl_bit_clear=False,
     ctrl_bit_toggle=False,
     reset=[None])
-class Control(BasePrimitive):
+class BaseControl(BasePrimitive):
+    """Base class for control registers."""
+
+@behavior(
+    'control', 'basic control field, i.e. written by software and read by '
+    'hardware.', 2)
+@derive(
+    hw_read=('simple', 'enabled'),
+    reset=[None])
+class Control(BaseControl):
     """Fields with `control` behavior are used to push runtime configuration
     values from software to hardware. They are normally read-write on the MMIO
     bus and respect the AXI4L byte strobe bits so they can be easily (though
@@ -55,7 +60,7 @@ class Control(BasePrimitive):
     ctrl_invalidate=False,
     ctrl_reset=False,
     reset=(False, True, int, 'generic'))
-class InternalControl(Control):
+class InternalControl(BaseControl):
     """This field behaves like a control register that constrols an internal
     signal by default. That is, the MMIO bus interface is read/write, and the
     contents of the internal register drives an internal signal. The name of

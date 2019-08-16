@@ -425,6 +425,17 @@ class AddressManager:
                             (1 << self.signals.width) - 1))))
         return mapping
 
+    def read_set(self, internal_address, mapping):
+        """Like `read_map()`, but always sets the mapping to the specified
+        object. If there was already an object at this address, a conflict
+        error is issued."""
+        old = self.read.get(internal_address, None)
+        if old is not None:
+            raise ValueError(
+                'address conflict between %s and %s at %s in read mode' % (
+                    mapping, old, self.signals.doc_represent_address(internal_address)))
+        return self.read_map(internal_address, lambda: mapping)
+
     def read_replace(self, internal_address, new_mapping):
         """Replaces a mapping previously added with `read_map()` with a
         different object. This allows a builder object to be mapped initially,
@@ -456,6 +467,17 @@ class AddressManager:
                             exc.address_a.common(exc.address_b),
                             (1 << self.signals.width) - 1))))
         return mapping
+
+    def write_set(self, internal_address, mapping):
+        """Like `write_map()`, but always sets the mapping to the specified
+        object. If there was already an object at this address, a conflict
+        error is issued."""
+        old = self.write.get(internal_address, None)
+        if old is not None:
+            raise ValueError(
+                'address conflict between %s and %s at %s in write mode' % (
+                    mapping, old, self.signals.doc_represent_address(internal_address)))
+        return self.write_map(internal_address, lambda: mapping)
 
     def write_replace(self, internal_address, new_mapping):
         """Replaces a mapping previously added with `write_map()` with a

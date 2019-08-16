@@ -66,6 +66,7 @@ class RegisterFile(Named, Configured, Unique):
 
             # Perform post-construction checks on the resource managers.
             resources.verify()
+            self._resources = resources
 
     @property
     def trusted(self):
@@ -83,3 +84,17 @@ class RegisterFile(Named, Configured, Unique):
     def registers(self):
         """Returns the logical registers of this register file as a tuple."""
         return self._registers
+
+    def doc_iter_registers(self):
+        """Iterates over the registers in a natural order for documentation
+        output. The elements are yielded as
+        `(subaddresses, address_repr, read_ob, write_ob)` tuples, where
+        `address_repr` is a human-readable string representation of the
+        address, and `read_ob`/`write_ob` are `None` if the address range is
+        write-only/read-only."""
+        return self._resources.addresses.doc_iter()
+
+    @property
+    def interrupts(self):
+        """Returns the interrupts of this register file as a tuple."""
+        return self._interrupts
