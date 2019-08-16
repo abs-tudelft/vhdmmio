@@ -3,10 +3,41 @@
 import re
 from ...configurable import Unset
 from ...config import MetadataConfig
+from ...utils import doc_enumerate
 
-class ContextualError(Exception): #pylint: disable=R0903
+class ContextualError(Exception):
     """Used for reraising exceptions with the name and type of the `Named`
     class causing the exception included as contextual information."""
+
+    def __init__(self, msg, *contexts):
+        super().__init__(msg)
+        self._context = []
+        for context in contexts:
+            self.add_context(context)
+
+    def add_context(self, context):
+        """Adds context to this error message."""
+        context = str(context)
+        if context not in self._context:
+            self._context.insert(0, context)
+
+    def __str__(self):
+        msg = super().__str__()
+        if not self._context:
+            return msg
+        return 'error within %s: %s' % (doc_enumerate(self._context), msg)
+
+    @staticmethod
+    def handle(exc_typ, exc_val, context):
+        """Add context to the given exception, raising a new
+        `ContextualError` if necessary."""
+        if exc_typ is ContextualError:
+            exc_val.add_context(context)
+            return
+        message = str(exc_val)
+        if exc_typ is not ValueError:
+            message = '%s (%s)' % (message, exc_typ.__name__)
+        raise ContextualError(message, context)
 
 
 class Named:
@@ -104,11 +135,7 @@ class Named:
             def __exit__(exc_typ, exc_val, _):
                 if exc_val is None:
                     return
-                message = str(exc_val)
-                if exc_typ is not ContextualError:
-                    message = '%s: %s' % (exc_typ.__name__, message)
-                raise ContextualError('within %s %s: %s' % (
-                    self.get_type_name(), self.name, message))
+                ContextualError.handle(exc_typ, exc_val, self)
         return Context()
 
     def context_if(self, condition):
@@ -117,7 +144,7 @@ class Named:
         context manager is returned."""
         if condition:
             return self.context
-        class Context:
+        class DummyContext:
             """Dummy context manager."""
             @staticmethod
             def __enter__():
@@ -125,7 +152,7 @@ class Named:
             @staticmethod
             def __exit__(*_):
                 pass
-        return Context()
+        return DummyContext()
 
     def get_type_name(self):
         """Returns a friendly representation of this object's type, used for
