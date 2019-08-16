@@ -57,6 +57,17 @@ class Internal(Named, Shaped, Unique):
             raise ValueError(
                 'internal %s is never used' % self._name)
 
+    def is_strobe(self):
+        """Returns whether this internal is a strobe signal. That is, a signal
+        with one or more drivers which only assert it high, while the signal is
+        constantly being cleared at the end of each cycle. If `False`, the
+        signal is level-driven. Throws an exception when no drivers have been
+        assigned yet."""
+        if self._driver is None and not self._strobers:
+            raise ValueError(
+                'internal %s is not driven by anything' % self._name)
+        return bool(self._strobers)
+
 
 class InternalManager:
     """Storage for internal signals."""

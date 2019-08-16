@@ -4,6 +4,7 @@ from .mixins import Named, Configured, Unique
 from .resources import Resources
 from .field_descriptor import FieldDescriptor
 from .logical_register import construct_logical_register
+from .interrupt import Interrupt
 
 class RegisterFile(Named, Configured, Unique):
     """Compiled representation of a register file."""
@@ -14,25 +15,25 @@ class RegisterFile(Named, Configured, Unique):
         with self.context:
 
             # Create the various resource managers.
-            self._resources = Resources()
+            resources = Resources()
 
             # Parse the field descriptors.
             self._field_descriptors = tuple((
-                FieldDescriptor(self._resources, self, fd_cfg)
-                for fd_cfg in cfg.fields))
+                FieldDescriptor(resources, self, field_descriptor_cfg)
+                for field_descriptor_cfg in cfg.fields))
 
             # The `FieldDescriptor` constructor calls the `Field` constructor,
             # which in turn maps the field addresses to lists of `Field`s in
-            # `self._resources.addresses`. We can now convert these lists to
+            # `resources.addresses`. We can now convert these lists to
             # `LogicalRegister`s, of which the constructor also constructs the
             # `Block`s.
             registers = []
-            addresses = self._resources.addresses
+            addresses = resources.addresses
             for address in addresses:
 
                 # Construct the register(s) for this address.
                 read_reg, write_reg = construct_logical_register(
-                    self._resources, self,
+                    resources, self,
                     addresses.read.get(address, None),
                     addresses.write.get(address, None))
 
@@ -57,6 +58,14 @@ class RegisterFile(Named, Configured, Unique):
 
             # Convert the register list to a tuple to make it immutable.
             self._registers = tuple(registers)
+
+            # Parse the interrupts.
+            self._interrupts = tuple((
+                Interrupt(resources, self, interrupt_cfg)
+                for interrupt_cfg in cfg.interrupts))
+
+            # Perform post-construction checks on the resource managers.
+            resources.verify()
 
     @property
     def trusted(self):

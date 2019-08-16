@@ -6,6 +6,7 @@ from .internal import InternalManager
 from .address import AddressManager
 from .subaddress import SubAddressManager
 from .defer_tag import DeferTagManager
+from .interrupt import InterruptManager
 from .namespace import Namespace
 
 class Resources:
@@ -20,6 +21,7 @@ class Resources:
         self._subaddresses = SubAddressManager()
         self._read_tags = DeferTagManager()
         self._write_tags = DeferTagManager()
+        self._interrupts = InterruptManager()
         self._descriptor_namespace = Namespace('field descriptor', check_mnemonics=False)
         self._register_namespace = Namespace('register')
         self._interrupt_namespace = Namespace('interrupt')
@@ -63,6 +65,12 @@ class Resources:
         return self._write_tags
 
     @property
+    def interrupts(self):
+        """The interrupt manager, used to connect interrupt fields to the
+        interrupt objects themselves."""
+        return self._interrupts
+
+    @property
     def descriptor_namespace(self):
         """Namespace manager for field descriptors and fields."""
         return self._descriptor_namespace
@@ -76,3 +84,8 @@ class Resources:
     def interrupt_namespace(self):
         """Namespace manager for interrupts."""
         return self._interrupt_namespace
+
+    def verify(self):
+        """Performs post-construction checks."""
+        self.internals.verify()
+        self.interrupts.verify()

@@ -73,10 +73,10 @@ class InterruptConfig(Configurable):
     ## Interrupt sources
 
     A `vhdmmio` interrupt can currently be requested through an internal or
-    an external synchronous active-high signal, or by software using the
-    [`interrupt-pend`](interruptpend.md) field behavior. To get
-    edge-sensitive, active-low, or asynchronous interrupts, external logic is
-    required."""
+    synchronous external signal, or by software using the
+    [`interrupt-pend`](interruptpend.md) field behavior. An external
+    synchronizer is needed to accept asynchronous interrupts. These are often
+    vendor-specific, therefore they are not included in vhdmmio."""
     #pylint: disable=E0211,E0213,E0202
 
     @choice
@@ -103,3 +103,12 @@ class InterruptConfig(Configurable):
                'given name. The arrayness of the signal must match this '
                'interrupt\'s repetition. Level-sensitive interrupts cannot be '
                'associated with strobe signals.')
+
+    @choice
+    def active():
+        """This key specifies the event that the interrupt is sensitive to."""
+        yield 'high', 'the interrupt is level/strobe-sensitive, active-high.'
+        yield 'low', 'the interrupt is level/strobe-sensitive, active-low.'
+        yield 'rising', 'the interrupt is rising-edge sensitive.'
+        yield 'falling', 'the interrupt is falling-edge sensitive.'
+        yield 'any-edge', 'the interrupt is sensitive to any edge.'
