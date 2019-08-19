@@ -157,7 +157,7 @@ class Interrupt(Named, Shaped, Configured, Unique):
          - `'low'`: the interrupt is level/strobe-sensitive, active-low;
          - `'rising'`: the interrupt is rising-edge sensitive;
          - `'falling'`: the interrupt is falling-edge sensitive;
-         - `'any-edge'`: the interrupt is sensitive to any edge.
+         - `'edge'`: the interrupt is sensitive to any edge.
         """
         return self.cfg.active
 

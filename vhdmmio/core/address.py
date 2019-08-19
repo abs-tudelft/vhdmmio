@@ -522,3 +522,17 @@ class AddressManager:
             read_ob = self.read.get(address, None)
             write_ob = self.write.get(address, None)
             yield subaddresses, address_repr, read_ob, write_ob
+
+    def doc_represent_address(self, address):
+        """Formats documentation for the given internal address. Returns a
+        tuple of the formatted address and a list of string representations of
+        any additional match conditions."""
+        bus_address = None
+        conditions = []
+        for signal, subaddress in self.signals.split_address(address).items():
+            subaddress = subaddress.doc_represent(signal.width)
+            if signal is AddressSignalMap.BUS:
+                bus_address = subaddress
+            elif subaddress != '-':
+                conditions.append('%s=%s' % (signal.name, subaddress))
+        return bus_address, conditions

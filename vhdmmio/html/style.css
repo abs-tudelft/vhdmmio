@@ -1,34 +1,210 @@
-.tooltip {
-  position: relative;
-  display: inline-block;
+
+body {
+    font-family: sans-serif;
 }
 
-.tooltip .tooltiptext {
-  visibility: hidden;
-  width: 200px;
-  background-color: black;
-  color: #fff;
-  text-align: center;
-  border-radius: 6px;
-  padding: 5px 0;
-  position: absolute;
-  z-index: 1;
-  top: 150%;
-  left: 50%;
-  margin-left: -100px;
+p {
+    max-width: 45em;
+    text-align: justify;
 }
 
-.tooltip .tooltiptext::after {
-  content: "";
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  margin-left: -5px;
-  border-width: 5px;
-  border-style: solid;
-  border-color: transparent transparent black transparent;
+div.content {
+    padding: 0px 10px 10px 10px;
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-right: 1px solid rgba(255, 255, 255, 0.6);
+    border-top: 1px solid rgba(255, 255, 255, 0.6);
+    margin-bottom: 10px;
+    border-radius: 0px 10px 0px 10px;
+    background-color: rgba(0, 0, 0, 0.03);
 }
 
-.tooltip:hover .tooltiptext {
-  visibility: visible;
+emph {
+    font-style: italic;
+}
+
+.de-emph {
+    font-style: italic;
+    color: rgba(0, 0, 0, 0.5);
+}
+
+/*****************************************************************************/
+/* Markdown-generated/default tables                                         */
+/*****************************************************************************/
+table {
+    border: 1px solid black;
+    font-size: 0.9em;
+    border-collapse: collapse;
+}
+
+td, th {
+    padding: 2px 5px;
+}
+
+th {
+    font-weight: normal;
+    border-bottom: 1px solid black;
+    background-color: #333;
+    color: white;
+    text-transform: uppercase;
+}
+
+tr:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.07);
+}
+
+tr:nth-child(odd) {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+tr.even {
+    background-color: rgba(0, 0, 0, 0.07) !important;
+}
+
+tr.odd {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+/*****************************************************************************/
+/* Flags/badges                                                              */
+/*****************************************************************************/
+ul.flags {
+    list-style-type: none;
+    margin: 0;
+    margin-block-start: 0;
+    margin-block-end: 0;
+    margin-inline-start: 0;
+    margin-inline-end: 0;
+    padding-inline-start: 0;
+    display: block;
+}
+
+li[class^="flag-"] {
+    display: inline-block;
+    font-variant: small-caps;
+    font-size: 0.9em;
+    border-radius: 5px;
+    border: 1px solid black;
+    padding: 1px 4px 1px 4px;
+    vertical-align: middle;
+    background: linear-gradient(to left, #333 50%, rgba(0, 0, 0, 0.05) 50%);
+    background-size: 200% 100%;
+    background-position: 35px bottom;
+    font-family: monospace;
+}
+
+li[class^="flag-"]::before {
+    content: "";
+    font-size: 0.55rem;
+    display: inline-block;
+    vertical-align: middle;
+    text-align: center;
+    color: white;
+    width: 35px;
+    height: 100%;
+    position: relative;
+    left: -4px;
+    top: -1px;
+    font-family: sans-serif;
+}
+
+li.flag-address::before     { content: "ADDR"; }
+li.flag-condition::before   { content: "CND"; }
+li.flag-bitrange::before    { content: "BIT"; }
+li.flag-reset::before       { content: "RST"; }
+li.flag-mode::before        { content: "MOD"; }
+li.flag-type::before        { content: "TYPE"; }
+li.flag-privileges::before  { content: "PRIV"; }
+li.flag-endianness::before  { content: "END"; }
+
+/*****************************************************************************/
+/* Bitmap tables                                                             */
+/*****************************************************************************/
+table.bitmap {
+    table-layout: fixed;
+}
+
+th.bitmap-bit {
+    padding-left: 1px;
+    padding-right: 1px;
+    width: 20px;
+}
+
+td.bitmap-mapping, td.bitmap-empty {
+    padding-left: 1px;
+    padding-right: 1px;
+    border: 1px solid black;
+    text-align: center;
+    font-family: monospace;
+}
+
+.bitmap-last-col-header {
+    border-right: 1px solid black;
+}
+
+tr.bitmap-restart {
+    border-top: 1px solid black;
+}
+
+/*****************************************************************************/
+/* Multiline tooltips                                                        */
+/*****************************************************************************/
+.tooltip-left, .tooltip-right {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltiptext {
+    visibility: hidden;
+    width: 400px;
+    background: linear-gradient(to bottom, #333 22px, #ddd 22px);
+    color: #fff;
+    text-align: center;
+    border-radius: 5px;
+    border: 1px solid black;
+    padding: 2px 0px;
+    position: absolute;
+    z-index: 1;
+    top: 150%;
+    left: 50%;
+    font-variant: small-caps;
+    font-family: sans-serif;
+    font-size: 11pt;
+}
+
+.tooltip-left .tooltiptext {
+    margin-left: -40px;
+}
+
+.tooltip-right .tooltiptext {
+    margin-left: -360px;
+}
+
+.tooltiptext p {
+    text-align: left;
+    font-variant: normal;
+    margin: 5px 2px 2px 2px;
+    color: black;
+}
+
+.tooltiptext::after {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent black transparent;
+}
+
+.tooltip-left .tooltiptext::after {
+    left: 10%;
+}
+
+.tooltip-right .tooltiptext::after {
+    left: 90%;
+}
+
+.tooltip-left:hover .tooltiptext, .tooltip-right:hover .tooltiptext {
+    visibility: visible;
 }

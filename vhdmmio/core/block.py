@@ -2,6 +2,7 @@
 
 from ..config import MetadataConfig
 from .mixins import Named, Unique, Accessed
+from .address import AddressSignalMap
 
 class FieldMapping(Unique):
     """Represents a field mapping within a `Block`."""
@@ -32,14 +33,13 @@ class FieldMapping(Unique):
 
     @property
     def low(self):
-        """The low bit in the field mapped by this mapping, or `None` if the
-        field is a single bit."""
+        """The low bit in the field mapped by this mapping."""
         return self._low
 
     @property
     def offset(self):
         """The offset of the mapping's low bit in the bus word."""
-        return self._low
+        return self._offset
 
     @property
     def read(self):
@@ -130,6 +130,10 @@ class Block(Named, Unique, Accessed):
             resources.block_addresses.read_set(self.internal_address, self)
         if self.can_write():
             resources.block_addresses.write_set(self.internal_address, self)
+
+        # Figure out our bus address.
+        self._address = resources.block_addresses.signals.split_address(
+            self._internal_address)[AddressSignalMap.BUS]
 
         # If there are multiple blocks, register each block in the register
         # namespace as well. The blocks will get their own definitions and such
@@ -225,10 +229,24 @@ class Block(Named, Unique, Accessed):
         return self._offset
 
     @property
+    def address(self):
+        """The bus address for this logical register as a `MaskedAddress`. If
+        this register has multiple blocks, this corresponds to the address of
+        the first block, which is the least significant block in little-endian
+        mode, or the most significant in big-endian mode."""
+        return self._address
+
+    @property
     def internal_address(self):
         """Internal address of this block (concatenation of the bus address and
         any other match conditions)."""
         return self._internal_address
+
+    def doc_address(self):
+        """Formats documentation for this block's internal address. Returns a
+        tuple of the formatted address and a list of string representations of
+        any additional match conditions."""
+        return self.register.regfile.doc_represent_address(self.internal_address)
 
     @property
     def mappings(self):

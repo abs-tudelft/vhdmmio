@@ -111,4 +111,4 @@ class InterruptConfig(Configurable):
         yield 'low', 'the interrupt is level/strobe-sensitive, active-low.'
         yield 'rising', 'the interrupt is rising-edge sensitive.'
         yield 'falling', 'the interrupt is falling-edge sensitive.'
-        yield 'any-edge', 'the interrupt is sensitive to any edge.'
+        yield 'edge', 'the interrupt is sensitive to any edge.'

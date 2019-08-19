@@ -250,3 +250,10 @@ class Behavior(Configured):
     def bus(self):
         """The behavior of the bus for this field."""
         return self._bus
+
+    @property
+    def doc_reset(self):
+        """The reset value as printed in the documentation as an integer, or
+        `None` if the field is driven by a signal and thus does not have a
+        register to reset."""
+        return None

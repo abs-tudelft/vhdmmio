@@ -55,6 +55,14 @@ class PrimitiveBehavior(Behavior):
                 raise ValueError('external status fields cannot be combined with an '
                                  'internal monitor signal')
 
+        # Figure out the reset value for the documentation.
+        if is_int_stat or is_ext_stat:
+            self._doc_reset = None
+        elif behavior_cfg.reset is None:
+            self._doc_reset = 0
+        else:
+            self._doc_reset = int(behavior_cfg.reset)
+
         # The `stream` write mode (stream to MMIO) cannot be combined with
         # hardware read, because both produce a `data` port (in opposite
         # direction). The `valid` signal of the full hardware read interface
@@ -256,3 +264,10 @@ class PrimitiveBehavior(Behavior):
         their field index. Otherwise, the signal takes the shape of the field
         itself."""
         return self._monitor_internal
+
+    @property
+    def doc_reset(self):
+        """The reset value as printed in the documentation as an integer, or
+        `None` if the field is driven by a signal and thus does not have a
+        register to reset."""
+        return self._doc_reset

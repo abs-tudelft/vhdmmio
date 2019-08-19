@@ -77,3 +77,24 @@ class InterruptBehavior(Behavior):
         if self._interrupt is None:
             raise ValueError('interrupt not yet attached')
         return self._interrupt
+
+    @property
+    def doc_reset(self):
+        """The reset value as printed in the documentation as an integer, or
+        `None` if the field is driven by a signal and thus does not have a
+        register to reset."""
+        flag = 0
+        if self.interrupt.level_sensitive and self.interrupt.enabled_after_reset:
+            flag = None
+        if self.cfg.mode == 'raw':
+            return None
+        if self.cfg.mode == 'enable':
+            return int(self.interrupt.enabled_after_reset)
+        if self.cfg.mode == 'flag':
+            return flag
+        if self.cfg.mode == 'unmask':
+            return int(self.interrupt.unmasked_after_reset)
+        assert self.cfg.mode == 'masked'
+        if self.interrupt.unmasked_after_reset:
+            return flag
+        return 0

@@ -94,6 +94,12 @@ class RegisterFile(Named, Configured, Unique):
         write-only/read-only."""
         return self._resources.addresses.doc_iter()
 
+    def doc_represent_address(self, internal_address):
+        """Formats documentation for the given internal address. Returns a
+        tuple of the formatted address and a list of string representations of
+        any additional match conditions."""
+        return self._resources.addresses.doc_represent_address(internal_address)
+
     @property
     def interrupts(self):
         """Returns the interrupts of this register file as a tuple."""

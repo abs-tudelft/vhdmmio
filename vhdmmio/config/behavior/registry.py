@@ -11,6 +11,7 @@ def behaviors():
 def behavior(name, brief, level=0):
     """Decorator generator which registers a behavior configurable."""
     def decorator(cls):
+        cls.__str__ = lambda _: name
         _BEHAVIOR_LIST.append((name, cls, brief, level))
         return cls
     return decorator

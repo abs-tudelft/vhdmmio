@@ -70,8 +70,17 @@ def construct_logical_register(resources, regfile, read_fields=None, write_field
 
     # Handle the read-write case with identical metadata.
     if read_meta.name == write_meta.name and read_meta.mnemonic == write_meta.mnemonic:
-        read_reg = write_reg = LogicalRegister(
-            resources, regfile, read_meta, 'R/W', read_fields | write_fields)
+        if not write_fields:
+            read_reg = LogicalRegister(
+                resources, regfile, read_meta, 'R/O', read_fields)
+            write_reg = None
+        elif not read_fields:
+            read_reg = None
+            write_reg = LogicalRegister(
+                resources, regfile, read_meta, 'W/O', write_fields)
+        else:
+            read_reg = write_reg = LogicalRegister(
+                resources, regfile, read_meta, 'R/W', read_fields | write_fields)
     else:
         # Construct the read-only register, if any.
         read_reg = (
@@ -121,7 +130,8 @@ class LogicalRegister(Named, Unique, Accessed):
             # Figure out the number of blocks in the logical register.
             bus_width = regfile.cfg.features.bus_width
             msb = max((field.bitrange.high for field in self.fields))
-            num_blocks = (msb + bus_width - 1) // bus_width
+            num_blocks = (msb + bus_width) // bus_width
+            assert num_blocks
 
             # Construct the blocks.
             self._blocks = tuple((
@@ -234,6 +244,12 @@ class LogicalRegister(Named, Unique, Accessed):
         significant block in little-endian mode, or the most significant in
         big-endian mode."""
         return self.fields[0].internal_address
+
+    def doc_address(self):
+        """Formats documentation for this register's internal address. Returns
+        a tuple of the formatted address and a list of string representations
+        of any additional match conditions."""
+        return self.regfile.doc_represent_address(self.internal_address)
 
     @property
     def endianness(self):
