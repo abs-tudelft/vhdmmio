@@ -18,6 +18,19 @@ The following values are supported:
 
 This key is optional unless required by context. If not specified, the default value (`32`) is used.
 
+## `endianness`
+
+This key specifies the default endianness used for multi-block
+fields.
+
+The following values are supported:
+
+ - `little` (default): the default is little endian. That is, when multiple blocks are needed to describe the field(s), bit 0 of the register resides in the *first* block.
+
+ - `big`: the default is big endian. That is, when multiple blocks are needed to describe the field(s), bit 0 of the register resides in the *last* block.
+
+This key is optional unless required by context. If not specified, the default value (`little`) is used.
+
 ## `max-outstanding`
 
 This key specifies the maximum number of outstanding requests per

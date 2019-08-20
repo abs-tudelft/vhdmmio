@@ -120,6 +120,10 @@ class ListConfig(Loader):
                 # Pass the final dict to the configurable for deserialization.
                 yield self._configurable(parent, subdict)
 
+                # Trip over unknown keys.
+                if subdict:
+                    ParseError.unknown(*subdict)
+
     def deserialize(self, dictionary, parent):
         """`ListConfig` deserializer. See `Loader.deserialize()` for more
         info."""

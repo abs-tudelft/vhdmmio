@@ -67,10 +67,10 @@ there *is* a way, the reset state is disabled/masked.
 ## Interrupt sources
 
 A `vhdmmio` interrupt can currently be requested through an internal or
-an external synchronous active-high signal, or by software using the
-[`interrupt-pend`](interruptpend.md) field behavior. To get
-edge-sensitive, active-low, or asynchronous interrupts, external logic is
-required.
+synchronous external signal, or by software using the
+[`interrupt-pend`](interruptpend.md) field behavior. An external
+synchronizer is needed to accept asynchronous interrupts. These are often
+vendor-specific, therefore they are not included in vhdmmio.
 
 ## Configuration keys
 
@@ -126,3 +126,45 @@ The following values are supported:
  - a string matching `[a-zA-Z][a-zA-Z0-9_]*`: the interrupt request source is the internal signal with the given name. The arrayness of the signal must match this interrupt's repetition. Level-sensitive interrupts cannot be associated with strobe signals.
 
 This key is optional unless required by context. If not specified, the default value (`null`) is used.
+
+## `active`
+
+This key specifies the event that the interrupt is sensitive to.
+
+The following values are supported:
+
+ - `high` (default): the interrupt is level/strobe-sensitive, active-high.
+
+ - `low`: the interrupt is level/strobe-sensitive, active-low.
+
+ - `rising`: the interrupt is rising-edge sensitive.
+
+ - `falling`: the interrupt is falling-edge sensitive.
+
+ - `edge`: the interrupt is sensitive to any edge.
+
+This key is optional unless required by context. If not specified, the default value (`high`) is used.
+
+## Interface keys
+
+These keys specify how the VHDL entity interface is generated.
+
+More information about this structure may be found [here](interfaceconfig.md).
+
+The following configuration keys are used to configure this structure.
+
+### `group`
+
+This key is documented [here](interfaceconfig.md#group).
+
+### `flatten`
+
+This key is documented [here](interfaceconfig.md#flatten).
+
+### `generic-group`
+
+This key is documented [here](interfaceconfig.md#generic-group).
+
+### `generic-flatten`
+
+This key is documented [here](interfaceconfig.md#generic-flatten).

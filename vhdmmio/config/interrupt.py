@@ -3,6 +3,7 @@
 import re
 from ..configurable import configurable, Configurable, choice, embedded
 from .metadata import MetadataConfig
+from .interface import InterfaceConfig
 
 @configurable(name='Interrupt descriptors')
 class InterruptConfig(Configurable):
@@ -112,3 +113,8 @@ class InterruptConfig(Configurable):
         yield 'rising', 'the interrupt is rising-edge sensitive.'
         yield 'falling', 'the interrupt is falling-edge sensitive.'
         yield 'edge', 'the interrupt is sensitive to any edge.'
+
+    @embedded
+    def interface():
+        """These keys specify how the VHDL entity interface is generated."""
+        return InterfaceConfig

@@ -27,8 +27,7 @@ interrupts:
 
   - mnemonic: RO
     name: rx_overrun
-    interface:
-      group: irq
+    group: irq
     brief: Receive overrun.
     doc: |
       This interrupt occurs when the Rx FIFO is full and another frame is
@@ -36,8 +35,7 @@ interrupts:
 
   - mnemonic: RT
     name: rx_timeout
-    interface:
-      group: irq
+    group: irq
     brief: Receive timeout.
     doc: |
       This interrupt occurs when the Rx FIFO is not empty, and has not been read
@@ -45,16 +43,14 @@ interrupts:
 
   - mnemonic: RX
     name: rx_half_full
-    interface:
-      group: irq
+    group: irq
     brief: Rx FIFO half full.
     doc: |
       This interrupt occurs when the Rx FIFO is at least half full.
 
   - mnemonic: TX
     name: tx_half_empty
-    interface:
-      group: irq
+    group: irq
     brief: Tx FIFO half empty.
     doc: |
       This interrupt occurs when the Tx FIFO is at least half empty.
@@ -68,8 +64,7 @@ fields:
       This register controls the basic operation of the SSP controller.
 
     behavior: control
-    interface:
-      group: control
+    group: control
 
     subfields:
       - bitrange: 3..0
@@ -151,8 +146,7 @@ fields:
       controller.
 
     behavior: control
-    interface:
-      group: control
+    group: control
 
     subfields:
       - bitrange: 0
@@ -203,8 +197,7 @@ fields:
       Software can write data to be transmitted to this register, and read data
       that has been received.
 
-    interface:
-      flatten: yes
+    flatten: yes
 
     subfields:
       - behavior: mmio-to-stream
@@ -242,8 +235,7 @@ fields:
       This read-only register reflects the current status of the SSP controller.
 
     behavior: status
-    interface:
-      group: status
+    group: status
 
     subfields:
       - bitrange: 0
@@ -300,8 +292,7 @@ fields:
       In master mode, CPSDVSRmin = 2 or larger (even numbers only).
 
     behavior: control
-    interface:
-      group: control
+    group: control
 
     subfields:
       - bitrange: 7..0
@@ -414,7 +405,7 @@ fields:
       IMSC.
 
     behavior: interrupt-flag
-    write: disabled
+    bus-write: disabled
 
     subfields:
       - bitrange: 0
@@ -461,7 +452,7 @@ fields:
       appropriate FIFO, or disabled by clearing the corresponding bit in IMSC.
 
     behavior: interrupt-flag
-    read: disabled
+    bus-read: disabled
 
     subfields:
       - bitrange: 0

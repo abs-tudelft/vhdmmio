@@ -123,7 +123,7 @@ The following values are supported:
 
  - `enabled`: a record consisting of a write enable flag and data is generated.
 
- - `stream`: like enabled, but the write only occurs when the register is invalid.
+ - `stream`: like enabled, but the write only occurs when the register is invalid. Furthermore, the `write_data` signal is renamed to `data`, and the `write_enable` signal is renamed to `valid`, in order to comply with AXI-stream naming conventions.
 
  - `accumulate`: like enabled, but the data is accumulated instead of written.
 

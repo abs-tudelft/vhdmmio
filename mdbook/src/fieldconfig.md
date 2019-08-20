@@ -223,7 +223,7 @@ The following values are supported:
 
  - an integer above or equal to 0: specifies the byte address. The address LSBs that index bytes within the bus word are ignored per the AXI4L specification.
 
- - a hex/bin integer with don't cares: as before, but specified as a string representation of a hexadecimal or binary integer which may contain don't cares (`-`). The don't care bits mask out address bits in addition to the byte index LSBs.
+ - a hex/bin integer with don't cares: as before, but specified as a string representation of a hexadecimal or binary integer which may contain don't cares (`-`). The don't care bits mask out address bits in addition to the byte index LSBs. In hexadecimal integers, bit-granular don't-cares can be specified by inserting four-bit binary blocks enclosed in square braces in place of a hex digit.
 
  - `<address>/<size>`: as before, but the number of ignored LSBs is explicitly set. This is generally a more convenient notation to use when assigning large blocks of memory to a field.
 
@@ -442,17 +442,17 @@ This key is optional unless required by context. If not specified, the default v
 
 ## `stride`
 
-This value specifies by how many bytes the bitrange address should
-be advanced when moving to the next logical register due to
+This value specifies by how many blocks the address should be
+advanced when moving to the next logical register due to
 `field-repeat` < `repeat`.
 
 The following values are supported:
 
- - `null` (default): the address is incremented by the field's block size. Note that this default is not correct when the logical register is wider than the bus.
+ - `1` (default): the address is incremented by one block. Note that this default is not correct when the logical register is wider than the bus.
 
- - an integer: the address is incremented by this amount of bytes each time. Negative addresses can be used for big-endian indexation.
+ - a different integer: the address is incremented by this amount of blocks each time. Negative numbers can be used for big-endian indexation.
 
-This key is optional unless required by context. If not specified, the default value (`null`) is used.
+This key is optional unless required by context. If not specified, the default value (`1`) is used.
 
 ## `field-stride`
 
@@ -495,14 +495,40 @@ This key is documented [here](metadataconfig.md#doc).
 
 ## `register-*`
 
-This optional configuration structure is used to name and document
-the logical register that this field resides in. At least one field
-must carry this information for each logical register, unless a single
-field spans the entire register; in this case, the register metadata
-defaults to the field metadata. If more than one field in a logical
-register contains a `register-metadata` tag, the lowest-indexed
-read-mode field takes precedence, unless the register is write-only,
-in which case the lowest-indexed write-mode field takes precedence.
+This optional configuration structure can be used to name and
+document the logical register that this field resides in.
+
+Registers can have the same or different metadata attached to them
+based on the bus access mode (read/write). In the presence of multiple
+metadata sources, the first one encountered in the following list is
+used for the read metadata:
+
+ - the register metadata for the least significant readable field in
+   the logical register that carries it;
+ - the register metadata for the least significant writable field in
+   the logical register that carries it;
+ - generated from the field metadata for the least significant readable
+   field.
+ - generated from the field metadata for the least significant writable
+   field.
+
+The generated metadata copies the mnemonic from the field, and uses the
+field's name with `'_reg'` suffix for the name. The generated brief
+just lists the fields in the register.
+
+The priority list is the same for writes, but with points 1 and 2
+flipped around (3 and 4 are NOT flipped). If the metadata for the two
+access modes resolves to the same object, the register is documented
+once as being R/W, even if some fields are read- or write-only and/or
+overlap that way. Otherwise, it is documented twice, once as read-only
+and once as write-only.
+
+For example, in the 16550 UART, register 0/DLAB 0 is commonly referred
+to as the receiver buffer register (`RBR`) in read mode and the
+transmitter holding register (`THR`) in write mode, so you might want
+to document them separately. On the other hand, you could also document
+them once as a FIFO access register (`FAR`, for instance). This is
+mostly a matter of taste.
 
 More information about this structure may be found [here](metadataconfig.md).
 

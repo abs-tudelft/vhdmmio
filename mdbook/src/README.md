@@ -50,7 +50,7 @@ insanely high. If your active logic requires a high clock speed and
     - [`status` behavior](status.md)
     - [`internal-status` behavior](internalstatus.md)
     - [`latching` behavior](latching.md)
-    - [`control` behavior](control.md)
+    - [`Control`](control.md)
     - [`internal-control` behavior](internalcontrol.md)
     - [`flag` behavior](flag.md)
     - [`volatile-flag` behavior](volatileflag.md)

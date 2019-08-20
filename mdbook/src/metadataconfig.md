@@ -12,7 +12,10 @@ uppercase identifiers, idiomatically used within register file
 descriptions. `vhdmmio` requires that they are unique within the
 current context only; that is, two fields in a single logical
 register cannot have the same mnemonic, but if they were in different
-logical registers this would be fine.
+logical registers this would be fine. However, chains of mnemonics
+separated by underscores must still be unique. For instance, it's
+illegal to have a register `X` containing field `Y_Z` and another
+register `X_Y` containing field `Z`.
 
 If the mnemonic names an array, it cannot end in a number, since the
 array index is added to the mnemonic in various contexts.

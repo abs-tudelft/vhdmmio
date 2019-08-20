@@ -1,4 +1,4 @@
-# `control` behavior
+# `Control`
 
 Fields with `control` behavior are used to push runtime configuration
 values from software to hardware. They are normally read-write on the MMIO

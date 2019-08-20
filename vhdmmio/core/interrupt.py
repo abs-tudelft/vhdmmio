@@ -1,6 +1,7 @@
 """Submodule used for describing interrupts."""
 
 from .mixins import Shaped, Named, Configured, Unique
+from .interface_options import InterfaceOptions
 
 class Interrupt(Named, Shaped, Configured, Unique):
     """Represents an interrupt or a vector of interrupts."""
@@ -64,6 +65,10 @@ class Interrupt(Named, Shaped, Configured, Unique):
             else:
                 self._is_internal = True
                 self._signal = resources.internals.use(self, cfg.internal, self.shape)
+
+            # Determine the interface options.
+            self._interface_options = InterfaceOptions(
+                regfile.cfg.interface, cfg.interface)
 
     @property
     def regfile(self):
@@ -160,6 +165,11 @@ class Interrupt(Named, Shaped, Configured, Unique):
          - `'edge'`: the interrupt is sensitive to any edge.
         """
         return self.cfg.active
+
+    @property
+    def interface_options(self):
+        """VHDL interface configuration."""
+        return self._interface_options
 
 
 class InterruptManager:

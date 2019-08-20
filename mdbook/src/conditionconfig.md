@@ -12,34 +12,15 @@ This structure supports the following configuration keys.
 ## `internal`
 
 This key specifies the internal signal to use for the match
-condition, if applicable. Either this key or `input` must be
-specified.
+condition.
 
 The following values are supported:
-
- - `null` (default): no internal is specified, `input` must be specified instead.
 
  - a string matching `[a-zA-Za-z][a-zA-Z0-9_]*`: a scalar internal with the given name is used for the match condition.
 
  - a string matching `[a-zA-Za-z][a-zA-Z0-9_]*:[0-9]+`: a vector internal with the given name and width is used for the match condition.
 
-This key is optional unless required by context. If not specified, the default value (`null`) is used.
-
-## `input`
-
-This key specifies the external input signal to use for the match
-condition, if applicable. Either this key or `internal` must be
-specified.
-
-The following values are supported:
-
- - `null` (default): no external input is specified, `internal` must be specified instead.
-
- - a string matching `[a-zA-Za-z][a-zA-Z0-9_]*`: a scalar input signal with the given name is used for the match condition.
-
- - a string matching `[a-zA-Za-z][a-zA-Z0-9_]*:[0-9]+`: a vector input signal with the given name and width is used for the match condition.
-
-This key is optional unless required by context. If not specified, the default value (`null`) is used.
+This key is required.
 
 ## `value`
 
@@ -52,19 +33,14 @@ The following values are supported:
 
  - `yes`: the signal value needs to be 1.
 
- - an integer: the signal value needs to match the specified value.
+ - an integer above or equal to 0: the signal needs to have the specified value.
+
+ - a hex/bin integer with don't cares: the signal value is matched against the given number, specified as a string representation of a hexadecimal or binary integer which may contain don't cares (`-`). In hexadecimal integers, bit-granular don't-cares can be specified by inserting four-bit binary blocks enclosed in square braces in place of a hex digit.
+
+ - `<address>/<size>`: as before, but the given number of LSBs are ignored in addition.
+
+ - `<address>|<ignore>`: specifies the required signal value and ignored bits using two integers. Both integers can be specified in hexadecimal, binary, or decimal. A bit which is set in the `<ignore>` value is ignored in the matching process.
+
+ - `<address>&<mask>`: specifies the required signal value and bitmask using two integers. Both integers can be specified in hexadecimal, binary, or decimal. A bit which is not set in the `<ignore>` value is ignored in the matching process.
 
 This key is optional unless required by context. If not specified, the default value (`no`) is used.
-
-## `ignore`
-
-This key specifies the value that the signal must have for the
-logical register to be addressed.
-
-The following values are supported:
-
- - `0` (default): all bits must match.
-
- - a different integer: the bits set in this value are ignored when matching against `value`.
-
-This key is optional unless required by context. If not specified, the default value (`0`) is used.
