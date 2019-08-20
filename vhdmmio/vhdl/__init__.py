@@ -4,7 +4,7 @@ import os
 from collections import OrderedDict
 from enum import Enum
 from ..template import TemplateEngine, annotate_block
-from .decoder import Decoder
+from .address_decoder import AddressDecoder
 from .types import Record, Array, SizedArray, Axi4Lite, Object, gather_defs
 from .interface import Interface
 
@@ -135,10 +135,10 @@ class Generator:
         self._interface = Interface(regfile.meta.name)
 
         # Address decoder builders.
-        self._read_decoder = Decoder('r_addr', 32, optimize=regfile.optimize)
-        self._read_tag_decoder = Decoder('r_rtag', regfile.read_tag_width, optimize=True)
-        self._write_decoder = Decoder('w_addr', 32, optimize=regfile.optimize)
-        self._write_tag_decoder = Decoder('w_rtag', regfile.write_tag_width, optimize=True)
+        self._read_decoder = AddressDecoder('r_addr', 32, optimize=regfile.optimize)
+        self._read_tag_decoder = AddressDecoder('r_rtag', regfile.read_tag_width, optimize=True)
+        self._write_decoder = AddressDecoder('w_addr', 32, optimize=regfile.optimize)
+        self._write_tag_decoder = AddressDecoder('w_rtag', regfile.write_tag_width, optimize=True)
 
         # Generate code for interrupts.
         for interrupt in regfile.interrupts:

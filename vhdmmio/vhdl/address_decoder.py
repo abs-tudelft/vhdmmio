@@ -3,33 +3,37 @@
 import re
 from ..template import TemplateEngine
 
-def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
-    """Generates a VHDL case/switch template for a vector of the given number
-    of bits and the given addresses. The addresses must be any mix of integer
-    addresses and two-tuples of base address and bitmask, where a high bit in
-    the bitmask indicates that the bit is to be used. If `optimize` is set,
-    this function assumes that the action for any address not in the address
-    list is don't care. The resulting template uses `$address$` for the
-    to-be-matched address, and block markers of the form `$ADDR_0x%X` for the
-    to-be-inserted blocks."""
+class AddressDecoder:
+    """Class for generating VHDL address decoders. That is, based on the value
+    of an `std_logic_vector`, execute various actions. This is much like a
+    `case-when` statement, but more powerful, because this generator has full
+    support for don't cares, and tries to make the decoder nicely
+    human-readable as well, using if statements where appropriate. This might
+    also help the synthesizer merge address comparators together more than it
+    would with a single case statement.
 
-    def conv_address(address):
-        """Converts the incoming addresses into std_match-style strings."""
-        if isinstance(address, int):
-            mask = 0
-            address = int(address)
-        else:
-            mask = int(address[1])
-            address = int(address[0])
-        mask = ~mask & (1 << num_bits) - 1
-        fmt = '{:0%db}' % num_bits
-        address = fmt.format(address)
-        mask = fmt.format(mask)
-        return ''.join((a if m == '1' else '-' for a, m in zip(address, mask)))
+    The address decoder will match the address signal or variable named by
+    `address`, which must be an `std_logic_vector(num_bits - 1 downto 0)`. If
+    `optimize` is set, the action for any address for which no action is
+    specified is interpreted as don't care, versus the default no-operation
+    behavior. If `allow_overlap` is set, addresses that partially or fully
+    overlap each other due to don't cares (for instance `1--1` and `11--`) do
+    not result in an exception. Similarly, if `allow_duplicate` is set,
+    multiple actions per address do not result in an exception."""
 
-    addresses = [conv_address(a) for a in addresses]
+    def __init__(self, address, num_bits,
+                 optimize=False, allow_overlap=False, allow_duplicate=False):
+        super().__init__()
+        self._num_bits = num_bits
+        self._optimize = optimize
+        self._allow_overlap = allow_overlap
+        self._allow_duplicate = allow_duplicate
+        self._tple = TemplateEngine()
+        self._tple['address'] = address
+        self._addresses = set()
 
-    def common_prefix(items):
+    @staticmethod
+    def _common_prefix(items):
         """Returns the prefix common to all strings in `items`."""
         items = iter(items)
         common = next(items)
@@ -42,7 +46,8 @@ def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
                     break
         return common
 
-    def common_suffix(items):
+    @staticmethod
+    def _common_suffix(items):
         """Returns the suffix common to all strings in `items`."""
         items = iter(items)
         common = next(items)
@@ -55,7 +60,8 @@ def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
                     break
         return common
 
-    def count_up_to(iterable, condition):
+    @staticmethod
+    def _count_up_to(iterable, condition):
         """Counts the number of items yielded by `iterator` until the item
         matches the `condition` function."""
         count = 0
@@ -65,7 +71,13 @@ def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
             count += 1
         return count
 
-    def gen_template(high, low, address_prefix, address_suffix, addresses):
+    @staticmethod
+    def _address_to_key(address):
+        """Converts the given address to the key name used within the template
+        engine."""
+        return 'ADDR_%s' % address.replace('-', '_')
+
+    def _gen_template(self, high, low, address_prefix, address_suffix, addresses):
         """Generates the template recusively.
 
          - `high`: the address bit index that the first character in the
@@ -100,9 +112,9 @@ def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
         remaining to be discriminated."""
 
         # Some assertions to make sure that stuff isn't broken.
-        assert high - low + 1 + len(address_prefix) + len(address_suffix) == num_bits
+        assert high - low + 1 + len(address_prefix) + len(address_suffix) == self._num_bits
         if not addresses:
-            assert high - low + 1 == num_bits
+            assert high - low + 1 == self._num_bits
             return []
         for address in addresses:
             assert len(address) == high - low + 1
@@ -116,25 +128,24 @@ def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
             # bits of the address have been transferred to address_prefix and
             # address_suffix during the recursion.
             address = address_prefix + address_suffix
-            if len(addresses) > 1:
-                raise ValueError('duplicate address %s' % address)
+            assert len(addresses) == 1
             assert not addresses[0]
-            assert len(address) == num_bits
+            assert len(address) == self._num_bits
             return [
                 '-- $address$ = %s' % address,
-                '$ADDR_0x%X' % int(address.replace('-', '0'), 2)]
+                '$%s' % self._address_to_key(address)]
 
         # Test for precise-match prefixes.
-        common = common_prefix(addresses)
+        common = self._common_prefix(addresses)
         if common:
 
             # Handle the case where we have a common prefix of all don't-cares.
             # We can just call ourselves recursively in this case; no matching
             # needs to be performed.
-            dont_care_count = count_up_to(common, lambda bit: bit != '-')
+            dont_care_count = self._count_up_to(common, lambda bit: bit != '-')
             if dont_care_count:
                 common = common[:dont_care_count]
-                return gen_template(
+                return self._gen_template(
                     high - len(common), low, address_prefix + common, address_suffix,
                     [a[len(common):] for a in addresses])
 
@@ -144,13 +155,13 @@ def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
             # in the prefix discriminate between address options. If we're not
             # optimizing, we wrap the result of the recursive call in an if
             # statement with a vector match condition.
-            fixed_count = count_up_to(common, lambda bit: bit == '-')
+            fixed_count = self._count_up_to(common, lambda bit: bit == '-')
             assert fixed_count
             common = common[:fixed_count]
-            recurse = gen_template(
+            recurse = self._gen_template(
                 high - len(common), low, address_prefix + common, address_suffix,
                 [a[len(common):] for a in addresses])
-            if optimize:
+            if self._optimize:
                 return recurse
             result = []
             result.append(
@@ -161,16 +172,16 @@ def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
             return result
 
         # Do the same we did above, but for suffixes.
-        common = common_suffix(addresses)
+        common = self._common_suffix(addresses)
         if common:
 
             # Handle the case where we have a common suffix of all don't-cares.
             # We can just call ourselves recursively in this case; no matching
             # needs to be performed.
-            dont_care_count = count_up_to(reversed(common), lambda bit: bit != '-')
+            dont_care_count = self._count_up_to(reversed(common), lambda bit: bit != '-')
             if dont_care_count:
                 common = common[-dont_care_count:]
-                return gen_template(
+                return self._gen_template(
                     high, low + len(common), address_prefix, common + address_suffix,
                     [a[:-len(common)] for a in addresses])
 
@@ -180,13 +191,13 @@ def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
             # in the suffix discriminate between address options. If we're not
             # optimizing, we wrap the result of the recursive call in an if
             # statement with a vector match condition.
-            fixed_count = count_up_to(reversed(common), lambda bit: bit == '-')
+            fixed_count = self._count_up_to(reversed(common), lambda bit: bit == '-')
             assert fixed_count
             common = common[-fixed_count:]
-            recurse = gen_template(
+            recurse = self._gen_template(
                 high, low + len(common), address_prefix, common + address_suffix,
                 [a[:-len(common)] for a in addresses])
-            if optimize:
+            if self._optimize:
                 return recurse
             result = []
             result.append(
@@ -199,9 +210,9 @@ def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
         # Look for the longest prefix without don't cares in it in any address.
         # After the above, there must be at least one such bit, otherwise there
         # must be a duplicate address!
-        common = common_prefix((s.replace('1', '0') for s in addresses))
+        common = self._common_prefix((s.replace('1', '0') for s in addresses))
         if common:
-            fixed_count = count_up_to(common, lambda bit: bit == '-')
+            fixed_count = self._count_up_to(common, lambda bit: bit == '-')
             if fixed_count:
                 common = common[:fixed_count]
 
@@ -215,10 +226,10 @@ def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
                 # If we only have one bit to match, use an if-else statement
                 # that just does a scalar match.
                 if len(common) == 1:
-                    recurse_zero = gen_template(
+                    recurse_zero = self._gen_template(
                         high - 1, low, address_prefix + '0', address_suffix,
                         [a[1:] for a in addresses if a.startswith('0')])
-                    recurse_one = gen_template(
+                    recurse_one = self._gen_template(
                         high - 1, low, address_prefix + '1', address_suffix,
                         [a[1:] for a in addresses if a.startswith('1')])
                     result = []
@@ -253,21 +264,21 @@ def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
                     % (high, high - len(common) + 1))
                 options = sorted(options)
                 for index, option in enumerate(options):
-                    if optimize and index == len(options) - 1:
+                    if self._optimize and index == len(options) - 1:
                         result.append('  when others => -- "%s"' % option)
                     else:
                         result.append('  when "%s" =>' % option)
-                    result.extend(('    ' + s for s in gen_template(
+                    result.extend(('    ' + s for s in self._gen_template(
                         high - len(common), low, address_prefix + option, address_suffix,
                         [a[len(common):] for a in addresses if a.startswith(option)])))
-                if not optimize:
+                if not self._optimize:
                     result.append('  when others =>')
                     result.append('    null;')
                 result.append('end case;')
                 return result
 
         # We have overlapping addresses.
-        if not allow_overlap:
+        if not self._allow_overlap:
             raise ValueError(
                 'addresses overlap at bit {0}: found both {1}-{2}{3} and '
                 '{1}0{2}{3} and/or {1}1{2}{3}'.format(
@@ -277,59 +288,51 @@ def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
         # bit from addresses that discriminate based on the next bit, recurse,
         # and just concatenate the results together.
         result = []
-        result.extend(gen_template(
+        result.extend(self._gen_template(
             high, low, address_prefix, address_suffix,
             [address for address in addresses if address[0] != '-']))
         result.append('')
-        result.extend(gen_template(
+        result.extend(self._gen_template(
             high, low, address_prefix, address_suffix,
             [address for address in addresses if address[0] == '-']))
         return result
 
-    # Fix the $ position of the block references and join the lines together to
-    # finish the template.
-    return '\n'.join((
-        re.sub(r'^ ( +)\$', r'$\1', line).rstrip()
-        for line in gen_template(num_bits - 1, 0, '', '', addresses)))
-
-
-class Decoder:
-    """Builder class for address decoders."""
-
-    def __init__(self, address, num_bits, optimize=False):
-        """Constructs an address decoder builder. The address decoder will
-        match the address signal or variable named by `address`, which must be
-        an `std_logic_vector(num_bits - 1 downto 0)`. If `optimize` is set,
-        the action for any address for which no action is specified is
-        interpreted as don't care, versus the default no-operation behavior."""
-        super().__init__()
-        self._num_bits = num_bits
-        self._optimize = optimize
-        self._tple = TemplateEngine()
-        self._tple['address'] = address
-        self._addresses = set()
-
-    def add_action(self, block, address, mask=0):
+    def add_action(self, masked_address, block):
         """Registers the given code block for execution when the address
-        input matches `address`, with any high bits in `mask` masked *out*."""
-        self._addresses.add((address, mask))
-        self._tple.append_block('ADDR_0x%X' % address, block)
+        input matches `address`, which should be of type
+        `core.address.MaskedAddress`."""
+        fmt = '{:0%db}' % self._num_bits
+        address = fmt.format(masked_address.address)
+        mask = fmt.format(masked_address.mask)
+        address = ''.join((a if m == '1' else '-' for a, m in zip(address, mask)))
+        if not self._allow_duplicate and address in self._addresses:
+            raise ValueError('duplicate address 0b%s' % address)
+        self._addresses.add(address)
+        self._tple.append_block(self._address_to_key(address), block)
+
+    def __setitem__(self, key, value):
+        self.add_action(key, value)
 
     def generate(self):
         """Generates the address decoder."""
         if not self._addresses:
             return None
+
         return self._tple.apply_str_to_str(
-            decoder_template(
-                self._num_bits,
-                self._addresses,
-                self._optimize),
+            '\n'.join((
+                re.sub(r'^ ( +)\$', r'$\1', line).rstrip()
+                for line in self._gen_template(
+                    self._num_bits - 1, 0, '', '', list(self._addresses)))),
             postprocess=False)
 
-    def append_to_template(self, template_engine, key, comment):
+    def __str__(self):
+        result = self.generate()
+        return result if result is not None else ''
+
+    def append_to_template(self, tple, key, comment):
         """Appends this decoder to the given template engine as a block,
         prefixing the given comment."""
         block = self.generate()
         if block is None:
             return
-        template_engine.append_block(key, '@ ' + comment, block)
+        tple.append_block(key, '@ ' + comment, block)
