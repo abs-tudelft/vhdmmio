@@ -14,4 +14,5 @@ sync and preventing you from writing massive amounts of boilerplate code for
 every register file you need. Besides MMIO routing, it will also support
 interrupt routing natively.
 
-The project is currently in the planning phase.
+The project is currently very much a work in progress. But you can check out
+what we plan to support in the generated docs [here](doc/md/README.md).

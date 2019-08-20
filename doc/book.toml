@@ -1,5 +1,9 @@
 [book]
 authors = ["Jeroen van Straten"]
 multilingual = false
-src = "src"
+src = "md"
 title = "vhdMMIO"
+
+[build]
+build-dir = "html"
+create-missing = false

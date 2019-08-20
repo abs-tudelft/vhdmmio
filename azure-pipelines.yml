@@ -23,6 +23,12 @@ jobs:
       python3 setup.py lint
     displayName: Lint
   - script: |
+      make examples
+    displayName: Examples
+  - script: |
+      make doc
+    displayName: Doc
+  - script: |
       python3 setup.py bdist_wheel
     displayName: Wheel
   - task: PublishTestResults@2

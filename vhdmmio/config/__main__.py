@@ -1,10 +1,13 @@
 """Generates the documentation for the register file description."""
 
-# TODO: work in progress
-
-from plumbum import local
+import sys
 from ..configurable import document_configurables
 from .register_file import RegisterFileConfig
+
+if len(sys.argv) != 2:
+    print('Dumps vhdmmio\'s generated documentation files.')
+    print('usage: %s <output-dir>' % sys.argv[0])
+    sys.exit(1)
 
 FRONT_PAGE = """# `vhdmmio`
 
@@ -45,8 +48,4 @@ timing closure, but the register files are not intended to be clocked
 insanely high. If your active logic requires a high clock speed and
 `vhdmmio`'s register files can't keep up, consider a multi-clock design."""
 
-local['rm']('-rf', 'mdbook/src')
-local['mkdir']('-p', 'mdbook/src')
-document_configurables(RegisterFileConfig, FRONT_PAGE, 'mdbook/src')
-with local.cwd('mdbook'):
-    local['mdbook']('build')
+document_configurables(RegisterFileConfig, FRONT_PAGE, sys.argv[1])
