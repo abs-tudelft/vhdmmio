@@ -84,9 +84,9 @@ class HtmlDocumentationGenerator:
         self._regfiles = regfiles
         self._markdowner = Markdown(extras=["tables"])
 
-    def _md_to_html(self, markdown):
+    def _md_to_html(self, markdown, depth=0):
         """Converts markdown to HTML."""
-        return self._markdowner.convert(markdown)
+        return self._markdowner.convert(markdown.replace('\n#', '\n#' + '#'*depth))
 
     def _generate_bitmap_table(self, *registers):
         """Generates a table with addresses on the Y axis and bus word bit
@@ -377,7 +377,7 @@ class HtmlDocumentationGenerator:
 
         # Add user-provided extended documentation.
         if field.doc is not None:
-            tple.append_block('EXTENDED', self._md_to_html(field.doc))
+            tple.append_block('EXTENDED', self._md_to_html(field.doc, depth))
 
         return tple.apply_str_to_str(_SECTION)
 
@@ -430,7 +430,7 @@ class HtmlDocumentationGenerator:
 
         # Add user-provided extended documentation.
         if register.doc is not None:
-            tple.append_block('EXTENDED', self._md_to_html(register.doc))
+            tple.append_block('EXTENDED', self._md_to_html(register.doc, depth))
 
         # Add the bitmap table for this register.
         tple.append_block('EXTENDED', self._generate_bitmap_table(register))
@@ -465,7 +465,7 @@ class HtmlDocumentationGenerator:
 
         # Add user-provided extended documentation.
         if interrupt.doc is not None:
-            tple.append_block('EXTENDED', self._md_to_html(interrupt.doc))
+            tple.append_block('EXTENDED', self._md_to_html(interrupt.doc, depth))
 
         return tple.apply_str_to_str(_SECTION)
 
@@ -495,7 +495,7 @@ class HtmlDocumentationGenerator:
 
         # Add user-provided extended documentation.
         if regfile.doc is not None:
-            tple.append_block('EXTENDED', self._md_to_html(regfile.doc))
+            tple.append_block('EXTENDED', self._md_to_html(regfile.doc, depth))
 
         # Add documentation for the fields.
         for register in registers:
