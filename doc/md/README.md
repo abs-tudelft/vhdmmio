@@ -80,3 +80,4 @@ insanely high. If your active logic requires a high clock speed and
     - [Subaddress components](subaddressconfig.md)
     - [Permissions](permissionconfig.md)
   - [Interrupt descriptors](interruptconfig.md)
+  - [Internal signal I/O](internalioconfig.md)

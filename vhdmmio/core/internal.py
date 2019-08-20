@@ -10,6 +10,7 @@ class Internal(Named, Shaped, Unique):
         self._driver = None
         self._strobers = set()
         self._users = set()
+        self._frozen = False
 
     def _check_shape(self, obj, expected_shape):
         """Raises a sensible error when `expected_shape` does not match the
@@ -22,6 +23,8 @@ class Internal(Named, Shaped, Unique):
 
     def drive(self, driver, expected_shape):
         """Registers a driver for this internal signal."""
+        if self._frozen:
+            raise ValueError('cannot mutate frozen internal')
         if self._driver is not None:
             raise ValueError(
                 'multiple drivers for internal %s: %s and %s' % (
@@ -35,6 +38,8 @@ class Internal(Named, Shaped, Unique):
 
     def strobe(self, strober, expected_shape):
         """Registers a strober for this internal signal."""
+        if self._frozen:
+            raise ValueError('cannot mutate frozen internal')
         if self._driver is not None:
             raise ValueError(
                 'internal %s cannot both be driven by %s and strobed by %s' % (
@@ -44,18 +49,36 @@ class Internal(Named, Shaped, Unique):
 
     def use(self, user, expected_shape):
         """Registers a user for this internal signal."""
+        if self._frozen:
+            raise ValueError('cannot mutate frozen internal')
         self._check_shape(user, expected_shape)
         self._users.add(user)
 
-    def verify(self):
+    def verify_and_freeze(self):
         """Raises sensible errors when this internal is missing drivers or
-        users, which is probably not what the designer wants."""
+        users, which is probably not what the designer wants. If successful,
+        prevents further modification of the internal."""
         if self._driver is None and not self._strobers:
             raise ValueError(
                 'internal %s is not driven by anything' % self._name)
         if not self._users:
             raise ValueError(
                 'internal %s is never used' % self._name)
+        self._frozen = True
+
+    @property
+    def drive_name(self):
+        """VHDL variable name to use for driving this signal."""
+        if self.is_strobe:
+            return 'intsigs_%s' % self.name
+        return 'intsig_%s' % self.name
+
+    @property
+    def use_name(self):
+        """VHDL variable name to use for reading this signal."""
+        if self.is_strobe:
+            return 'intsigr_%s' % self.name
+        return 'intsig_%s' % self.name
 
     def is_strobe(self):
         """Returns whether this internal is a strobe signal. That is, a signal
@@ -75,7 +98,7 @@ class InternalManager:
     def __init__(self):
         super().__init__()
         self._internals = {}
-        self._io = {}
+        self._internal_ios = {}
 
     def _ensure_exists(self, name, shape):
         """Ensures that an internal signal with `name` and `shape` exists, and
@@ -128,54 +151,39 @@ class InternalManager:
         internal_ob.use(user, shape)
         return internal_ob
 
-    def make_input(self, internal, shape=None):
-        """Registers that the given internal should be driven by an input
-        signal of the same name. If `shape` is `None` or left unspecified, the
-        vector width can also be specified in `internal` using the
-        `<name>:<width>` notation used in various configuration structures."""
-        internal, shape = self._parse_internal(internal, shape)
-        self.drive('an input port', internal, shape)
-        ident = internal.lower()
-        if ident in self._io:
-            raise ValueError(
-                'there is already an I/O port for internal signal %s'
-                % internal)
-        self._io[ident] = ('in', self._internals[ident])
+    def make_external(self, config):
+        """Exposes an external to the outside world based on an
+        `InternalIOConfig` structure."""
+        if config.direction == 'input':
+            internal = self.drive('an input port', config.internal)
+        elif config.direction == 'strobe':
+            internal = self.strobe('a strobe input port', config.internal)
+        else:
+            assert config.direction == 'output'
+            internal = self.use('an output port', config.internal)
 
-    def make_output(self, internal, shape=None):
-        """Registers that an output signal should be driven by an internal
-        signal of the same name. If `shape` is `None` or left unspecified, the
-        vector width can also be specified in `internal` using the
-        `<name>:<width>` notation used in various configuration structures."""
-        internal, shape = self._parse_internal(internal, shape)
-        self.drive('an output port', internal, shape)
-        ident = internal.lower()
-        if ident in self._io:
+        port = config.port if config.port is not None else internal.name
+        ident = port.lower()
+        if ident in self._internal_ios:
             raise ValueError(
-                'there is already an I/O port for internal signal %s'
-                % internal)
-        self._io[ident] = ('out', self._internals[ident])
+                'multiple internal I/O ports with name %s' % port)
+
+        self._internal_ios[ident] = (config.direction, internal, port, config.group)
 
     def __iter__(self):
         """Iterates over all the `Internal` objects."""
         return iter(self._internals.values())
 
-    def inputs(self):
-        """Iterates over all the `Internal` signals that are driven by an input
-        port with the same name."""
-        for _, (direction, internal) in sorted(self._io.items()):
-            if direction == 'in':
-                yield internal
+    def iter_internal_ios(self):
+        """Iterates over all the ports made using `make_external()`, yielding
+        `(direction, internal, port, group)` tuples, similar to the
+        configuration structure. However, `internal` is the resolved `Internal`
+        signal, and `port` is always defined (if it was `None` in the
+        configuration, its default was substituted)."""
+        return iter(self._internal_ios.values())
 
-    def outputs(self):
-        """Iterates over all the `Internal` signals that drive an output port
-        with the same name."""
-        for _, (direction, internal) in sorted(self._io.items()):
-            if direction == 'out':
-                yield internal
-
-    def verify(self):
+    def verify_and_freeze(self):
         """Verifies the consistency of all stored internals. Raises an
         appropriate `ValueError` if something is wrong."""
         for internal in self:
-            internal.verify()
+            internal.verify_and_freeze()

@@ -529,6 +529,7 @@ class TestConfig(TestCase):
                 'internalcontrol.md',
                 'internalcounter.md',
                 'internalflag.md',
+                'internalioconfig.md',
                 'internalstatus.md',
                 'interrupt.md',
                 'interruptconfig.md',

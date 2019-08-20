@@ -67,3 +67,12 @@ contains.
 This key must be set to a list of dictionaries, of which the structure is defined [here](interruptconfig.md).
 
 This key is optional. Not specifying it is equivalent to specifying an empty list.
+
+## `internal-io`
+
+This configuration structure can be used to expose internal signals
+to the VHDL entity's interface, essentially making them external.
+
+This key must be set to a list of dictionaries, of which the structure is defined [here](internalioconfig.md).
+
+This key is optional. Not specifying it is equivalent to specifying an empty list.

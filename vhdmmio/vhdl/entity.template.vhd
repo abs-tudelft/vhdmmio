@@ -616,7 +616,7 @@ $endif
       bus_v.w.ready := not wl.valid;
       bus_v.ar.ready := not arl.valid;
 
-$if defined('INTERNAL_SIGNAL_END')
+$if defined('INTERNAL_SIGNAL_LOGIC')
       -------------------------------------------------------------------------
       -- Internal signal logic
       -------------------------------------------------------------------------

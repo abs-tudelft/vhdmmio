@@ -72,6 +72,10 @@ class RegisterFile(Named, Configured, Unique):
                 Interrupt(resources, self, interrupt_cfg)
                 for interrupt_cfg in cfg.interrupts))
 
+            # Parse the I/O configuration for internals.
+            for internal_io_config in cfg.internal_io:
+                resources.internals.make_external(internal_io_config)
+
             # Perform post-construction checks on the resource managers.
             resources.verify()
             self._resources = resources
@@ -82,6 +86,8 @@ class RegisterFile(Named, Configured, Unique):
                 resources.read_tags, resources.write_tags)
             self._interrupt_info = InterruptInfo(
                 resources.interrupts)
+            self._internals = tuple(resources.internals)
+            self._internal_ios = tuple(resources.internals.iter_internal_ios())
 
     @property
     def trusted(self):
@@ -92,18 +98,32 @@ class RegisterFile(Named, Configured, Unique):
 
     @property
     def field_descriptors(self):
-        """Returns the field descriptors of this register file as a tuple."""
+        """The field descriptors of this register file as a tuple."""
         return self._field_descriptors
 
     @property
     def registers(self):
-        """Returns the logical registers of this register file as a tuple."""
+        """The logical registers of this register file as a tuple."""
         return self._registers
 
     @property
     def interrupts(self):
-        """Returns the interrupts of this register file as a tuple."""
+        """The interrupts of this register file as a tuple."""
         return self._interrupts
+
+    @property
+    def internals(self):
+        """The internal signals used in this register file as a tuple."""
+        return self._internals
+
+    @property
+    def internal_ios(self):
+        """The ports that connect to internal signals directly as a tuple of
+        `(direction, internal, port, group)` tuples, similar to the
+        configuration structure. However, `internal` is the resolved (and
+        frozen) `Internal` signal, and `port` is always defined (if it was
+        `None` in the configuration, its default was substituted)."""
+        return self._internal_ios
 
     def doc_iter_registers(self):
         """Iterates over the registers in a natural order for documentation

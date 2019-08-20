@@ -10,6 +10,17 @@ from .interface import Interface
 _MODULE_DIR = os.path.dirname(__file__)
 
 
+_INTERNAL_SIGNAL_BOILERPLATE_TEMPLATE = annotate_block("""
+$if s.is_strobe()
+$s.use_name$ := $s.drive_name$;
+$s.drive_name$ := $c$;
+$endif
+if reset = '1' then
+  $s.use_name$ := $c$;
+end if;
+""", comment='--')
+
+
 class VhdlEntityGenerator:
     """Generator for the entity and associated package for a single register
     file."""
@@ -31,6 +42,10 @@ class VhdlEntityGenerator:
 
         # Interface builder.
         self._interface = Interface(regfile.name)
+
+        # TODO: internal address construction
+        # TODO: subaddress construction
+        # TODO: all the stuff below, copied from the old codebase
 
         # Address decoder builders.
         #self._read_decoder = AddressDecoder('r_addr', 32, optimize=regfile.optimize)
@@ -68,6 +83,12 @@ class VhdlEntityGenerator:
             #self._tple, 'FIELD_LOGIC_WRITE_TAG',
             #'Deferred write tag decoder.')
 
+        # Generate code for internal signals.
+        for internal in regfile.internals:
+            self._add_internal_signal_boilerplate(internal)
+        for direction, internal, port, group in regfile.internal_ios:
+            self._add_internal_io_port(direction, internal, port, group)
+
         # Add the interface to the main template engine.
         for block in self._interface.generate('port'):
             self._tple.append_block('PORTS', block)
@@ -80,9 +101,50 @@ class VhdlEntityGenerator:
                 '@ Types used by the register file interface.',
                 '\n'.join(typedefs))
 
-        # Generate code for internal signals.
-        #for internal_signal in regfile.internal_signals:
-            #self._add_internal_signal_boilerplate(internal_signal)
+    def _add_block(self, key, region, desc, block):
+        """Adds a code block for the given key if the block is not `None`,
+        prefixing a comment specifying what kind of block it is (`region`) and
+        a description of the object that the block is for (`desc`)."""
+        if block is not None:
+            self._tple.append_block(key, '@ %s for %s' % (region, desc), block)
+
+    def _add_declarations(self, desc, private, public, body):
+        """Registers declarative code blocks, expanded into respectively the
+        process header, package header, and package body. `desc` is used for
+        generating the comment that is placed above the blocks."""
+        self._add_block('DECLARATIONS', 'Private declarations', desc, private)
+        self._add_block('PACKAGE', 'Public declarations', desc, public)
+        self._add_block('PACKAGE_BODY', 'Implementations', desc, body)
+
+    def _add_internal_signal_boilerplate(self, internal):
+        """Adds the boilerplate code that supports the given internal signal
+        (such as its variable declaration) to the template engine."""
+        desc = 'internal signal %s' % internal.name
+
+        # Determine signal type name and reset value.
+        if internal.shape is None:
+            clear = "'0'"
+            typ = 'std_logic'
+        else:
+            clear = "(others => '0')"
+            typ = 'std_logic_vector(%d downto 0)' % (internal.width - 1)
+
+        # Variable declarations.
+        block = 'variable %s : %s := %s;' % (internal.use_name, typ, clear)
+        if internal.drive_name != internal.use_name:
+            block += '\nvariable %s : %s := %s;' % (internal.drive_name, typ, clear)
+        self._add_declarations(desc, block, None, None)
+
+        # Boilerplate logic.
+        tple = TemplateEngine()
+        tple['s'] = internal
+        tple['c'] = clear
+        block = tple.apply_str_to_str(
+            _INTERNAL_SIGNAL_BOILERPLATE_TEMPLATE, postprocess=False)
+        self._add_block('INTERNAL_SIGNAL_LOGIC', 'Logic', desc, block)
+
+    def _add_internal_io_port(self, direction, internal, port, group):
+        """Connects the given internal to a new I/O port."""
 
     def generate(self, output_dir, annotate=False):
         """Generates the files for this register file in the specified

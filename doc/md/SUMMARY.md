@@ -42,3 +42,4 @@
     - [Subaddress components](subaddressconfig.md)
     - [Permissions](permissionconfig.md)
   - [Interrupt descriptors](interruptconfig.md)
+  - [Internal signal I/O](internalioconfig.md)

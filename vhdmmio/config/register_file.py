@@ -6,6 +6,7 @@ from .interface import InterfaceConfig
 from .field import FieldConfig
 from .interrupt import InterruptConfig
 from .features import FeatureConfig
+from .internal_io import InternalIOConfig
 
 @configurable(name='Register files')
 class RegisterFileConfig(Configurable):
@@ -41,3 +42,9 @@ class RegisterFileConfig(Configurable):
         """This key describes the interrupts that the register file
         contains."""
         return InterruptConfig
+
+    @listconfig
+    def internal_io():
+        """This configuration structure can be used to expose internal signals
+        to the VHDL entity's interface, essentially making them external."""
+        return InternalIOConfig

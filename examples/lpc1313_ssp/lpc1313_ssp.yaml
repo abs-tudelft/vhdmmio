@@ -49,9 +49,6 @@ interrupts:
 fields:
 
   - address: 0x0000
-    conditions:
-      - internal: page
-        value: 1
     register-name: CR0
     register-brief: SSP Control Register 0.
     register-doc: |
@@ -466,20 +463,3 @@ fields:
           read-bit for a time-out period interrupt. The time-out period is the same
           for master and slave modes and is determined by the SSP bit rate: 32 bits
           at PCLK / (CPSDVSR x [SCR+1]).
-
-  - address: 0x0050
-    bitrange: 0
-    name: page
-    behavior: internal-control
-    internal: page
-
-  - address: 0x0024
-    bitrange: 63..0
-    name: test1
-    behavior: control
-
-  - address: 0x002C
-    bitrange: 63..0
-    name: test2
-    behavior: control
-    endianness: big

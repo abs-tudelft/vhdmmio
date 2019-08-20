@@ -93,5 +93,5 @@ class Resources:
 
     def verify(self):
         """Performs post-construction checks."""
-        self.internals.verify()
+        self.internals.verify_and_freeze()
         self.interrupts.verify()
