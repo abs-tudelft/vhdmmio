@@ -129,7 +129,7 @@ def run_cli(args=None):
 
         # Handle the VHDL package generator.
         if args.pkg is not None:
-            gen = VhdlPackageGenerator(register_files)
+            gen = VhdlPackageGenerator()
             gen.generate(args.pkg)
 
         # Handle the VHDL register file generator.

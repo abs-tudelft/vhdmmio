@@ -4,7 +4,7 @@ import os
 from os.path import join as pjoin
 import shutil
 from ..template import TemplateEngine, annotate_block
-from .types import gather_defs
+from .types import Axi4Lite, gather_defs
 from .interface import Interface
 
 _MODULE_DIR = os.path.dirname(__file__)
@@ -107,6 +107,16 @@ class VhdlEntityGenerator:
             comment='-- ', annotate=annotate)
         print('Wrote %s_pkg.vhd' % name)
 
+    def gather_ports(self):
+        """Yields all the inputs/outputs/generics excluding `clk` and `reset`
+        as `(mode, path, type, count)` four-tuples. `mode` is `'i'` for
+        inputs, `'o'` for outputs, and `'g'` for generics. `count` is `None` if
+        the type is not an incomplete array."""
+        for mode, name, typ, count in self._interface.gather_ports():
+            yield mode, name, typ, count
+        yield 'i', 'bus_i', Axi4Lite('m2s', self._regfile.cfg.features.bus_width), None
+        yield 'o', 'bus_o', Axi4Lite('s2m', self._regfile.cfg.features.bus_width), None
+
 
 class VhdlEntitiesGenerator:
     """Generator for VHDL register file entities."""
@@ -126,9 +136,6 @@ class VhdlEntitiesGenerator:
 
 class VhdlPackageGenerator:
     """"Generator" for the VHDL package common to all of vhdmmio."""
-
-    def __init__(self, _):
-        super().__init__()
 
     @staticmethod
     def generate(output_dir):

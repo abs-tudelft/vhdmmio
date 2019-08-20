@@ -84,9 +84,13 @@ class SubConfig(Loader):
             value = dictionary.pop(self.key, Unset)
 
             # If we didn't find the key and the subconfig is optional, don't
-            # initialize anything and just set the value to `None`.
-            if value is Unset and self._optional:
-                return None
+            # initialize anything and just set the value to `None`. If the
+            # subconfig is not optional, try configuring with an empty
+            # dictionary.
+            if value is Unset:
+                if self._optional:
+                    return None
+                value = {}
 
             # Make sure that the key is a dictionary before passing it to the
             # subconfig constructor.

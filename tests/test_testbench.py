@@ -3,7 +3,7 @@
 import os
 from unittest import TestCase
 from .testbench import (Testbench, StreamSourceMock, StreamSinkMock,
-                        AXI4LMasterMock, AXI4LSlaveMock)
+                        AXI4LMasterMock, AXI4LSlaveMock, RegisterFileTestbench)
 
 class TestTestbench(TestCase):
     """Self-tests for the testbench generator submodule."""
@@ -67,3 +67,12 @@ class TestTestbench(TestCase):
             self.assertEqual(master.read_bits(0), 'X'*32)
             master.write(0, 33)
             self.assertEqual(master.read(0), 33)
+
+    def test_register_file(self):
+        """testbench self-test: empty register file"""
+        testbench = RegisterFileTestbench({'metadata': {'name': 'test'}})
+        with testbench as objs:
+            with self.assertRaisesRegex(ValueError, 'decode error'):
+                objs.bus.read(0)
+            with self.assertRaisesRegex(ValueError, 'decode error'):
+                objs.bus.write(0, 0)

@@ -142,6 +142,8 @@ class RegisterFile(Named, Configured, Unique):
         """Returns the number of bits in the widest logical register satisfying
         the provided filter condition, if any."""
         registers = self.registers
+        if not registers:
+            return self.cfg.features.bus_width
         if filt is not None:
             registers = filter(filt, self.registers)
         max_blocks = max(map(lambda register: len(register.blocks), registers))
