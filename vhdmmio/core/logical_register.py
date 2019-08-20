@@ -275,3 +275,8 @@ class LogicalRegister(Named, Unique, Accessed):
         address. That is, if this register is little-endian, they are ordered
         LSB to MSB; if big-endian, they are ordered MSB to LSB."""
         return self._blocks
+
+    def is_protected(self):
+        """Returns whether any of the fields in this logical register are
+        prot-sensitive."""
+        return any(map(lambda field: field.behavior.bus.is_protected(), self.fields))

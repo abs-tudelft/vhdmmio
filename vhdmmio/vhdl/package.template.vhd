@@ -8,12 +8,12 @@ use ieee.numeric_std.all;
 library work;
 use work.vhdmmio_pkg.all;
 
-package $r.meta.name$_pkg is
+package $r.name$_pkg is
 
 $ PACKAGE
 
-  -- Component declaration for $r.meta.name$.
-  component $r.meta.name$ is
+  -- Component declaration for $r.name$.
+  component $r.name$ is
 $if defined('GENERICS')
     generic (
 
@@ -29,18 +29,18 @@ $endif
 $     PORTS
 
       -- AXI4-lite + interrupt request bus to the master.
-      bus_i : in  axi4l$r.bus_width$_m2s_type := AXI4L$r.bus_width$_M2S_RESET;
-      bus_o : out axi4l$r.bus_width$_s2m_type := AXI4L$r.bus_width$_S2M_RESET
+      bus_i : in  axi4l$bw$_m2s_type := AXI4L$bw$_M2S_RESET;
+      bus_o : out axi4l$bw$_s2m_type := AXI4L$bw$_S2M_RESET
 
     );
   end component;
 
-end package $r.meta.name$_pkg;
+end package $r.name$_pkg;
 
 $if defined('PACKAGE_BODY')
-package body $r.meta.name$_pkg is
+package body $r.name$_pkg is
 
 $ PACKAGE_BODY
 
-end package body $r.meta.name$_pkg;
+end package body $r.name$_pkg;
 $endif

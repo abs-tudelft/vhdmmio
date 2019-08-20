@@ -18,11 +18,12 @@ class Configurable:
     and serialized to JSON/YAML-friendly dictionary form. When using this class
     as an ancestor, also use the `@configurable()` annotation."""
 
-    output_directory = None
-
-    def __init__(self, parent=None, dictionary=None, **kwargs):
+    def __init__(self, parent=None, dictionary=None, source_directory=None, **kwargs):
         super().__init__()
         self._frozen = False
+
+        # Save the source directory, if any.
+        self._source_directory = source_directory
 
         # Save the parent.
         self._parent = parent
@@ -56,6 +57,12 @@ class Configurable:
         """Returns the parent of this configurable. This is always another
         configurable, unless this is the root, in which case this is `None`."""
         return self._parent
+
+    @property
+    def source_directory(self):
+        """The directory that contained the file describing this configurable,
+        or `None` if no such directory is known."""
+        return self._source_directory
 
     # The loaders of a configurable define which configuration keys are
     # supported and what their valid values are. This tuple is normally
@@ -100,9 +107,9 @@ class Configurable:
             if obj.lower().endswith('.json'):
                 loader = json.loads
             with open(obj, 'r') as fil:
-                regfile = cls(parent, loader(fil.read()))
-            regfile.output_directory = os.path.dirname(obj)
-            return regfile
+                return cls(
+                    parent, loader(fil.read()),
+                    source_directory=os.path.dirname(obj))
 
         if hasattr(obj, 'read'):
             return cls(parent, loader(obj.read()))

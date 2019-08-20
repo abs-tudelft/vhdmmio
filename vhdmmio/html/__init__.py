@@ -510,6 +510,8 @@ class HtmlDocumentationGenerator:
     def generate(self, output_dir):
         """Generates the HTML documentation files for the register files in the
         given directory."""
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
         tple = TemplateEngine()
         for regfile in self._regfiles:
             tple.append_block('BODY', self._regfile_to_html(regfile))

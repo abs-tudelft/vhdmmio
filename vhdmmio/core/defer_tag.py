@@ -47,3 +47,36 @@ class DeferTagManager:
         tag = _DeferTag(self, self._count)
         self._count += 1
         return tag
+
+
+class DeferTagInfo:
+    """Exposes defer tag properties needed for the VHDL code generator."""
+
+    def __init__(self, read, write):
+        super().__init__()
+        self._read_count = read.count
+        self._read_width = read.width
+        self._write_count = write.count
+        self._write_width = write.width
+
+    @property
+    def read_count(self):
+        """The number of read tags used by the associated register file."""
+        return self._read_count
+
+    @property
+    def read_width(self):
+        """The width of the `std_logic_vector`s used to represent the read tags
+        for the associated register file."""
+        return self._read_width
+
+    @property
+    def write_count(self):
+        """The number of write tags used by the associated register file."""
+        return self._write_count
+
+    @property
+    def write_width(self):
+        """The width of the `std_logic_vector`s used to represent the write tags
+        for the associated register file."""
+        return self._write_width

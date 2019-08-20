@@ -4,7 +4,9 @@ from .mixins import Named, Configured, Unique
 from .resources import Resources
 from .field_descriptor import FieldDescriptor
 from .logical_register import construct_logical_register
-from .interrupt import Interrupt
+from .interrupt import Interrupt, InterruptInfo
+from .defer_tag import DeferTagInfo
+
 
 class RegisterFile(Named, Configured, Unique):
     """Compiled representation of a register file."""
@@ -59,6 +61,12 @@ class RegisterFile(Named, Configured, Unique):
             # Convert the register list to a tuple to make it immutable.
             self._registers = tuple(registers)
 
+            # Determine if the register file should be hardened against
+            # privilege escalation.
+            self._harden = (
+                any(map(lambda register: register.is_protected(), registers))
+                and not cfg.features.insecure)
+
             # Parse the interrupts.
             self._interrupts = tuple((
                 Interrupt(resources, self, interrupt_cfg)
@@ -67,6 +75,13 @@ class RegisterFile(Named, Configured, Unique):
             # Perform post-construction checks on the resource managers.
             resources.verify()
             self._resources = resources
+
+            # Expose the requisite information about the used resources in an
+            # immutable way.
+            self._defer_tag_info = DeferTagInfo(
+                resources.read_tags, resources.write_tags)
+            self._interrupt_info = InterruptInfo(
+                resources.interrupts)
 
     @property
     def trusted(self):
@@ -85,6 +100,11 @@ class RegisterFile(Named, Configured, Unique):
         """Returns the logical registers of this register file as a tuple."""
         return self._registers
 
+    @property
+    def interrupts(self):
+        """Returns the interrupts of this register file as a tuple."""
+        return self._interrupts
+
     def doc_iter_registers(self):
         """Iterates over the registers in a natural order for documentation
         output. The elements are yielded as
@@ -101,6 +121,38 @@ class RegisterFile(Named, Configured, Unique):
         return self._resources.addresses.doc_represent_address(internal_address)
 
     @property
-    def interrupts(self):
-        """Returns the interrupts of this register file as a tuple."""
-        return self._interrupts
+    def defer_tag_info(self):
+        """Information about the defer tags used by this register file. See
+        `defer_tag.DeferTagInfo`."""
+        return self._defer_tag_info
+
+    @property
+    def interrupt_info(self):
+        """Information about the concatenated interrupt vector."""
+        return self._interrupt_info
+
+    @property
+    def harden(self):
+        """Whether the register file should be hardened against privilege
+        escalation. Note that this hardening is not at all sufficient on its
+        own!"""
+        return self._harden
+
+    def get_max_logical_register_width(self, filt=None):
+        """Returns the number of bits in the widest logical register satisfying
+        the provided filter condition, if any."""
+        registers = self.registers
+        if filt is not None:
+            registers = filter(filt, self.registers)
+        max_blocks = max(map(lambda register: len(register.blocks), registers))
+        return max_blocks * self.cfg.features.bus_width
+
+    def get_max_logical_read_width(self):
+        """Returns the number of bits in the widest readable logical
+        register."""
+        return self.get_max_logical_register_width(lambda register: register.can_read())
+
+    def get_max_logical_write_width(self):
+        """Returns the number of bits in the widest writable logical
+        register."""
+        return self.get_max_logical_register_width(lambda register: register.can_write())

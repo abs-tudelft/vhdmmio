@@ -20,7 +20,7 @@ import sys
 import os
 import argparse
 from vhdmmio.version import __version__
-import vhdmmio.vhdl as vhdl
+from vhdmmio.vhdl import VhdlEntitiesGenerator, VhdlPackageGenerator
 from vhdmmio.html import HtmlDocumentationGenerator
 from vhdmmio.config import RegisterFileConfig
 from vhdmmio.core import RegisterFile
@@ -127,16 +127,17 @@ def run_cli(args=None):
         else:
             print('Loaded %d register files' % len(register_files))
 
-        # Handle the pkg generator before loading any register file
-        # descriptions.
+        # Handle the VHDL package generator.
         if args.pkg is not None:
-            vhdl.generate_pkg(args.pkg)
+            gen = VhdlPackageGenerator(register_files)
+            gen.generate(args.pkg)
 
-        # Handle the VHDL generator.
+        # Handle the VHDL register file generator.
         if args.vhd is not None:
-            vhdl.generate(register_files, args.vhd, args.vhd_annotate)
+            gen = VhdlEntitiesGenerator(register_files)
+            gen.generate(args.vhd, annotate=args.vhd_annotate)
 
-        # Handle the HTML generator.
+        # Handle the HTML documentation generator.
         if args.html:
             gen = HtmlDocumentationGenerator(register_files)
             gen.generate(args.html)

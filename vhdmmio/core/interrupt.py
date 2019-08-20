@@ -24,7 +24,8 @@ class Interrupt(Named, Shaped, Configured, Unique):
             self._bus_can_clear = False
             self._bus_can_unmask = False
             self._bus_can_mask = False
-            for field in resources.interrupts.register_interrupt(self):
+            self._offset, fields = resources.interrupts.register_interrupt(self)
+            for field in fields:
                 field.behavior.attach_interrupt(self)
                 if field.behavior.cfg.bus_write in ('enabled', 'set'):
                     if field.behavior.cfg.mode == 'enable':
@@ -155,6 +156,12 @@ class Interrupt(Named, Shaped, Configured, Unique):
         return not self._bus_can_unmask
 
     @property
+    def offset(self):
+        """The index offset for this interrupt or interrupt vector, such that
+        each scalar interrupt is assigned a number starting at zero."""
+        return self._offset
+
+    @property
     def active(self):
         """The triggering condition for the interrupt, one of:
 
@@ -183,6 +190,7 @@ class InterruptManager:
         super().__init__()
         self._interrupt_to_fields = {}
         self._interrupts = []
+        self._concat_width = 0
 
     def register_field(self, field):
         """Registers an interrupt field."""
@@ -196,8 +204,20 @@ class InterruptManager:
     def register_interrupt(self, interrupt):
         """Registers an interrupt, and pops and returns the field list for that
         interrupt."""
+        offset = self._concat_width
         self._interrupts.append(interrupt)
-        return self._interrupt_to_fields.pop(interrupt.name, [])
+        self._concat_width += interrupt.width
+        return offset, self._interrupt_to_fields.pop(interrupt.name, [])
+
+    @property
+    def concat_width(self):
+        """The width of the vector that results when all interrupts are
+        concatenated together."""
+        return self._concat_width
+
+    def __iter__(self):
+        """Iterates over the registered interrupts."""
+        return iter(self._interrupts)
 
     def verify(self):
         """Checks that all fields and interrupts are connected properly."""
@@ -222,3 +242,58 @@ class InterruptManager:
                         raise ValueError(
                             'interrupts triggered by internal strobe signals '
                             'must be active-high')
+
+
+class InterruptInfo:
+    """Exposes information gathered by `InterruptManager` in an immutable
+    way."""
+
+    def __init__(self, manager):
+        super().__init__()
+        self._concat_width = manager.concat_width
+        strobe_mask = []
+        umsk_reset = []
+        enab_reset = []
+        for interrupt in manager:
+            if interrupt.bus_can_clear:
+                strobe_mask.append('1' * interrupt.width)
+            else:
+                strobe_mask.append('0' * interrupt.width)
+            if interrupt.unmasked_after_reset:
+                umsk_reset.append('1' * interrupt.width)
+            else:
+                umsk_reset.append('0' * interrupt.width)
+            if interrupt.enabled_after_reset:
+                enab_reset.append('1' * interrupt.width)
+            else:
+                enab_reset.append('0' * interrupt.width)
+        self._strobe_mask = ''.join(reversed(strobe_mask))
+        self._umsk_reset = ''.join(reversed(umsk_reset))
+        self._enab_reset = ''.join(reversed(enab_reset))
+        assert len(self.strobe_mask) == self._concat_width
+        assert len(self.umsk_reset) == self._concat_width
+        assert len(self.enab_reset) == self._concat_width
+
+    @property
+    def concat_width(self):
+        """The width of the vector that results when all interrupts are
+        concatenated together."""
+        return self._concat_width
+
+    @property
+    def strobe_mask(self):
+        """The MSB-first bit vector containing the mask applied to `flag` every
+        cycle, to clear level-sensitive interrupts."""
+        return self._strobe_mask
+
+    @property
+    def umsk_reset(self):
+        """The MSB-first bit vector containing the reset value for the `umsk`
+        register for each interrupt."""
+        return self._umsk_reset
+
+    @property
+    def enab_reset(self):
+        """The MSB-first bit vector containing the reset value for the `enab`
+        register for each interrupt."""
+        return self._enab_reset
