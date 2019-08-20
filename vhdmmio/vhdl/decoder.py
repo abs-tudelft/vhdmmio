@@ -3,7 +3,7 @@
 import re
 from ..template import TemplateEngine
 
-def decoder_template(num_bits, addresses, optimize=False):
+def decoder_template(num_bits, addresses, optimize=False, allow_overlap=False):
     """Generates a VHDL case/switch template for a vector of the given number
     of bits and the given addresses. The addresses must be any mix of integer
     addresses and two-tuples of base address and bitmask, where a high bit in
@@ -266,16 +266,30 @@ def decoder_template(num_bits, addresses, optimize=False):
                 result.append('end case;')
                 return result
 
-        # We have a duplicate address.
-        raise ValueError(
-            'addresses overlap at bit {0}: found both {1}-{2}{3} and '
-            '{1}0{2}{3} and/or {1}1{2}{3}'.format(
-                high, address_prefix, '#' * (high - low), address_suffix))
+        # We have overlapping addresses.
+        if not allow_overlap:
+            raise ValueError(
+                'addresses overlap at bit {0}: found both {1}-{2}{3} and '
+                '{1}0{2}{3} and/or {1}1{2}{3}'.format(
+                    high, address_prefix, '#' * (high - low), address_suffix))
+
+        # To handle overlap, split the addresses with don't cares for the next
+        # bit from addresses that discriminate based on the next bit, recurse,
+        # and just concatenate the results together.
+        result = []
+        result.extend(gen_template(
+            high, low, address_prefix, address_suffix,
+            [address for address in addresses if address[0] != '-']))
+        result.append('')
+        result.extend(gen_template(
+            high, low, address_prefix, address_suffix,
+            [address for address in addresses if address[0] == '-']))
+        return result
 
     # Fix the $ position of the block references and join the lines together to
     # finish the template.
     return '\n'.join((
-        re.sub(r'^ ( +)\$', r'$\1', line)
+        re.sub(r'^ ( +)\$', r'$\1', line).rstrip()
         for line in gen_template(num_bits - 1, 0, '', '', addresses)))
 
 

@@ -7,6 +7,8 @@ from vhdmmio.template import TemplateEngine
 class TestVhdlDecoder(TestCase):
     """Unit tests for the VHDL address decoder generator."""
 
+    maxDiff = None
+
     def test_empty(self):
         """tests constructing an empty address decoder"""
         self.assertEqual(decoder_template(32, []), '')
@@ -144,6 +146,18 @@ class TestVhdlDecoder(TestCase):
         """tests address decoder overlapping address error"""
         with self.assertRaisesRegex(ValueError, 'overlap'):
             decoder_template(32, [3, (3, 3)])
+
+        self.assertEqual(decoder_template(32, [3, (3, 3)], allow_overlap=True), '\n'.join([
+            'if $address$(31 downto 2) = "000000000000000000000000000000" then',
+            '  if $address$(1 downto 0) = "11" then',
+            '    -- $address$ = 00000000000000000000000000000011',
+            '$   ADDR_0x3',
+            '  end if;',
+            '',
+            '  -- $address$ = 000000000000000000000000000000--',
+            '$ ADDR_0x0',
+            'end if;',
+        ]))
 
     def test_builder(self):
         """tests address decoder builder"""
