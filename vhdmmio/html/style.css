@@ -6,6 +6,16 @@ body {
 p {
     max-width: 45em;
     text-align: justify;
+    margin: 0.8em 0;
+}
+
+code {
+    display: inline-block;
+    vertical-align: middle;
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    color: rgba(0, 0, 0, 0.9);
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 div.content {
@@ -14,7 +24,7 @@ div.content {
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     border-right: 1px solid rgba(255, 255, 255, 0.6);
     border-top: 1px solid rgba(255, 255, 255, 0.6);
-    margin-bottom: 10px;
+    margin-top: 10px;
     border-radius: 0px 10px 0px 10px;
     background-color: rgba(0, 0, 0, 0.03);
 }
@@ -35,6 +45,7 @@ table {
     border: 1px solid black;
     font-size: 0.9em;
     border-collapse: collapse;
+    margin: 0.8em 0;
 }
 
 td, th {
@@ -157,7 +168,7 @@ tr.bitmap-restart {
 .tooltiptext {
     visibility: hidden;
     width: 400px;
-    background: linear-gradient(to bottom, #333 22px, #ddd 22px);
+    background: linear-gradient(to bottom, #333 22px, #eee 22px);
     color: #fff;
     text-align: center;
     border-radius: 5px;

@@ -22,7 +22,7 @@ interrupts:
   - mnemonic: RO
     name: rx_overrun
     group: irq
-    brief: Receive overrun.
+    brief: receive overrun.
     doc: |
       This interrupt occurs when the Rx FIFO is full and another frame is
       completely received.
@@ -30,7 +30,7 @@ interrupts:
   - mnemonic: RT
     name: rx_timeout
     group: irq
-    brief: Receive timeout.
+    brief: receive timeout.
     doc: |
       This interrupt occurs when the Rx FIFO is not empty, and has not been read
       for a time-out period.
@@ -38,14 +38,14 @@ interrupts:
   - mnemonic: RX
     name: rx_half_full
     group: irq
-    brief: Rx FIFO half full.
+    brief: rx FIFO half full.
     doc: |
       This interrupt occurs when the Rx FIFO is at least half full.
 
   - mnemonic: TX
     name: tx_half_empty
     group: irq
-    brief: Tx FIFO half empty.
+    brief: tx FIFO half empty.
     doc: |
       This interrupt occurs when the Tx FIFO is at least half empty.
 
@@ -67,7 +67,7 @@ fields:
       - bitrange: 3..0
         mnemonic: DSS
         name: data_size_select
-        brief: Data Size Select.
+        brief: data size select.
         doc: |
           This field controls the number of bits transferred in each frame. Values
           0000-0010 are not supported and should not be used.
@@ -91,7 +91,7 @@ fields:
       - bitrange: 5..4
         mnemonic: FRF
         name: frame_format
-        brief: Frame Format.
+        brief: frame format.
         doc: |
           | Value | Description   |
           |-------|---------------|
@@ -103,7 +103,7 @@ fields:
       - bitrange: 6
         mnemonic: CPOL
         name: clock_polarity
-        brief: Clock Out Polarity.
+        brief: clock out polarity.
         doc: |
           This bit is only used in SPI mode.
 
@@ -114,7 +114,7 @@ fields:
       - bitrange: 7
         mnemonic: CPHA
         name: clock_phase
-        brief: Clock Out Phase.
+        brief: clock out phase.
         doc: |
           This bit is only used in SPI mode.
 
@@ -129,7 +129,7 @@ fields:
       - bitrange: 15..8
         mnemonic: SCR
         name: prescaler_b
-        brief: Serial Clock Rate.
+        brief: serial clock rate.
         doc: |
           The number of prescaler-output clocks per bit on the bus, minus one.
           Given that CPSDVSR is the prescale divider, and the APB clock PCLK clocks
@@ -137,7 +137,7 @@ fields:
 
   - address: 0x0004
     register-name: CR1
-    register-brief: SSP Control Register 1.
+    register-brief: SSP control register 1.
     register-doc: |
       This register controls certain aspects of the operation of the SSP
       controller.
@@ -149,7 +149,7 @@ fields:
       - bitrange: 0
         mnemonic: LBM
         name: loopback
-        brief: Loop Back Mode.
+        brief: loop back mode.
         doc: |
           When 0, the SSP behaves normally. When 1, serial input is taken from the
           serial output (MOSI or MISO) rather than the serial input pin (MISO or MOSI
@@ -158,7 +158,7 @@ fields:
       - bitrange: 1
         mnemonic: SSE
         name: enable
-        brief: SSP Enable.
+        brief: SSP enable.
         doc: |
           When 0, the SSP is disabled. When 1, the SSP controller will interact with
           other devices on the serial bus. Software should write the appropriate
@@ -168,7 +168,7 @@ fields:
       - bitrange: 2
         mnemonic: MS
         name: mode
-        brief: Master/Slave Mode.
+        brief: master/slave mode.
         doc: |
           This bit can only be written when the SSE bit is 0. When 0, the SSP
           controller acts as a master on the bus, driving the SCLK, MOSI, and SSEL
@@ -181,7 +181,7 @@ fields:
       - bitrange: 3
         mnemonic: SOD
         name: output_disable
-        brief: Slave Output Disable.
+        brief: slave output disable.
         doc: |
           This bit is relevant only in slave mode (MS = 1). If it is 1, this blocks
           this SSP controller from driving the transmit data line (MISO).
@@ -189,7 +189,7 @@ fields:
   - address: 0x0008
     bitrange: 15..0
     register-name: DR
-    register-brief: SSP Data Register.
+    register-brief: SSP data register.
     register-doc: |
       Software can write data to be transmitted to this register, and read data
       that has been received.
@@ -201,7 +201,7 @@ fields:
         bus-write: invalid-only
         mnemonic: PUSH
         name: push
-        brief: Pushes data into the Tx FIFO.
+        brief: pushes data into the tx FIFO.
         doc: |
           Software can write data to be sent in a future frame to this register
           whenever the TNF bit in the Status register is 1, indicating that the Tx
@@ -216,7 +216,7 @@ fields:
         bus-read: valid-only
         mnemonic: POP
         name: pop
-        brief: Pops data from the Rx FIFO.
+        brief: pops data from the rx FIFO.
         doc: |
           Software can read data from this register whenever the RNE bit in the
           Status register is 1, indicating that the Rx FIFO is not empty. When
@@ -227,7 +227,7 @@ fields:
 
   - address: 0x000C
     register-name: SR
-    register-brief: SSP Status Register.
+    register-brief: SSP status register.
     register-doc:
       This read-only register reflects the current status of the SSP controller.
 
@@ -238,42 +238,42 @@ fields:
       - bitrange: 0
         mnemonic: TFE
         name: tx_fifo_empty
-        brief: Transmit FIFO Empty.
+        brief: transmit FIFO empty.
         doc: |
           This bit is 1 if the Transmit FIFO is empty, 0 if not.
 
       - bitrange: 1
         mnemonic: TNF
         name: tx_fifo_not_full
-        brief: Transmit FIFO Not Full.
+        brief: transmit FIFO not full.
         doc: |
           This bit is 0 if the Tx FIFO is full, 1 if not.
 
       - bitrange: 2
         mnemonic: RNE
         name: rx_fifo_not_empty
-        brief: Receive FIFO Not Empty.
+        brief: receive FIFO not empty.
         doc: |
           This bit is 0 if the Receive FIFO is empty, 1 if not.
 
       - bitrange: 3
         mnemonic: RFF
         name: rx_fifo_full
-        brief: Receive FIFO Full.
+        brief: receive FIFO full.
         doc: |
           This bit is 1 if the Receive FIFO is full, 0 if not.
 
       - bitrange: 4
         mnemonic: BSY
         name: busy
-        brief: Busy.
+        brief: busy.
         doc: |
           This bit is 0 if the SSP controller is idle, or 1 if it is currently
           sending/receiving a frame and/or the Tx FIFO is not empty.
 
   - address: 0x0010
     register-name: CPSR
-    register-brief: SSP Clock Prescale Register.
+    register-brief: SSP clock prescale register.
     register-doc: |
       This register controls the factor by which the Prescaler divides the SSP
       peripheral clock SSP_PCLK to yield the prescaler clock that is, in turn,
@@ -295,14 +295,14 @@ fields:
       - bitrange: 7..0
         mnemonic: CPSDVSR
         name: prescaler_a
-        brief: Prescaler value.
+        brief: prescaler value.
         doc: |
           This even value between 2 and 254, by which SSP_PCLK is divided to yield
           the prescaler output clock. Bit 0 always reads as 0.
 
   - address: 0x0014
     register-name: IMSC
-    register-brief: SSP Interrupt Mask Set/Clear Register.
+    register-brief: SSP interrupt mask set/clear register.
     register-doc: |
       This register controls whether each of the four possible interrupt
       conditions in the SSP controller are enabled. Note that ARM uses the word
@@ -316,7 +316,7 @@ fields:
       - bitrange: 0
         interrupt: rx_overrun
         name: rorim
-        brief: Receive overrun interrupt enable.
+        brief: receive overrun interrupt enable.
         doc: |
           Software should set this bit to enable interrupt when a Receive Overrun
           occurs, that is, when the Rx FIFO is full and another frame is completely
@@ -326,7 +326,7 @@ fields:
       - bitrange: 1
         interrupt: rx_timeout
         name: rtim
-        brief: Receive timeout interrupt enable.
+        brief: receive timeout interrupt enable.
         doc: |
           Software should set this bit to enable interrupt when a Receive Time-out
           condition occurs. A Receive Time-out occurs when the Rx FIFO is not empty,
@@ -337,7 +337,7 @@ fields:
       - bitrange: 2
         interrupt: rx_half_full
         name: rxim
-        brief: Rx FIFO half-full interrupt enable.
+        brief: rx FIFO half-full interrupt enable.
         doc: |
           Software should set this bit to enable interrupt when the Rx FIFO is
           atleast half full.
@@ -345,14 +345,14 @@ fields:
       - bitrange: 3
         interrupt: tx_half_empty
         name: txim
-        brief: Tx FIFO half-empty interrupt enable.
+        brief: tx FIFO half-empty interrupt enable.
         doc: |
           Software should set this bit to enable interrupt when the Tx FIFO is
           atleast half empty.
 
   - address: 0x0018
     register-name: RIS
-    register-brief: SSP Raw Interrupt Status Register.
+    register-brief: SSP raw interrupt status register.
     register-doc: |
       This read-only register contains a 1 for each interrupt condition that is
       asserted, regardless of whether or not the interrupt is enabled in the
@@ -364,7 +364,7 @@ fields:
       - bitrange: 0
         interrupt: rx_overrun
         name: rorris
-        brief: Receive overrun raw interrupt status.
+        brief: receive overrun raw interrupt status.
         doc: |
           This bit is 1 if another frame was completely received while the Rx FIFO
           was full. The ARM spec implies that the preceding frame data is overwritten
@@ -373,7 +373,7 @@ fields:
       - bitrange: 1
         interrupt: rx_timeout
         name: rtris
-        brief: Receive timeout raw interrupt status.
+        brief: receive timeout raw interrupt status.
         doc: |
           This bit is 1 if the Rx FIFO is not empty, and has not been read for a
           time-out period. The time-out period is the same for master and slave modes
@@ -382,20 +382,20 @@ fields:
       - bitrange: 2
         interrupt: rx_half_full
         name: rxris
-        brief: Rx FIFO half-full raw interrupt status.
+        brief: rx FIFO half-full raw interrupt status.
         doc: |
           This bit is 1 if the Rx FIFO is at least half full.
 
       - bitrange: 3
         interrupt: tx_half_empty
         name: txris
-        brief: Tx FIFO half-empty raw interrupt status.
+        brief: tx FIFO half-empty raw interrupt status.
         doc: |
           This bit is 1 if the Tx FIFO is at least half empty.
 
   - address: 0x001C
     register-name: MIS
-    register-brief: SSP Masked Interrupt Status Register.
+    register-brief: SSP masked interrupt status register.
     register-doc: |
       This read-only register contains a 1 for each interrupt condition that is
       asserted, regardless of whether or not the interrupt is enabled in the
@@ -408,7 +408,7 @@ fields:
       - bitrange: 0
         interrupt: rx_overrun
         name: rormis
-        brief: Receive overrun masked interrupt status.
+        brief: receive overrun masked interrupt status.
         doc: |
           This bit is 1 if another frame was completely received while the Rx FIFO
           was full, and this interrupt is enabled.
@@ -416,7 +416,7 @@ fields:
       - bitrange: 1
         interrupt: rx_timeout
         name: rtmis
-        brief: Receive timeout masked interrupt status.
+        brief: receive timeout masked interrupt status.
         doc: |
           This bit is 1 if the Rx FIFO is not empty, has not been read for a time-out
           period, and this interrupt is enabled. The time-out period is the same for
@@ -426,7 +426,7 @@ fields:
       - bitrange: 2
         interrupt: rx_half_full
         name: rxmis
-        brief: Rx FIFO half-full masked interrupt status.
+        brief: rx FIFO half-full masked interrupt status.
         doc: |
           This bit is 1 if the Rx FIFO is at least half full, and this interrupt is
           enabled.
@@ -434,14 +434,14 @@ fields:
       - bitrange: 3
         interrupt: tx_half_empty
         name: txmis
-        brief: Tx FIFO half-empty masked interrupt status.
+        brief: tx FIFO half-empty masked interrupt status.
         doc: |
           This bit is 1 if the Tx FIFO is at least half empty, and this interrupt is
           enabled.
 
   - address: 0x0020
     register-name: ICR
-    register-brief: SSP Interrupt Clear Register.
+    register-brief: SSP interrupt clear register.
     register-doc: |
       Software can write one or more one(s) to this write-only register, to clear
       the corresponding interrupt condition(s) in the SSP controller. Note that
@@ -455,7 +455,7 @@ fields:
       - bitrange: 0
         interrupt: rx_overrun
         name: roric
-        brief: Receive overrun interrupt clear.
+        brief: receive overrun interrupt clear.
         doc: |
           Writing a 1 to this bit clears the “frame was received when Rx FIFO was
           full” interrupt.
@@ -463,7 +463,7 @@ fields:
       - bitrange: 1
         interrupt: rx_timeout
         name: rtic
-        brief: Receive timeout interrupt clear.
+        brief: receive timeout interrupt clear.
         doc: |
           Writing a 1 to this bit clears the Rx FIFO was not empty and has not been
           read-bit for a time-out period interrupt. The time-out period is the same

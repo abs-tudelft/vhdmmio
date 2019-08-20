@@ -114,8 +114,8 @@ class Block(Named, Unique, Accessed):
         metadata = MetadataConfig(
             mnemonic=register.mnemonic + mnem_suffix,
             name=register.name + name_suffix,
-            brief='Block containing bits %d..%d of %s.' % (
-                offset + bus_width - 1, offset, register))
+            brief='block containing bits %d..%d of register `%s` (`%s`).' % (
+                offset + bus_width - 1, offset, register.name, register.mnemonic))
 
         super().__init__(metadata=metadata, mode=register.mode)
         self._register = register

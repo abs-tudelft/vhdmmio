@@ -125,19 +125,30 @@ class HtmlDocumentationGenerator:
                 else:
                     row.append('<td%s class="de-emph">n/a</td>' % attributes)
 
-            row.append(
+            cell_fmt = (
                 '<td%s><div class="tooltip-left">\n'
                 '  %s\n'
                 '  <span class="tooltiptext">\n'
-                '    Block %s = %s\n'
-                '    <p>Full name: %s</p>\n'
+                '    %s %s = %s\n'
                 '    %s\n'
                 '  </span>\n'
-                '</div></td>' % (
+                '</div></td>')
+
+            if len(block.register.blocks) == 1:
+                row.append(cell_fmt % (
+                    attributes, block.register.mnemonic,
+                    'Logical register',
+                    bus_address, block.register.mnemonic,
+                    self._md_to_html('`%s`: %s' % (
+                        block.register.name, block.register.brief))))
+            else:
+                row.append(cell_fmt % (
                     attributes, block.mnemonic,
-                    bus_address, block.name,
-                    block.name,
-                    self._md_to_html(block.brief)))
+                    'Block',
+                    bus_address, block.mnemonic,
+                    self._md_to_html('`%s`: %s\n\nLogical register `%s` (`%s`): %s' % (
+                        block.name, block.brief,
+                        block.register.name, block.register.mnemonic, block.register.brief))))
 
             # Construct per-row header column.
             rows = []
@@ -213,15 +224,13 @@ class HtmlDocumentationGenerator:
                     '  %s\n'
                     '  <span class="tooltiptext">\n'
                     '    Field %s%s (%s) = %s%s\n'
-                    '    <p>Full name: %s</p>\n'
                     '    %s\n'
                     '  </span>\n'
                     '</div>' % (
                         abbreviated,
                         bus_address, bus_indices, field_mode,
                         field.mnemonic, field_indices,
-                        field.name,
-                        self._md_to_html(field.brief)))
+                        self._md_to_html('`%s`: %s' % (field.name, field.brief))))
 
                 insert_cell(cell, col_span=mapping.col_span, row_span=mapping.row_span)
                 current_col = mapping.col_index + mapping.col_span

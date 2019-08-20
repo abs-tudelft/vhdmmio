@@ -64,7 +64,7 @@ def construct_logical_register(resources, regfile, read_fields=None, write_field
         read_meta = write_meta = MetadataConfig(
             mnemonic=field.mnemonic,
             name='%s_reg' % field.name,
-            brief='Register for field%s %s.' % (
+            brief='register for field%s %s.' % (
                 's' if len(fields) != 1 else '',
                 _enumerate_fields(fields)))
 
