@@ -2,8 +2,10 @@
 
 import os
 from unittest import TestCase
-from .testbench import (Testbench, StreamSourceMock, StreamSinkMock,
-                        AXI4LMasterMock, AXI4LSlaveMock, RegisterFileTestbench)
+from .main import Testbench
+from .streams import StreamSourceMock, StreamSinkMock
+from .axi import AXI4LMasterMock, AXI4LSlaveMock
+from .regfile import RegisterFileTestbench
 
 class TestTestbench(TestCase):
     """Self-tests for the testbench generator submodule."""
@@ -11,7 +13,7 @@ class TestTestbench(TestCase):
     def test_basic(self):
         """testbench self-test: basic functionality"""
         testbench = Testbench()
-        testbench.add_include(os.path.dirname(__file__) + '/../vhdmmio/vhdl/vhdmmio_pkg.vhd')
+        testbench.add_include(os.path.dirname(__file__) + '/../../vhdmmio/vhdl/vhdmmio_pkg.vhd')
         test_in = testbench.add_input('test_in', 8)
         test_out = testbench.add_output('test_out', 8)
         testbench.add_body('test_out <= std_logic_vector(unsigned(test_in) + 1);')
@@ -31,7 +33,7 @@ class TestTestbench(TestCase):
     def test_streams(self):
         """testbench self-test: streams"""
         testbench = Testbench()
-        testbench.add_include(os.path.dirname(__file__) + '/../vhdmmio/vhdl/vhdmmio_pkg.vhd')
+        testbench.add_include(os.path.dirname(__file__) + '/../../vhdmmio/vhdl/vhdmmio_pkg.vhd')
         test_source = StreamSourceMock(
             testbench.add_input('source_valid'),
             testbench.add_output('source_ready'),
@@ -57,7 +59,7 @@ class TestTestbench(TestCase):
     def test_axi(self):
         """testbench self-test: AXI4-lite"""
         testbench = Testbench()
-        testbench.add_include(os.path.dirname(__file__) + '/../vhdmmio/vhdl/vhdmmio_pkg.vhd')
+        testbench.add_include(os.path.dirname(__file__) + '/../../vhdmmio/vhdl/vhdmmio_pkg.vhd')
         master = AXI4LMasterMock(testbench, 'master')
         slave = AXI4LSlaveMock(testbench, 'slave')
         testbench.add_body('slave_req <= master_req;')
