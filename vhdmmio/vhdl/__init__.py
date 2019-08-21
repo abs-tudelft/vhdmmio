@@ -8,6 +8,7 @@ from ..template import TemplateEngine, annotate_block
 from .types import Axi4Lite, gather_defs
 from .interface import Interface
 from .address_decoder import AddressDecoder
+from .behavior import BehaviorCodeGen
 
 _MODULE_DIR = os.path.dirname(__file__)
 
@@ -163,8 +164,12 @@ class VhdlEntityGenerator:
                 self._add_address_block(address_block, 'before')
 
         # Generate code for fields.
-        #for field_descriptor in regfile.field_descriptors:
-            #field_descriptor.logic.generate_vhdl(self)
+        for field_descriptor in regfile.field_descriptors:
+            BehaviorCodeGen.construct(
+                field_descriptor,
+                self._tple, self._interface,
+                self._read_decoder, self._write_decoder,
+                self._read_tag_decoder, self._write_tag_decoder).generate()
 
         # Generate the block access code that comes after the field code.
         for register in regfile.registers:
@@ -213,22 +218,6 @@ class VhdlEntityGenerator:
             'strobe' if interrupt.bus_can_clear else 'level',
             interrupt.name,
             interrupt.brief)
-
-    @staticmethod
-    def _describe_field_descriptor(field_descriptor):
-        """Generates a description for a field descriptor, to be used as block
-        comment."""
-        return 'field %s%s: %s' % (
-            'group ' if field_descriptor.is_vector() else '',
-            field_descriptor.name,
-            field_descriptor.brief)
-
-    @staticmethod
-    def _describe_field(field):
-        """Generates a description for a field, to be used as block comment."""
-        return 'field %s: %s' % (
-            field.name,
-            field.brief)
 
     @staticmethod
     def _describe_block(block):

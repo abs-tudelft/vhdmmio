@@ -25,25 +25,25 @@ class Interrupt(Named, Shaped, Configured, Unique):
             self._bus_can_clear = False
             self._bus_can_unmask = False
             self._bus_can_mask = False
-            self._offset, fields = resources.interrupts.register_interrupt(self)
-            for field in fields:
-                field.behavior.attach_interrupt(self)
-                if field.behavior.cfg.bus_write in ('enabled', 'set'):
-                    if field.behavior.cfg.mode == 'enable':
+            self._offset, field_descriptors = resources.interrupts.register_interrupt(self)
+            for field_descriptor in field_descriptors:
+                field_descriptor.behavior.attach_interrupt(self)
+                if field_descriptor.behavior.cfg.bus_write in ('enabled', 'set'):
+                    if field_descriptor.behavior.cfg.mode == 'enable':
                         self._bus_can_enable = True
-                    elif field.behavior.cfg.mode == 'flag':
+                    elif field_descriptor.behavior.cfg.mode == 'flag':
                         self._bus_can_pend = True
                     else:
-                        assert field.behavior.cfg.mode == 'unmask'
+                        assert field_descriptor.behavior.cfg.mode == 'unmask'
                         self._bus_can_unmask = True
-                if (field.behavior.cfg.bus_write in ('enabled', 'clear')
-                        or field.behavior.cfg.bus_read == 'clear'):
-                    if field.behavior.cfg.mode == 'enable':
+                if (field_descriptor.behavior.cfg.bus_write in ('enabled', 'clear')
+                        or field_descriptor.behavior.cfg.bus_read == 'clear'):
+                    if field_descriptor.behavior.cfg.mode == 'enable':
                         self._bus_can_disable = True
-                    elif field.behavior.cfg.mode == 'flag':
+                    elif field_descriptor.behavior.cfg.mode == 'flag':
                         self._bus_can_clear = True
                     else:
-                        assert field.behavior.cfg.mode == 'unmask'
+                        assert field_descriptor.behavior.cfg.mode == 'unmask'
                         self._bus_can_mask = True
 
             # Check configuration for as far as we can. There are some
@@ -190,26 +190,26 @@ class InterruptManager:
 
     def __init__(self):
         super().__init__()
-        self._interrupt_to_fields = {}
+        self._interrupt_to_field_descriptors = {}
         self._interrupts = []
         self._concat_width = 0
 
-    def register_field(self, field):
+    def register_field_descriptor(self, field_descriptor):
         """Registers an interrupt field."""
-        interrupt = field.cfg.behavior.interrupt
-        fields = self._interrupt_to_fields.get(interrupt, None)
+        interrupt = field_descriptor.cfg.behavior.interrupt
+        fields = self._interrupt_to_field_descriptors.get(interrupt, None)
         if fields is None:
             fields = []
-            self._interrupt_to_fields[interrupt] = fields
-        fields.append(field)
+            self._interrupt_to_field_descriptors[interrupt] = fields
+        fields.append(field_descriptor)
 
     def register_interrupt(self, interrupt):
-        """Registers an interrupt, and pops and returns the field list for that
-        interrupt."""
+        """Registers an interrupt, and pops and returns the field descriptor
+        list for that interrupt."""
         offset = self._concat_width
         self._interrupts.append(interrupt)
         self._concat_width += interrupt.width
-        return offset, self._interrupt_to_fields.pop(interrupt.name, [])
+        return offset, self._interrupt_to_field_descriptors.pop(interrupt.name, [])
 
     @property
     def concat_width(self):
@@ -225,7 +225,7 @@ class InterruptManager:
         """Checks that all fields and interrupts are connected properly."""
 
         # Check that all interrupt fields have been connected to interrupts.
-        for fields in self._interrupt_to_fields.values():
+        for fields in self._interrupt_to_field_descriptors.values():
             for field in fields:
                 with field.context:
                     raise ValueError('interrupt does not exist')

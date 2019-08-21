@@ -224,27 +224,27 @@ class BusBehavior:
 class Behavior(Configured):
     """Base class for field behaviors."""
 
-    def __init__(self, field, behavior_cfg, bus_behavior):
+    def __init__(self, field_descriptor, behavior_cfg, bus_behavior):
         super().__init__(cfg=behavior_cfg)
-        self._field = field
+        self._field_descriptor = field_descriptor
         self._bus = bus_behavior
 
     @staticmethod
-    def construct(resources, field, behavior_cfg, read_allow_cfg, write_allow_cfg):
+    def construct(resources, field_descriptor, behavior_cfg, read_allow_cfg, write_allow_cfg):
         """Constructs a `Behavior` class instance based on the given configuration
         structures and a reference to the associated field."""
         for config_cls, behavior_cls in _BEHAVIOR_CLASS_MAP:
             if isinstance(behavior_cfg, config_cls):
                 return behavior_cls(
-                    resources, field, behavior_cfg, read_allow_cfg, write_allow_cfg)
+                    resources, field_descriptor, behavior_cfg, read_allow_cfg, write_allow_cfg)
         raise TypeError(
             'no mapping exists from type %s to a Behavior subclass'
             % type(behavior_cfg).__name__)
 
     @property
-    def field(self):
-        """The field that this behavior object is representing."""
-        return self._field
+    def field_descriptor(self):
+        """The field descriptor that this behavior object is representing."""
+        return self._field_descriptor
 
     @property
     def bus(self):

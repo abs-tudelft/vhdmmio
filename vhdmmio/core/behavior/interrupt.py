@@ -7,10 +7,10 @@ from ...config.behavior import Interrupt
 class InterruptBehavior(Behavior):
     """Behavior class for interrupt fields."""
 
-    def __init__(self, resources, field, behavior_cfg, read_allow_cfg, write_allow_cfg):
+    def __init__(self, resources, field_descriptor, behavior_cfg, read_allow_cfg, write_allow_cfg):
 
         # Check the shape of the field.
-        if field.bitrange.is_vector():
+        if field_descriptor.base_bitrange.is_vector():
             raise ValueError('interrupt fields cannot be vectors, use repetition instead')
 
         # Check the behavior configuration.
@@ -52,22 +52,22 @@ class InterruptBehavior(Behavior):
                 no_op_method=BusAccessNoOpMethod.WRITE_CURRENT_OR_MASK)
 
         super().__init__(
-            field, behavior_cfg,
+            field_descriptor, behavior_cfg,
             BusBehavior(read_behavior, write_behavior, can_read_for_rmw))
 
         self._interrupt = None
 
         # Register this field with the interrupt resource manager.
-        resources.interrupts.register_field(field)
+        resources.interrupts.register_field_descriptor(field_descriptor)
 
     def attach_interrupt(self, interrupt):
         """Attaches the `Interrupt` object that this field is connected to.
         This can only be called once; it should be called during construction
         of the register file."""
-        with self.field.context:
+        with self.field_descriptor.context:
             if self._interrupt is not None:
                 raise ValueError('interrupt already attached')
-            if self.field.bitrange.shape != interrupt.shape:
+            if self.field_descriptor.base_bitrange.shape != interrupt.shape:
                 raise ValueError('mismatch between field and interrupt repetition')
             self._interrupt = interrupt
 

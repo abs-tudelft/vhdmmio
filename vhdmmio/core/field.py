@@ -1,7 +1,6 @@
 """Submodule for the `Field` class."""
 
 from .mixins import Named, Configured, Unique
-from .behavior import Behavior
 
 class Field(Named, Configured, Unique):
     """Represents a parsed field descriptor. That is, a single field or a
@@ -26,13 +25,10 @@ class Field(Named, Configured, Unique):
                 address, cfg.conditions)
             self._bitrange = bitrange
             self._subaddress = resources.construct_subaddress(self)
-            self._behavior = Behavior.construct(
-                resources, self,
-                cfg.behavior, cfg.read_allow, cfg.write_allow)
-            if self._behavior.bus.can_read():
+            if self.behavior.bus.can_read():
                 resources.addresses.read_map(
                     self._internal_address, set).add(self)
-            if self._behavior.bus.can_write():
+            if self.behavior.bus.can_write():
                 resources.addresses.write_map(
                     self._internal_address, set).add(self)
 
@@ -87,7 +83,7 @@ class Field(Named, Configured, Unique):
     @property
     def behavior(self):
         """The behavior object for this field."""
-        return self._behavior
+        return self.descriptor.behavior
 
     @property
     def subaddress(self):

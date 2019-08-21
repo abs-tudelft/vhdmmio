@@ -7,7 +7,8 @@ from ...config.behavior import Primitive
 class PrimitiveBehavior(Behavior):
     """Behavior class for primitive fields."""
 
-    def __init__(self, resources, field, behavior_cfg, read_allow_cfg, write_allow_cfg):
+    def __init__(self, resources, field_descriptor,
+                 behavior_cfg, read_allow_cfg, write_allow_cfg):
 
         # Ensure that post-access operations are set to "nothing" when they are
         # not supported.
@@ -86,31 +87,36 @@ class PrimitiveBehavior(Behavior):
         def drive_internal(name):
             if name is None:
                 return None
-            if field.descriptor.is_vector():
+            if field_descriptor.is_vector():
                 raise ValueError('repeated fields cannot drive an internal signal')
-            return resources.internals.drive(field, name, field.bitrange.shape)
+            return resources.internals.drive(
+                field_descriptor, name, field_descriptor.base_bitrange.shape)
 
         def monitor_internal(name):
             if name is None:
                 return None
-            if field.descriptor.is_vector():
+            if field_descriptor.is_vector():
                 raise ValueError('repeated fields cannot monitor an internal signal')
-            return resources.internals.use(field, name, field.bitrange.shape)
+            return resources.internals.use(
+                field_descriptor, name, field_descriptor.base_bitrange.shape)
 
         def drive_flag_internal(name):
             if name is None:
                 return None
-            return resources.internals.drive(field, name, field.descriptor.shape)
+            return resources.internals.drive(
+                field_descriptor, name, field_descriptor.shape)
 
         def strobe_flag_internal(name):
             if name is None:
                 return None
-            return resources.internals.strobe(field, name, field.descriptor.shape)
+            return resources.internals.strobe(
+                field_descriptor, name, field_descriptor.shape)
 
         def monitor_flag_internal(name):
             if name is None:
                 return None
-            return resources.internals.use(field, name, field.descriptor.shape)
+            return resources.internals.use(
+                field_descriptor, name, field_descriptor.shape)
 
         self._drive_internal = drive_internal(behavior_cfg.drive_internal)
         self._full_internal = drive_flag_internal(behavior_cfg.full_internal)
@@ -179,7 +185,7 @@ class PrimitiveBehavior(Behavior):
 
         bus_behavior = BusBehavior(read_behavior, write_behavior, can_read_for_rmw)
 
-        super().__init__(field, behavior_cfg, bus_behavior)
+        super().__init__(field_descriptor, behavior_cfg, bus_behavior)
 
     @property
     def drive_internal(self):
