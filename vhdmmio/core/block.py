@@ -127,12 +127,12 @@ class Block(Named, Unique, Accessed):
         # Register ourselves with the address manager while checking for
         # conflicts.
         if self.can_read():
-            resources.block_addresses.read_set(self.internal_address, self)
+            resources.addresses.read_set(self.internal_address, self)
         if self.can_write():
-            resources.block_addresses.write_set(self.internal_address, self)
+            resources.addresses.write_set(self.internal_address, self)
 
         # Figure out our bus address.
-        self._address = resources.block_addresses.signals.split_address(
+        self._address = resources.addresses.signals.split_address(
             self._internal_address)[AddressSignalMap.BUS]
 
         # If there are multiple blocks, register each block in the register

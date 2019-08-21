@@ -36,20 +36,8 @@ class RegisterFile(Named, Configured, Unique):
                 # Construct the register(s) for this address.
                 read_reg, write_reg = construct_logical_register(
                     resources, self,
-                    addresses.read.get(address, None),
-                    addresses.write.get(address, None))
-
-                # Replace the field lists with the constructed register
-                # objects in the address managers.
-                if read_reg is not None:
-                    addresses.read[address] = read_reg
-                elif address in addresses.read:
-                    del addresses.read[address]
-
-                if write_reg is not None:
-                    addresses.write[address] = write_reg
-                elif address in addresses.write:
-                    del addresses.write[address]
+                    addresses.read.pop(address, None),
+                    addresses.write.pop(address, None))
 
                 # Add the constructed registers to the list of all registers in
                 # this register file.
@@ -77,7 +65,7 @@ class RegisterFile(Named, Configured, Unique):
                 resources.internals.make_external(internal_io_config)
 
             # Perform post-construction checks on the resource managers.
-            resources.verify()
+            resources.verify_and_freeze()
             self._resources = resources
 
             # Expose the requisite information about the used resources in an
@@ -125,13 +113,13 @@ class RegisterFile(Named, Configured, Unique):
         `None` in the configuration, its default was substituted)."""
         return self._internal_ios
 
-    def doc_iter_registers(self):
-        """Iterates over the registers in a natural order for documentation
+    def doc_iter_blocks(self):
+        """Iterates over the blocks in a natural order for documentation
         output. The elements are yielded as
-        `(subaddresses, address_repr, read_ob, write_ob)` tuples, where
+        `(subaddresses, address_repr, read_block, write_block)` tuples, where
         `address_repr` is a human-readable string representation of the
-        address, and `read_ob`/`write_ob` are `None` if the address range is
-        write-only/read-only."""
+        address, and `read_block`/`write_block` are `None` if the address range
+        is write-only/read-only, and may be identical for read-write blocks."""
         return self._resources.addresses.doc_iter()
 
     def doc_represent_address(self, internal_address):
@@ -139,6 +127,12 @@ class RegisterFile(Named, Configured, Unique):
         tuple of the formatted address and a list of string representations of
         any additional match conditions."""
         return self._resources.addresses.doc_represent_address(internal_address)
+
+    @property
+    def address_info(self):
+        """Information the concatenated internal address signals. See
+        `address.AddressSignalMap`."""
+        return self._resources.addresses.signals
 
     @property
     def defer_tag_info(self):

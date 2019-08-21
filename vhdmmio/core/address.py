@@ -236,10 +236,12 @@ class AddressSignalMap:
 
     def __init__(self):
         super().__init__()
+        self._frozen = False
 
         # Ordered mapping from `Shaped+Named+Unique` objects to the offset of
         # the signal within the internal address.
         self._signals = OrderedDict()
+
         self._width = 0
         self._add_signal(self.BUS)
 
@@ -260,6 +262,11 @@ class AddressSignalMap:
         # If the signal is already in the map, this is no-op.
         if address_signal in self._signals:
             return
+
+        # Can't add signals once frozen.
+        if self._frozen:
+            raise ValueError('address signal %s was not added during '
+                             'register file construction' % address_signal)
 
         # Calculate the new width of the internal address signal.
         new_width = self._width + address_signal.width
@@ -291,6 +298,10 @@ class AddressSignalMap:
             sub_address = (address >> offset) & ((1 << signal.width) - 1)
             mappings[signal] = sub_address
         return mappings
+
+    def freeze(self):
+        """Shields this object against further mutation."""
+        self._frozen = True
 
     def doc_represent_address(self, address):
         """Represents a `MaskedAddress` abiding by the structure defined by
@@ -364,6 +375,10 @@ class AddressMap:
         """Chains to `dict.get()`."""
         return self._map.get(*args, **kwargs)
 
+    def pop(self, *args, **kwargs):
+        """Chains to `dict.pop()`."""
+        return self._map.pop(*args, **kwargs)
+
 
 class AddressManager:
     """Manages an `AddressSignalMap` and two `AddressMap`s (one for read, one
@@ -436,16 +451,6 @@ class AddressManager:
                     mapping, old, self.signals.doc_represent_address(internal_address)))
         return self.read_map(internal_address, lambda: mapping)
 
-    def read_replace(self, internal_address, new_mapping):
-        """Replaces a mapping previously added with `read_map()` with a
-        different object. This allows a builder object to be mapped initially,
-        to eventually be replaced with a frozen, completed object."""
-        if internal_address not in self.read:
-            raise ValueError(
-                'cannot replace read mapping for address %s, because no '
-                'mapping exists yet' % (internal_address,))
-        self.read[internal_address] = new_mapping
-
     def write_map(self, internal_address, constructor, *args, **kwargs):
         """Returns the current write mapping for `internal_address`, or
         constructs the mapping by calling `constructor(*args, **kwargs)` if
@@ -478,16 +483,6 @@ class AddressManager:
                 'address conflict between %s and %s at %s in write mode' % (
                     mapping, old, self.signals.doc_represent_address(internal_address)))
         return self.write_map(internal_address, lambda: mapping)
-
-    def write_replace(self, internal_address, new_mapping):
-        """Replaces a mapping previously added with `write_map()` with a
-        different object. This allows a builder object to be mapped initially,
-        to eventually be replaced with a frozen, completed object."""
-        if internal_address not in self.write:
-            raise ValueError(
-                'cannot replace write mapping for address %s, because no '
-                'mapping exists yet' % (internal_address,))
-        self.write[internal_address] = new_mapping
 
     def _natural_iter(self):
         """Iterates over the addresses in this address manager in natural

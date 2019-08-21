@@ -88,11 +88,9 @@ class HtmlDocumentationGenerator:
         """Converts markdown to HTML."""
         return self._markdowner.convert(markdown.replace('\n#', '\n#' + '#'*depth))
 
-    def _generate_bitmap_table(self, *registers):
+    def _generate_bitmap_table(self, blocks):
         """Generates a table with addresses on the Y axis and bus word bit
         indices on the X axis for the specified block(s)."""
-        blocks = [block for register in registers for block in register.blocks]
-
         any_conditions = False
         for block in blocks:
             _, conditions = block.doc_address()
@@ -433,7 +431,7 @@ class HtmlDocumentationGenerator:
             tple.append_block('EXTENDED', self._md_to_html(register.doc, depth))
 
         # Add the bitmap table for this register.
-        tple.append_block('EXTENDED', self._generate_bitmap_table(register))
+        tple.append_block('EXTENDED', self._generate_bitmap_table(register.blocks))
 
         # Add documentation for the fields.
         for field in register.fields:
@@ -477,28 +475,29 @@ class HtmlDocumentationGenerator:
         # Add user-provided brief.
         tple.append_block('BRIEF', self._named_brief_to_html(regfile))
 
-        # Construct a list of all the registers ordered by address. The
-        # regfile.registers tuple is inadequate, as this is in the YAML/config
-        # dictionary order.
-        registers = []
-        for _, _, read_reg, write_reg in regfile.doc_iter_registers():
-            if read_reg is write_reg:
-                registers.append(read_reg)
+        # Construct a list of all the address blocks ordered by address.
+        blocks = []
+        for _, _, read_block, write_block in regfile.doc_iter_blocks():
+            if read_block is write_block:
+                blocks.append(read_block)
                 continue
-            if read_reg is not None:
-                registers.append(read_reg)
-            if write_reg is not None:
-                registers.append(write_reg)
+            if read_block is not None:
+                blocks.append(read_block)
+            if write_block is not None:
+                blocks.append(write_block)
 
         # Add the bitmap table for this register.
-        tple.append_block('BRIEF', self._generate_bitmap_table(*registers))
+        tple.append_block('BRIEF', self._generate_bitmap_table(blocks))
 
         # Add user-provided extended documentation.
         if regfile.doc is not None:
             tple.append_block('EXTENDED', self._md_to_html(regfile.doc, depth))
 
         # Add documentation for the fields.
-        for register in registers:
+        for block in blocks:
+            if block.index:
+                continue
+            register = block.register
             tple.append_block('EXTENDED', self._register_to_html(register, depth + 1))
 
         # Add documentation for the interrupts.

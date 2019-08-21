@@ -59,28 +59,28 @@ begin
     variable w_lreq : boolean := false;
     variable r_lreq : boolean := false;
 
-$if dt.write_count
+$if di.write_count
     -- Write response request flag and tag for deferred requests. When the flag
     -- is set, the register matching the tag can return its result.
     variable w_rreq : boolean := false;
-    variable w_rtag : std_logic_vector($dt.write_width-1$ downto 0);
+    variable w_rtag : std_logic_vector($di.write_width-1$ downto 0);
 
     -- Write tag FIFO.
-    type w_tag_array is array (natural range <>) of std_logic_vector($dt.write_width-1$ downto 0);
+    type w_tag_array is array (natural range <>) of std_logic_vector($di.write_width-1$ downto 0);
     variable w_tags     : w_tag_array(0 to $2**r.tag_depth_log2-1$); -- mem
     variable w_tag_wptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
     variable w_tag_rptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
     variable w_tag_cnt  : std_logic_vector($r.tag_depth_log2$ downto 0) := (others => '0'); -- reg;
 $endif
 
-$if dt.read_count
+$if di.read_count
     -- Read response request flag and tag for deferred requests. When the flag
     -- is set, the register matching the tag can return its result.
     variable r_rreq : boolean := false;
-    variable r_rtag : std_logic_vector($dt.read_width-1$ downto 0);
+    variable r_rtag : std_logic_vector($di.read_width-1$ downto 0);
 
     -- Read tag FIFO.
-    type r_tag_array is array (natural range <>) of std_logic_vector($dt.read_width-1$ downto 0);
+    type r_tag_array is array (natural range <>) of std_logic_vector($di.read_width-1$ downto 0);
     variable r_tags     : r_tag_array(0 to $2**r.tag_depth_log2-1$); -- mem
     variable r_tag_wptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
     variable r_tag_rptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
@@ -91,7 +91,7 @@ $endif
     -- always has byte granularity but encoding it this way makes the code a
     -- lot nicer (and it should be optimized to the same thing by any sane
     -- synthesizer).
-    variable w_addr : std_logic_vector(31 downto 0);
+    variable w_addr : std_logic_vector($ai.width-1$ downto 0);
     variable w_data : std_logic_vector($bw-1$ downto 0) := (others => '0');
     variable w_strb : std_logic_vector($bw-1$ downto 0) := (others => '0');
 $if r.harden
@@ -99,7 +99,7 @@ $if r.harden
 $else
     constant w_prot : std_logic_vector(2 downto 0) := (others => '0');
 $endif
-    variable r_addr : std_logic_vector(31 downto 0);
+    variable r_addr : std_logic_vector($ai.width-1$ downto 0);
 $if r.harden
     variable r_prot : std_logic_vector(2 downto 0) := (others => '0'); -- reg
 $else
@@ -194,13 +194,13 @@ $endif
     -- |  -  |  -   |  -   ||  -  |  -   |   -   |   1   || accept  |          | push     |
     -- '----------------------------------------------------------------------------------'
     --
-$if dt.write_count
+$if di.write_count
     variable w_defer : boolean := false;
-    variable w_dtag  : std_logic_vector($dt.write_width-1$ downto 0);
+    variable w_dtag  : std_logic_vector($di.write_width-1$ downto 0);
 $endif
-$if dt.read_count
+$if di.read_count
     variable r_defer : boolean := false;
-    variable r_dtag  : std_logic_vector($dt.read_width-1$ downto 0);
+    variable r_dtag  : std_logic_vector($di.read_width-1$ downto 0);
 $endif
     variable w_block : boolean := false;
     variable r_block : boolean := false;
@@ -254,11 +254,11 @@ $   DECLARATIONS
       r_req   := false;
       w_lreq  := false;
       r_lreq  := false;
-$if dt.write_count
+$if di.write_count
       w_rreq  := false;
       w_rtag  := (others => '0');
 $endif
-$if dt.read_count
+$if di.read_count
       r_rreq  := false;
       r_rtag  := (others => '0');
 $endif
@@ -266,11 +266,11 @@ $endif
       w_data  := (others => '0');
       w_strb  := (others => '0');
       r_addr  := (others => '0');
-$if dt.write_count
+$if di.write_count
       w_defer := false;
       w_dtag  := (others => '0');
 $endif
-$if dt.read_count
+$if di.read_count
       r_defer := false;
       r_dtag  := (others => '0');
 $endif
@@ -349,7 +349,7 @@ $endif
         end if;
       end if;
 
-$if dt.write_count
+$if di.write_count
       -- Handle outstanding write requests.
       w_rtag := w_tags(to_integer(unsigned(w_tag_rptr)));
       if w_tag_cnt = "0$'0'*r.tag_depth_log2$" then
@@ -373,7 +373,7 @@ $if dt.write_count
       end if;
 $endif
 
-$if dt.read_count
+$if di.read_count
       -- Handle outstanding read requests.
       r_rtag := r_tags(to_integer(unsigned(r_tag_rptr)));
       if r_tag_cnt = "0$'0'*r.tag_depth_log2$" then
@@ -427,7 +427,8 @@ $if r.harden
         w_prot := awl.prot;
       end if;
 $endif
-      w_addr := awl.addr;
+      w_addr(31 downto 0) := awl.addr;
+$     WRITE_ADDR_CONCAT
       for b in w_strb'range loop
         w_strb(b) := wl.strb(b / 8);
       end loop;
@@ -437,7 +438,8 @@ $if r.harden
         r_prot := arl.prot;
       end if;
 $endif
-      r_addr := arl.addr;
+      r_addr(31 downto 0) := arl.addr;
+$     READ_ADDR_CONCAT
 
 $if defined('FIELD_LOGIC_BEFORE')
       -------------------------------------------------------------------------
@@ -451,7 +453,7 @@ $endif
       -------------------------------------------------------------------------
 $     FIELD_LOGIC_READ
 
-$if dt.read_count
+$if di.read_count
       -- Handle deferred reads.
       if r_rreq then
 $       FIELD_LOGIC_READ_TAG
@@ -463,7 +465,7 @@ $endif
       -------------------------------------------------------------------------
 $     FIELD_LOGIC_WRITE
 
-$if dt.write_count
+$if di.write_count
       -- Handle deferred writes.
 $     FIELD_LOGIC_WRITE_TAG
 $endif
@@ -479,7 +481,7 @@ $endif
       -- Boilerplate bus access logic
       -------------------------------------------------------------------------
       -- Perform the write action dictated by the field logic.
-$if dt.write_count
+$if di.write_count
       if (w_rreq or w_req) and not w_block then
 $else
       if w_req and not w_block then
@@ -495,7 +497,7 @@ $endif
           bus_v.b.resp := AXI4L_RESP_DECERR;
         end if;
 
-$if not dt.write_count
+$if not di.write_count
         -- Accept write requests by invalidating the request holding
         -- registers.
         awl.valid := '0';
@@ -536,7 +538,7 @@ $else
 $endif
 
       -- Perform the read action dictated by the field logic.
-$if dt.read_count
+$if di.read_count
       if (r_rreq or r_req) and not r_block then
 $else
       if r_req and not r_block then
@@ -553,7 +555,7 @@ $endif
           bus_v.r.resp := AXI4L_RESP_DECERR;
         end if;
 
-$if not dt.read_count
+$if not di.read_count
         -- Accept read requests by invalidating the request holding
         -- registers.
         arl.valid := '0';
@@ -635,12 +637,12 @@ $endif
         awl        := AXI4LA_RESET;
         wl         := AXI4LW$bw$_RESET;
         arl        := AXI4LA_RESET;
-$if dt.write_count
+$if di.write_count
         w_tag_wptr := (others => '0');
         w_tag_rptr := (others => '0');
         w_tag_cnt  := (others => '0');
 $endif
-$if dt.read_count
+$if di.read_count
         r_tag_wptr := (others => '0');
         r_tag_rptr := (others => '0');
         r_tag_cnt  := (others => '0');

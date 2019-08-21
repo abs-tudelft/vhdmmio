@@ -34,13 +34,9 @@ class Resources:
 
     @property
     def addresses(self):
-        """Resource manager for the logical register addresses."""
+        """Resource manager for checking address conflicts and recording which
+        signals are used in the address match pass."""
         return self._addresses
-
-    @property
-    def block_addresses(self):
-        """Resource manager for the physical block addresses."""
-        return self._block_addresses
 
     def construct_address(self, address, conditions):
         """Constructs an internal address from the given `MaskedAddress` for
@@ -91,7 +87,9 @@ class Resources:
         """Namespace manager for interrupts."""
         return self._interrupt_namespace
 
-    def verify(self):
-        """Performs post-construction checks."""
+    def verify_and_freeze(self):
+        """Performs post-construction checks, and prevents further mutation for
+        some of the objects."""
         self.internals.verify_and_freeze()
         self.interrupts.verify()
+        self.addresses.signals.freeze()

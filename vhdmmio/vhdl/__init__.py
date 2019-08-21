@@ -11,13 +11,13 @@ _MODULE_DIR = os.path.dirname(__file__)
 
 
 _INTERNAL_SIGNAL_BOILERPLATE_TEMPLATE = annotate_block("""
-$if s.is_strobe()
-$s.use_name$ := $s.drive_name$;
-$s.drive_name$ := $c$;
-$endif
-if reset = '1' then
-  $s.use_name$ := $c$;
-end if;
+|$if s.is_strobe()
+  |$s.use_name$ := $s.drive_name$;
+  |$s.drive_name$ := $c$;
+|$endif
+|if reset = '1' then
+|  $s.use_name$ := $c$;
+|end if;
 """, comment='--')
 
 
@@ -37,7 +37,8 @@ class VhdlEntityGenerator:
         # the template to use.
         self._tple['r'] = regfile
         self._tple['bw'] = regfile.cfg.features.bus_width
-        self._tple['dt'] = regfile.defer_tag_info
+        self._tple['ai'] = regfile.address_info
+        self._tple['di'] = regfile.defer_tag_info
         self._tple['ii'] = regfile.interrupt_info
 
         # Interface builder.
