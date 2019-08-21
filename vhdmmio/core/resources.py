@@ -14,9 +14,9 @@ class Resources:
     register file. These are not part of `RegisterFile` itself, because they
     are private to the construction process."""
 
-    def __init__(self):
+    def __init__(self, regfile):
         super().__init__()
-        self._internals = InternalManager()
+        self._internals = InternalManager(regfile)
         self._addresses = AddressManager()
         self._block_addresses = AddressManager()
         self._subaddresses = SubAddressManager()

@@ -17,7 +17,7 @@ class RegisterFile(Named, Configured, Unique):
         with self.context:
 
             # Create the various resource managers.
-            resources = Resources()
+            resources = Resources(self)
 
             # Parse the field descriptors.
             self._field_descriptors = tuple((
@@ -62,7 +62,7 @@ class RegisterFile(Named, Configured, Unique):
 
             # Parse the I/O configuration for internals.
             for internal_io_config in cfg.internal_io:
-                resources.internals.make_external(internal_io_config)
+                resources.internals.add_io(internal_io_config)
 
             # Perform post-construction checks on the resource managers.
             resources.verify_and_freeze()
@@ -106,11 +106,7 @@ class RegisterFile(Named, Configured, Unique):
 
     @property
     def internal_ios(self):
-        """The ports that connect to internal signals directly as a tuple of
-        `(direction, internal, port, group)` tuples, similar to the
-        configuration structure. However, `internal` is the resolved (and
-        frozen) `Internal` signal, and `port` is always defined (if it was
-        `None` in the configuration, its default was substituted)."""
+        """The internal signal I/O ports for this register file as a tuple."""
         return self._internal_ios
 
     def doc_iter_blocks(self):

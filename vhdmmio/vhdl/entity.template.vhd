@@ -310,6 +310,13 @@ $endif
         arl := bus_i.ar;
       end if;
 
+$if defined('INTERNAL_SIGNAL_EARLY')
+      -------------------------------------------------------------------------
+      -- Connect internal signal input/strobe ports
+      -------------------------------------------------------------------------
+$     INTERNAL_SIGNAL_EARLY
+$endif
+
       -------------------------------------------------------------------------
       -- Handle interrupts
       -------------------------------------------------------------------------
@@ -428,7 +435,16 @@ $if r.harden
       end if;
 $endif
       w_addr(31 downto 0) := awl.addr;
-$     WRITE_ADDR_CONCAT
+$if defined('WRITE_ADDR_CONCAT')
+      if bus_v.aw.ready = '1' then
+
+        -- Concatenate page/condition signals to the write address. Only do
+        -- this when we're ready for a new command, otherwise the address could
+        -- change during a stall.
+$       WRITE_ADDR_CONCAT
+
+      end if;
+$endif
       for b in w_strb'range loop
         w_strb(b) := wl.strb(b / 8);
       end loop;
@@ -439,7 +455,16 @@ $if r.harden
       end if;
 $endif
       r_addr(31 downto 0) := arl.addr;
-$     READ_ADDR_CONCAT
+$if defined('READ_ADDR_CONCAT')
+      if bus_v.ar.ready = '1' then
+
+        -- Concatenate page/condition signals to the read address. Only do
+        -- this when we're ready for a new command, otherwise the address could
+        -- change during a stall.
+$       READ_ADDR_CONCAT
+
+      end if;
+$endif
 
 $if defined('FIELD_LOGIC_BEFORE')
       -------------------------------------------------------------------------
@@ -618,11 +643,11 @@ $endif
       bus_v.w.ready := not wl.valid;
       bus_v.ar.ready := not arl.valid;
 
-$if defined('INTERNAL_SIGNAL_LOGIC')
+$if defined('INTERNAL_SIGNAL_LATE')
       -------------------------------------------------------------------------
       -- Internal signal logic
       -------------------------------------------------------------------------
-$     INTERNAL_SIGNAL_LOGIC
+$     INTERNAL_SIGNAL_LATE
 $endif
 
       -------------------------------------------------------------------------

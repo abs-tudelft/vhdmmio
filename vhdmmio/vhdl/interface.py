@@ -36,7 +36,7 @@ class Interface:
          - `sig_name`: name of the interface signal for this object. Needs only
            be unique within the scope of the object it belongs to, but should
            not contain underscores, be uppercase, or consist of only a single
-           character.
+           character. Can also be `None`, but only if records are flattened.
          - `sig_mode`: I/O mode. `'i'` for input signals, `'o'` for output
            signals, `'g'` for generics.
          - `sig_type`: type class from the `.types` submodule, including the
@@ -216,15 +216,17 @@ class Interface:
                 (sig_type, [sig_cnt])]
 
         else:
-            new_name = '_'.join((obj_type, obj_name, sig_name))
+            name_tup = (obj_type, obj_name)
+            if sig_name is not None:
+                name_tup += (sig_name,)
+            new_name = '_'.join(name_tup)
             if flatten == 'record':
                 new_type = sig_type
 
                 if obj_cnt is not None:
                     if sig_cnt is not None:
-                        new_type = SizedArray(
-                            '_'.join((self._type_namespace, obj_type, obj_name, sig_name)),
-                            new_type, sig_cnt)
+                        type_name = '_'.join((self._type_namespace,) + name_tup)
+                        new_type = SizedArray(type_name, new_type, sig_cnt)
                     new_type = Array(new_type.name, new_type, True)
                     new_cnt = obj_cnt
                 else:

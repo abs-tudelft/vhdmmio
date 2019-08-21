@@ -1,6 +1,8 @@
 """Submodule for handling internal signals."""
 
-from .mixins import Shaped, Named, Unique
+from ..config.interface import InterfaceConfig
+from .mixins import Shaped, Named, Unique, Configured
+from .interface_options import InterfaceOptions
 
 class Internal(Named, Shaped, Unique):
     """Represents an internal signal."""
@@ -69,14 +71,14 @@ class Internal(Named, Shaped, Unique):
     @property
     def drive_name(self):
         """VHDL variable name to use for driving this signal."""
-        if self.is_strobe:
+        if self.is_strobe():
             return 'intsigs_%s' % self.name
         return 'intsig_%s' % self.name
 
     @property
     def use_name(self):
         """VHDL variable name to use for reading this signal."""
-        if self.is_strobe:
+        if self.is_strobe():
             return 'intsigr_%s' % self.name
         return 'intsig_%s' % self.name
 
@@ -92,11 +94,53 @@ class Internal(Named, Shaped, Unique):
         return bool(self._strobers)
 
 
+class InternalIO(Named, Shaped, Configured, Unique):
+    """Represents an I/O port connected to an internal signal."""
+
+    def __init__(self, manager, regfile, cfg):
+        # Get the internal object and register ourselves as a user.
+        if cfg.direction == 'input':
+            internal = manager.drive('an input port', cfg.internal)
+        elif cfg.direction == 'strobe':
+            internal = manager.strobe('a strobe input port', cfg.internal)
+        else:
+            assert cfg.direction == 'output'
+            internal = manager.use('an output port', cfg.internal)
+        self._internal = internal
+
+        # Determine the port name.
+        name = cfg.port if cfg.port is not None else internal.name
+
+        # Determine the interface options.
+        self._interface_options = InterfaceOptions(
+            regfile.cfg.interface,
+            InterfaceConfig(group=cfg.group, flatten=True))
+
+        super().__init__(cfg=cfg, shape=internal.shape, name=name)
+
+    @property
+    def direction(self):
+        """The direction/type of port; either `'input'`, `'strobe'`, or
+        `'output'`."""
+        return self.cfg.direction
+
+    @property
+    def internal(self):
+        """The internal signal associated with this port."""
+        return self._internal
+
+    @property
+    def interface_options(self):
+        """VHDL interface configuration."""
+        return self._interface_options
+
+
 class InternalManager:
     """Storage for internal signals."""
 
-    def __init__(self):
+    def __init__(self, regfile):
         super().__init__()
+        self._regfile = regfile
         self._internals = {}
         self._internal_ios = {}
 
@@ -151,35 +195,24 @@ class InternalManager:
         internal_ob.use(user, shape)
         return internal_ob
 
-    def make_external(self, config):
+    def add_io(self, cfg):
         """Exposes an external to the outside world based on an
         `InternalIOConfig` structure."""
-        if config.direction == 'input':
-            internal = self.drive('an input port', config.internal)
-        elif config.direction == 'strobe':
-            internal = self.strobe('a strobe input port', config.internal)
-        else:
-            assert config.direction == 'output'
-            internal = self.use('an output port', config.internal)
+        internal_io = InternalIO(self, self._regfile, cfg)
 
-        port = config.port if config.port is not None else internal.name
-        ident = port.lower()
+        ident = internal_io.name.lower()
         if ident in self._internal_ios:
             raise ValueError(
-                'multiple internal I/O ports with name %s' % port)
+                'multiple internal I/O ports with name %s' % internal_io.name)
 
-        self._internal_ios[ident] = (config.direction, internal, port, config.group)
+        self._internal_ios[ident] = internal_io
 
     def __iter__(self):
-        """Iterates over all the `Internal` objects."""
+        """Iterates over the `Internal` objects."""
         return iter(self._internals.values())
 
     def iter_internal_ios(self):
-        """Iterates over all the ports made using `make_external()`, yielding
-        `(direction, internal, port, group)` tuples, similar to the
-        configuration structure. However, `internal` is the resolved `Internal`
-        signal, and `port` is always defined (if it was `None` in the
-        configuration, its default was substituted)."""
+        """Iterates over the ports made using `add_io()`."""
         return iter(self._internal_ios.values())
 
     def verify_and_freeze(self):

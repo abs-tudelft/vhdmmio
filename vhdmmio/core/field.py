@@ -2,7 +2,6 @@
 
 from .mixins import Named, Configured, Unique
 from .behavior import Behavior
-from .interface_options import InterfaceOptions
 
 class Field(Named, Configured, Unique):
     """Represents a parsed field descriptor. That is, a single field or a
@@ -36,8 +35,6 @@ class Field(Named, Configured, Unique):
             if self._behavior.bus.can_write():
                 resources.addresses.write_map(
                     self._internal_address, set).add(self)
-            self._interface_options = InterfaceOptions(
-                descriptor.regfile.cfg.interface, cfg.interface)
 
             self._registers_assigned = False
             self._register_read = None
@@ -96,11 +93,6 @@ class Field(Named, Configured, Unique):
     def subaddress(self):
         """The subaddress construction logic for this field."""
         return self._subaddress
-
-    @property
-    def interface_options(self):
-        """VHDL interface configuration."""
-        return self._interface_options
 
     def assign_registers(self, read_reg, write_reg):
         """Assigns registers to this field once they've been constructed. Note

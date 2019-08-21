@@ -86,9 +86,9 @@ class VhdlEntityGenerator:
 
         # Generate code for internal signals.
         for internal in regfile.internals:
-            self._add_internal_signal_boilerplate(internal)
-        for direction, internal, port, group in regfile.internal_ios:
-            self._add_internal_io_port(direction, internal, port, group)
+            self._add_internal_signal(internal)
+        for internal_io in regfile.internal_ios:
+            self._add_internal_io_port(internal_io)
 
         # Add the interface to the main template engine.
         for block in self._interface.generate('port'):
@@ -101,6 +101,108 @@ class VhdlEntityGenerator:
                 'PACKAGE',
                 '@ Types used by the register file interface.',
                 '\n'.join(typedefs))
+
+    @staticmethod
+    def _describe_interrupt(interrupt):
+        """Generates a description for an interrupt, to be used as block
+        comment."""
+        return '%s-sensitive interrupt %s: %s' % (
+            'strobe' if interrupt.can_clear else 'level',
+            interrupt.name,
+            interrupt.brief)
+
+    @staticmethod
+    def _describe_field_descriptor(field_descriptor):
+        """Generates a description for a field descriptor, to be used as block
+        comment."""
+        return 'field %s%s: %s' % (
+            'group ' if field_descriptor.is_vector() else '',
+            field_descriptor.name,
+            field_descriptor.brief)
+
+    @staticmethod
+    def _describe_field(field):
+        """Generates a description for a field, to be used as block comment."""
+        return 'field %s: %s' % (
+            field.name,
+            field.brief)
+
+    @staticmethod
+    def _describe_register(register):
+        """Generates a description for a register, to be used as block
+        comment."""
+        return 'register %s: %s' % (
+            register.name,
+            register.brief)
+
+    @staticmethod
+    def _describe_internal(internal):
+        """Generates a description for an internal signal, to be used as block
+        comment."""
+        return 'internal signal %s.' % (
+            internal.name)
+
+    @staticmethod
+    def _describe_internal_io(internal_io):
+        """Generates a description for an internal I/O port, to be used as
+        block comment."""
+        return '%s port for internal signal %s.' % (
+            internal_io.direction,
+            internal_io.internal.name)
+
+    def _add_interrupt_port(self, interrupt, name, mode, typ, count=None):
+        """Registers a port for the given interrupt with the specified
+        (namespaced) name, mode (`'i'` for inputs or `'o'` for outputs), type
+        object from `.types`, and if the latter is an incomplete array, its
+        size. Returns an object that represents the interface, which must be
+        indexed by the interrupt index first (index is ignored if the interrupt
+        is scalar) to get the requested type. It can then be converted to a
+        string to get the VHDL representation."""
+        return self._interface.add(
+            interrupt.name, self._describe_interrupt(interrupt), 'i', None,
+            name, mode, typ, count,
+            interrupt.interface_options)
+
+    def _add_interrupt_generic(self, interrupt, name, typ, count=None):
+        """Registers a generic for the given interrupt with the specified
+        (namespaced) name, type object from `.types`, and if the latter is
+        an incomplete array, its size. Returns an object that represents the
+        interface, which must be indexed by the interrupt index first (index is
+        ignored if the interrupt is scalar) to get the requested type. It can
+        then be converted to a string to get the VHDL representation."""
+        return self._interface.add(
+            interrupt.name, self._describe_interrupt(interrupt), 'i', None,
+            name, 'g', typ, count,
+            interrupt.interface_options)
+
+    def _add_field_port(self, field_descriptor, name, mode, typ, count=None):
+        """Registers a port for the given field with the specified
+        (namespaced) name, mode (`'i'` for inputs or `'o'` for outputs), type
+        object from `.types`, and if the latter is an incomplete array, its
+        size. Returns an object that represents the interface, which must be
+        indexed by the field index first (index is ignored if the field
+        is scalar) to get the requested type. It can then be converted to a
+        string to get the VHDL representation."""
+        return self._interface.add(
+            field_descriptor.name,
+            self._describe_field_descriptor(field_descriptor),
+            'f', field_descriptor.shape,
+            name, mode, typ, count,
+            field_descriptor.interface_options)
+
+    def _add_field_generic(self, field_descriptor, name, typ, count=None):
+        """Registers a generic for the given field with the specified
+        (namespaced) name, type object from `.types`, and if the latter is
+        an incomplete array, its size. Returns an object that represents the
+        interface, which must be indexed by the field index first (index is
+        ignored if the field is scalar) to get the requested type. It can
+        then be converted to a string to get the VHDL representation."""
+        return self._interface.add(
+            field_descriptor.name,
+            self._describe_field_descriptor(field_descriptor),
+            'f', field_descriptor.shape,
+            name, 'g', typ, count,
+            field_descriptor.interface_options)
 
     def _add_block(self, key, region, desc, block):
         """Adds a code block for the given key if the block is not `None`,
@@ -117,10 +219,10 @@ class VhdlEntityGenerator:
         self._add_block('PACKAGE', 'Public declarations', desc, public)
         self._add_block('PACKAGE_BODY', 'Implementations', desc, body)
 
-    def _add_internal_signal_boilerplate(self, internal):
+    def _add_internal_signal(self, internal):
         """Adds the boilerplate code that supports the given internal signal
         (such as its variable declaration) to the template engine."""
-        desc = 'internal signal %s' % internal.name
+        desc = self._describe_internal(internal)
 
         # Determine signal type name and reset value.
         if internal.shape is None:
@@ -144,8 +246,33 @@ class VhdlEntityGenerator:
             _INTERNAL_SIGNAL_BOILERPLATE_TEMPLATE, postprocess=False)
         self._add_block('INTERNAL_SIGNAL_LOGIC', 'Logic', desc, block)
 
-    def _add_internal_io_port(self, direction, internal, port, group):
+    def _add_internal_io_port(self, internal_io):
         """Connects the given internal to a new I/O port."""
+        desc = self._describe_internal_io(internal_io)
+        mode = 'o' if internal_io.direction == 'output' else 'i'
+
+        # Add the port.
+        port = self._interface.add(
+            internal_io.name, desc, 's', None,
+            None, mode, None, internal_io.shape,
+            internal_io.interface_options)
+
+        # Connect the port to the internal signal.
+        if internal_io.direction == 'input':
+            key = 'INTERNAL_SIGNAL_EARLY'
+            block = '%s := %s;' % (
+                internal_io.internal.drive_name, port)
+        elif internal_io.direction == 'strobe':
+            key = 'INTERNAL_SIGNAL_EARLY'
+            block = '%s := %s or %s;' % (
+                internal_io.internal.drive_name, internal_io.internal.drive_name, port)
+        else:
+            assert internal_io.direction == 'output'
+            key = 'INTERNAL_SIGNAL_LATE'
+            block = '%s <= %s;' % (
+                port, internal_io.internal.use_name)
+        self._add_block(key, 'Logic', desc, block)
+
 
     def generate(self, output_dir, annotate=False):
         """Generates the files for this register file in the specified

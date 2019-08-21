@@ -1,5 +1,4 @@
-# rm temp/output/*.vhd; python3 -m vhdmmio temp/test2.yaml -V temp/output -P temp/output && vhdeps ghdl -i temp/output
-# rm temp/output/*.vhd; python3 -m vhdmmio temp/test2.yaml -H temp/output && vhdeps ghdl -i temp/output
+# rm temp/output/*.vhd temp/output/*.html temp/output/*.css; python3 -m vhdmmio temp/test2.yaml -V temp/output -P temp/output --stacktrace -H temp/output && vhdeps ghdl -i temp/output
 
 metadata:
   mnemonic: SSP
@@ -470,11 +469,11 @@ fields:
           for master and slave modes and is determined by the SSP bit rate: 32 bits
           at PCLK / (CPSDVSR x [SCR+1]).
 
-  - address: 0x0050
-    bitrange: 0
-    name: page
-    behavior: internal-control
-    internal: page
+  #- address: 0x0050
+    #bitrange: 0
+    #name: page
+    #behavior: internal-control
+    #internal: page
 
   - address: 0x0024
     bitrange: 63..0
@@ -486,3 +485,7 @@ fields:
     name: test2
     behavior: control
     endianness: big
+
+internal-io:
+  - internal: page
+    direction: input

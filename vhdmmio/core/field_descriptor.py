@@ -4,6 +4,7 @@ from .mixins import Shaped, Named, Configured, Unique
 from .address import MaskedAddress
 from .bitrange import BitRange
 from .field import Field
+from .interface_options import InterfaceOptions
 
 class FieldDescriptor(Named, Shaped, Configured, Unique):
     """Represents a parsed field descriptor. That is, a single field or a
@@ -22,6 +23,8 @@ class FieldDescriptor(Named, Shaped, Configured, Unique):
                 Field(resources, self, cfg, index, address, bitrange)
                 for index, (address, bitrange)
                 in enumerate(self._compute_field_locations())))
+            self._interface_options = InterfaceOptions(
+                regfile.cfg.interface, cfg.interface)
 
     @property
     def regfile(self):
@@ -32,6 +35,11 @@ class FieldDescriptor(Named, Shaped, Configured, Unique):
     def fields(self):
         """Tuple of fields described by this field descriptor."""
         return self._fields
+
+    @property
+    def interface_options(self):
+        """VHDL interface configuration."""
+        return self._interface_options
 
     def _compute_field_locations(self):
         """Compute and yield the location information for each field described
