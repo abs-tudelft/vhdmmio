@@ -127,25 +127,30 @@ class HtmlDocumentationGenerator:
                 '<td%s><div class="tooltip-left">\n'
                 '  %s\n'
                 '  <span class="tooltiptext">\n'
-                '    %s %s = %s\n'
+                '    %s %s (%s)\n'
                 '    %s\n'
                 '  </span>\n'
                 '</div></td>')
 
+            if not block.can_write():
+                mode = 'R/O'
+            elif not block.can_read():
+                mode = 'W/O'
+            else:
+                mode = 'R/W'
+
             if len(block.register.blocks) == 1:
                 row.append(cell_fmt % (
                     attributes, block.register.mnemonic,
-                    'Logical register',
-                    bus_address, block.register.mnemonic,
-                    self._md_to_html('`%s`: %s' % (
-                        block.register.name, block.register.brief))))
+                    'Logical register', bus_address, mode,
+                    self._md_to_html('`%s` (`%s`): %s' % (
+                        block.register.name, block.register.mnemonic, block.register.brief))))
             else:
                 row.append(cell_fmt % (
                     attributes, block.mnemonic,
-                    'Block',
-                    bus_address, block.mnemonic,
-                    self._md_to_html('`%s`: %s\n\nLogical register `%s` (`%s`): %s' % (
-                        block.name, block.brief,
+                    'Block', bus_address, mode,
+                    self._md_to_html('`%s` (`%s`): %s\n\nLogical register `%s` (`%s`): %s' % (
+                        block.name, block.mnemonic, block.brief,
                         block.register.name, block.register.mnemonic, block.register.brief))))
 
             # Construct per-row header column.
@@ -204,9 +209,9 @@ class HtmlDocumentationGenerator:
                     field_indices = ''
 
                 if not field.behavior.bus.can_write():
-                    field_mode = 'R'
+                    field_mode = 'R/O'
                 elif not field.behavior.bus.can_read():
-                    field_mode = 'W'
+                    field_mode = 'W/O'
                 else:
                     field_mode = 'R/W'
 
@@ -221,14 +226,16 @@ class HtmlDocumentationGenerator:
                     '<div class="tooltip-right">\n'
                     '  %s\n'
                     '  <span class="tooltiptext">\n'
-                    '    Field %s%s (%s) = %s%s\n'
+                    '    Field %s%s (%s)\n'
                     '    %s\n'
                     '  </span>\n'
                     '</div>' % (
                         abbreviated,
                         bus_address, bus_indices, field_mode,
-                        field.mnemonic, field_indices,
-                        self._md_to_html('`%s`: %s' % (field.name, field.brief))))
+                        self._md_to_html('`%s%s` (`%s%s`): %s' % (
+                            field.name, field_indices,
+                            field.mnemonic, field_indices,
+                            field.brief))))
 
                 insert_cell(cell, col_span=mapping.col_span, row_span=mapping.row_span)
                 current_col = mapping.col_index + mapping.col_span
