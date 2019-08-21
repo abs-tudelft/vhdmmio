@@ -27,7 +27,10 @@ class TemplateEngine:
     block name line up with where the block should be. If no indent is
     specified, no indent is added, so it's not currently possible to output
     blocks indented by a single space. A dollar sign can be inserted into the
-    output by writing `$$`.
+    output by writing `$$`. To indent the template itself for readability with
+    lots of nesting, any number of spaces followed by a | sign will be removed
+    before any other processing (when a line in the output needs to start with
+    a |, just add a second | in front).
 
     Additionally, some pretty-printing is supported through @ characters:
 
@@ -170,6 +173,10 @@ class TemplateEngine:
         # If the template is specified as a list of strings, join them first.
         if isinstance(template, list):
             template = '\n'.join(template)
+
+        # Remove any template indentation, which is separated from output
+        # indentation through pipe symbols.
+        template = re.sub(r'\n *\|', '\n', template)
 
         # Split the template file into a list of alternating literals and
         # directives.
