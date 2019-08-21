@@ -145,26 +145,18 @@ The following values are supported:
 
 This key is optional unless required by context. If not specified, the default value (`high`) is used.
 
-## Interface keys
+## `group`
 
-These keys specify how the VHDL entity interface is generated.
+The interrupt request port for the internal signal can optionally be
+grouped along with other ports in a record. This key specifies the name
+of the group record.
 
-More information about this structure may be found [here](interfaceconfig.md).
+The following values are supported:
 
-The following configuration keys are used to configure this structure.
+ - `null` (default): port grouping is determined by the global default.
 
-### `group`
+ - `no`: the port is not grouped in a record.
 
-This key is documented [here](interfaceconfig.md#group).
+ - a string matching `[a-zA-Z][a-zA-Z0-9_]*`: the port is grouped in a record with the specified name.
 
-### `flatten`
-
-This key is documented [here](interfaceconfig.md#flatten).
-
-### `generic-group`
-
-This key is documented [here](interfaceconfig.md#generic-group).
-
-### `generic-flatten`
-
-This key is documented [here](interfaceconfig.md#generic-flatten).
+This key is optional unless required by context. If not specified, the default value (`null`) is used.

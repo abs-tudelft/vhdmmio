@@ -1,5 +1,6 @@
 """Submodule used for describing interrupts."""
 
+from ..config.interface import InterfaceConfig
 from .mixins import Shaped, Named, Configured, Unique
 from .interface_options import InterfaceOptions
 
@@ -69,7 +70,8 @@ class Interrupt(Named, Shaped, Configured, Unique):
 
             # Determine the interface options.
             self._interface_options = InterfaceOptions(
-                regfile.cfg.interface, cfg.interface)
+                regfile.cfg.interface,
+                InterfaceConfig(group=cfg.group, flatten=True))
 
     @property
     def regfile(self):
@@ -95,7 +97,7 @@ class Interrupt(Named, Shaped, Configured, Unique):
         return self._is_internal
 
     @property
-    def internal_signal(self):
+    def internal(self):
         """The internal signal object related to this interrupt, or `None` if
         there is no such signal."""
         if not self.is_internal():

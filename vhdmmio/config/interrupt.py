@@ -3,7 +3,6 @@
 import re
 from ..configurable import configurable, Configurable, choice, embedded
 from .metadata import MetadataConfig
-from .interface import InterfaceConfig
 
 @configurable(name='Interrupt descriptors')
 class InterruptConfig(Configurable):
@@ -114,7 +113,12 @@ class InterruptConfig(Configurable):
         yield 'falling', 'the interrupt is falling-edge sensitive.'
         yield 'edge', 'the interrupt is sensitive to any edge.'
 
-    @embedded
-    def interface():
-        """These keys specify how the VHDL entity interface is generated."""
-        return InterfaceConfig
+    @choice
+    def group():
+        """The interrupt request port for the internal signal can optionally be
+        grouped along with other ports in a record. This key specifies the name
+        of the group record."""
+        yield None, 'port grouping is determined by the global default.'
+        yield False, 'the port is not grouped in a record.'
+        yield (re.compile(r'[a-zA-Z][a-zA-Z0-9_]*'),
+               'the port is grouped in a record with the specified name.')

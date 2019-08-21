@@ -253,7 +253,7 @@ class AddressSignalMap:
     def __iter__(self):
         """Iterates over the components of the internal address signal by
         yielding `(signal, offset)` tuples in insertion order = LSB to MSB."""
-        return self._signals.items()
+        return iter(self._signals.items())
 
     def _add_signal(self, address_signal):
         """Adds an address signal represented as a `Shaped+Named+Unique` object

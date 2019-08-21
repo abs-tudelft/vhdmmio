@@ -434,15 +434,12 @@ $if r.harden
         w_prot := awl.prot;
       end if;
 $endif
+$if not defined('WRITE_ADDR_CONCAT')
+      w_addr := awl.addr;
+$else
       w_addr(31 downto 0) := awl.addr;
-$if defined('WRITE_ADDR_CONCAT')
       if bus_v.aw.ready = '1' then
-
-        -- Concatenate page/condition signals to the write address. Only do
-        -- this when we're ready for a new command, otherwise the address could
-        -- change during a stall.
 $       WRITE_ADDR_CONCAT
-
       end if;
 $endif
       for b in w_strb'range loop
@@ -454,15 +451,12 @@ $if r.harden
         r_prot := arl.prot;
       end if;
 $endif
+$if not defined('READ_ADDR_CONCAT')
+      r_addr := arl.addr;
+$else
       r_addr(31 downto 0) := arl.addr;
-$if defined('READ_ADDR_CONCAT')
       if bus_v.ar.ready = '1' then
-
-        -- Concatenate page/condition signals to the read address. Only do
-        -- this when we're ready for a new command, otherwise the address could
-        -- change during a stall.
 $       READ_ADDR_CONCAT
-
       end if;
 $endif
 
@@ -473,26 +467,30 @@ $if defined('FIELD_LOGIC_BEFORE')
 $     FIELD_LOGIC_BEFORE
 $endif
 
+$if defined('FIELD_LOGIC_READ') or di.read_count
       -------------------------------------------------------------------------
       -- Bus read logic
       -------------------------------------------------------------------------
 $     FIELD_LOGIC_READ
 
-$if di.read_count
+ |$if di.read_count
       -- Handle deferred reads.
       if r_rreq then
 $       FIELD_LOGIC_READ_TAG
       end if;
+ |$endif
 $endif
 
+$if defined('FIELD_LOGIC_WRITE') or di.write_count
       -------------------------------------------------------------------------
       -- Bus write logic
       -------------------------------------------------------------------------
 $     FIELD_LOGIC_WRITE
 
-$if di.write_count
+ |$if di.write_count
       -- Handle deferred writes.
 $     FIELD_LOGIC_WRITE_TAG
+ |$endif
 $endif
 
 $if defined('FIELD_LOGIC_AFTER')
