@@ -159,10 +159,10 @@ class InternalManager:
         """Parses an internal name that may include shape information using
         `<name>:<width>` syntax. If no width is specified in the name,
         `shape` is used instead."""
-        internal, *shape_config = internal.split(':')
+        internal, *shape_config = internal.split(':', maxsplit=1)
         assert not shape_config or shape is None
         if shape_config:
-            shape = int(shape_config)
+            shape = int(shape_config[0])
         return internal, shape
 
     def drive(self, driver, internal, shape=None):

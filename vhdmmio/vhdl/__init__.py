@@ -357,7 +357,7 @@ class VhdlEntityGenerator:
         tple['c'] = clear
         block = tple.apply_str_to_str(
             _INTERNAL_SIGNAL_TEMPLATE, postprocess=False)
-        self._add_code_block('INTERNAL_SIGNAL_LOGIC', 'Logic', desc, block)
+        self._add_code_block('INTERNAL_SIGNAL_LATE', 'Logic', desc, block)
 
     def _add_internal_io_port(self, internal_io):
         """Connects the given internal to a new I/O port."""

@@ -1,5 +1,4 @@
 test:
- - internal/external signals
  - paging/conditions
  - interrupt logic
  - register boilerplate logic:
