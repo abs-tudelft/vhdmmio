@@ -39,27 +39,30 @@ class PrimitiveBehaviorCodeGen(BehaviorCodeGen):
         def add_generic(name, typ=None, width=None):
             tple[name] = self.add_generic(name, typ=typ, count=width)
 
-        # Generate read interface.
-        if cfg.hw_read != 'disabled':
-            if cfg.hw_read == 'handshake':
-                add_output('ready')
-            else:
-                add_output('data', field_shape)
-                if cfg.hw_read != 'simple':
-                    add_output('valid')
+        # Generate read/mmio-to-stream interface in canonical signal order.
+        if cfg.hw_read not in ('disabled', 'handshake', 'simple'):
+            add_output('valid')
+        if getattr(cfg, 'ctrl_ready'):
+            add_input('ready')
+        if cfg.hw_read not in ('disabled', 'handshake'):
+            add_output('data', field_shape)
 
         # Generate write interface.
-        if cfg.hw_write != 'disabled':
-            if cfg.hw_write == 'stream':
-                add_input('data', field_shape)
-                add_input('valid')
-            else:
-                add_input('write_data', field_shape)
-                if cfg.hw_write != 'status':
-                    add_input('write_enable')
+        if cfg.hw_write not in ('disabled', 'stream'):
+            add_input('write_data', field_shape)
+            if cfg.hw_write != 'status':
+                add_input('write_enable')
+
+        # Generate stream-to-mmio interface in canonical signal order.
+        if cfg.hw_write == 'stream':
+            add_input('valid')
+        if cfg.hw_read == 'handshake':
+            add_output('ready')
+        if cfg.hw_write == 'stream':
+            add_input('data', field_shape)
 
         # Generate per-field control signals.
-        for ctrl_signal in ['lock', 'validate', 'invalidate', 'ready',
+        for ctrl_signal in ['lock', 'validate', 'invalidate',
                             'clear', 'reset', 'increment', 'decrement']:
             if getattr(cfg, 'ctrl_%s' % ctrl_signal):
                 add_input(ctrl_signal)
