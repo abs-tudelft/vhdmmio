@@ -15,4 +15,9 @@ every register file you need. Besides MMIO routing, it will also support
 interrupt routing natively.
 
 The project is currently very much a work in progress. But you can check out
-what we plan to support in the generated docs [here](doc/md/README.md).
+what we plan to support in the generated docs
+[here](https://github.com/abs-tudelft/vhdmmio/blob/master/doc/md/README.md).
+You can also find example register file descriptions
+[here](https://github.com/abs-tudelft/vhdmmio/tree/master/examples), and,
+assuming Azure Pipelines passed, you should be able to build them yourself to
+see what vhdmmio can already do.
