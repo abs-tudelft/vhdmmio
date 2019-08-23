@@ -1,231 +1,99 @@
-"""Module for `BitRange` object."""
+"""Submodule for handling bitranges."""
 
-from collections import namedtuple
 from functools import total_ordering
-import re
+from .mixins import Shaped
 
 @total_ordering
-class BitRange:
-    """Represents a bitrange."""
+class BitRange(Shaped):
+    """Represents a range of bits within a register or number."""
 
-    Mapping = namedtuple('Mapping', [
-        'address', 'mask', 'bus_hi', 'bus_lo', 'field_hi', 'field_lo'])
+    def __init__(self, high, low=None, **kwargs):
+        assert high >= 0
+        if low is None:
+            super().__init__(shape=None, **kwargs)
+            self._high = high
+            self._low = high
+        else:
+            assert high >= low
+            assert low >= 0
+            super().__init__(shape=high - low + 1, **kwargs)
+            self._high = high
+            self._low = low
 
-    def __init__(self, bus_width, address, *args):
-        """Constructs a bitrange.
+    @property
+    def high(self):
+        """The high bit index."""
+        return self._high
 
-         - `bus_width`: must be 32 or 64 bits.
-         - `address`: the base byte address that the bit indices are relative to.
-         - `size`: the rightshift to apply to the byte address
-         - `*args`: if no extra arguments are specified, the field encompasses
-           exactly one bus word. If one argument is specified, it is
-           interpreted as a bit index with respect to the LSB of `address` that
-           is mapped to a single `std_logic`-style field. If two arguments are
-           specified, they are interpreted as the high and low bit of an
-           `std_logic_vector`-style field; the order does not matter.
-        """
-        self._bus_width = int(bus_width)
-        if self._bus_width not in (32, 64):
-            raise ValueError('invalid bus width')
+    @property
+    def low(self):
+        """The low bit index."""
+        return self._low
 
-        self._address = int(address)
-        if self._address < 0 or self._address > 0xFFFFFFFF:
-            raise ValueError('address out of 32-bit range')
-
-        min_size = {32: 2, 64: 3}[self._bus_width]
-        self._size = min_size
-        if len(args) >= 1 and args[0] is not None:
-            self._size = int(args[0])
-        if self._size < min_size or self._size > self._bus_width:
-            raise ValueError('invalid block size')
-
-        if self._address & (2**self._size - 1):
-            raise ValueError('address is not aligned to block size')
-
-        self._low_bit = 0
-        self._high_bit = self._bus_width - 1
-        if len(args) >= 3:
-            self._low_bit = min(args[1:3])
-            self._high_bit = max(args[1:3])
-        elif len(args) == 2:
-            self._low_bit = int(args[1])
-            self._high_bit = None
-
-        if self._low_bit < 0:
-            raise ValueError('negative bit index')
-        assert self._high_bit is None or self._high_bit >= self._low_bit
+    @property
+    def index(self):
+        """Asserts that bitrange is scalar and returns the bit index."""
+        assert self.is_scalar()
+        return self._low
 
     @classmethod
-    def from_spec(cls, bus_width, spec):
-        """Parses an address block specification string or integer.
+    def parse_config(cls, value, width, flexible=False):
+        """Parses the `field.bitrange` configuration key syntax into a
+        `BitRange`. `width` specifies the width of the signal, used when the
+        bitrange is omitted from the configuration. Unless `flexible` is set,
+        this is also limits the maximum bit index."""
 
-        The `spec` string syntax is:
-         - The base address, in decimal, 0x<hex>, 0b<binary> or 0<octal>;
-         - An optional size, indicated as a slash followed by the number of
-           ignored byte address bits (so 2 would be 32-bit, 3 would be 64-bit,
-           etc.). If not specified, the size is set to the bus width.
-         - An optional bitrange, separated using a colon. The bitrange must
-           either be a single bit index for `std_logic`-type fields, or an
-           inclusive descending range using `..` to separate the upper and
-           lower bits for `std_logic_vector`-type fields. If not specified,
-           the range is set to the size of a single register.
+        # Handle default.
+        if value is None:
+            return cls(width - 1, 0)
 
-        `bus_width` must be 32 or 64 (same as the constructor).
-        """
-        if isinstance(spec, int):
-            return cls(bus_width, int(spec))
+        # Handle scalar bitrange notation.
+        if isinstance(value, int):
+            if value >= width and not flexible:
+                raise ValueError('bitrange index out of range')
+            return cls(value)
 
-        match = re.match((
-            r'([1-9][0-9]*|0x[a-fA-F0-9]+|0b[01]+|0o?[0-7]*)'
-            r'(?:/([1-9][0-9]*|0))?'
-            r'(?::([1-9][0-9]*|0)(?:\.\.([1-9][0-9]*|0))?)?$'
-        ), str(spec))
-        if not match:
-            raise ValueError('failed to parse address specification {}'.format(repr(spec)))
+        # Handle vector bitrange notation.
+        high, low = value.split('..')
+        high = int(high)
+        low = int(low)
+        if high >= width and not flexible:
+            raise ValueError('bitrange index out of range')
+        return cls(high, low)
 
-        address = match.group(1)
-        if address.startswith('0') and not (
-                address.startswith('0b') or address.startswith('0x')):
-            address = int(address, 8)
-        else:
-            address = int(address, 0)
-
-        size = match.group(2)
-        if size is not None:
-            size = int(size)
-
-        args = []
-        for i in range(2):
-            if match.group(3+i) is not None:
-                args.append(int(match.group(3+i)))
-
-        return cls(bus_width, address, size, *args)
-
-    def to_spec(self):
-        """Inverse of `from_spec()`."""
-        if self.size == {32:2, 64:3}[self.bus_width]:
-            addr = '0x{:08X}'.format(self.address)
-        else:
-            addr = '0x{:08X}/{:d}'.format(self.address, self.size)
-        if self.is_word():
-            return addr
+    def __lshift__(self, value):
+        """Shifts the bitrange left."""
         if self.is_vector():
-            return addr + ':{:d}..{:d}'.format(self.high_bit, self.low_bit)
-        return addr + ':{:d}'.format(self.low_bit)
+            return BitRange(self.high + value, self.low + value)
+        return BitRange(self.index + value)
 
-    def move(self, address_offset=0, bit_offset=0):
-        """Returns a new BitRange by shifting its position by the given
-        offsets."""
+    def __rshift__(self, value):
+        """Shifts the bitrange right."""
         if self.is_vector():
-            return BitRange(
-                self.bus_width,
-                self.address + address_offset,
-                self.size,
-                self.high_bit + bit_offset,
-                self.low_bit + bit_offset)
-        return BitRange(
-            self.bus_width,
-            self.address + address_offset,
-            self.size,
-            self.low_bit + bit_offset)
-
-    @property
-    def bus_width(self):
-        """This bus width that this range was configured for."""
-        return self._bus_width
-
-    @property
-    def address(self):
-        """This base address for this range."""
-        return self._address
-
-    @property
-    def size(self):
-        """The number of LSB address bits to ignore in the address (block
-        size)."""
-        return self._size
-
-    @property
-    def low_bit(self):
-        """The low bit index with respect to the base address."""
-        return self._low_bit
-
-    @property
-    def high_bit(self):
-        """The high bit index with respect to the base address."""
-        return self._high_bit if self._high_bit is not None else self._low_bit
-
-    @property
-    def width(self):
-        """The size of the field in bits."""
-        return self.high_bit - self.low_bit + 1
-
-    @property
-    def xwidth(self):
-        """The size of the field in bits if it is a vector, `None` otherwise."""
-        if self.is_vector():
-            return self.width
-        return None
-
-    def is_vector(self):
-        """Whether this field is to be implemented as a `std_logic_vector` or
-        an `std_logic`."""
-        return self._high_bit is not None
-
-    def is_word(self):
-        """Whether this field encompasses exactly one bus word."""
-        return self.low_bit == 0 and self.high_bit == self.bus_width - 1
-
-    def __iter__(self):
-        """Yields `Mapping` objects in ascending address order."""
-        addr = self.address
-        incr = 2**self.size
-        mask = ~(incr - 1)
-        offs = 0
-        while True:
-            bus_hi = min(self.bus_width - 1, self.high_bit - offs)
-            bus_lo = max(0, self.low_bit - offs)
-            if bus_hi < 0:
-                break
-            if bus_hi >= bus_lo:
-                field_hi = bus_hi + offs - self.low_bit
-                field_lo = bus_lo + offs - self.low_bit
-                yield self.Mapping(addr, mask, bus_hi, bus_lo, field_hi, field_lo)
-            offs += self.bus_width
-            addr += incr
-
-    def __len__(self):
-        return len(list(self.__iter__()))
-
-    def __lt__(self, other):
-        return (isinstance(other, BitRange) and
-                (self.address, self.low_bit, self.xwidth) <
-                (other.address, other.low_bit, self.xwidth))
+            return BitRange(self.high - value, self.low - value)
+        return BitRange(self.index - value)
 
     def __eq__(self, other):
+        if not isinstance(other, BitRange):
+            return False
+        return self.low == other.low and self.shape == other.shape
+
+    def __le__(self, other):
+        if not isinstance(other, BitRange):
+            raise TypeError()
         return (
-            isinstance(other, BitRange)
-            and self.address == other.address
-            and self.size == other.size
-            and self.low_bit == other.low_bit
-            and self.xwidth == other.xwidth
-            and self.bus_width == other.bus_width)
-
-    def __str__(self):
-        return self.to_spec()
-
-    def __repr__(self):
-        if not self.is_vector():
-            fmt = '{}({:d}, 0x{:08X}, {:d}, {:d})'
-        elif not self.is_word():
-            fmt = '{}({:d}, 0x{:08X}, {:d}, {:d}, {:d})'
-        elif self.size == {32: 2, 64: 3}[self.bus_width]:
-            fmt = '{}({:d}, 0x{:08X})'
-        else:
-            fmt = '{}({:d}, 0x{:08X}, {:d})'
-        return fmt.format(
-            type(self).__name__, self.bus_width,
-            self.address, self.size, self.high_bit, self.low_bit)
+            (self.low, self.is_vector(), self.width)
+            < (other.low, other.is_vector(), other.width))
 
     def __hash__(self):
-        return self.address * self._bus_width + self.low_bit
+        return hash((self.low, self.shape))
+
+    def __str__(self):
+        if self.is_vector():
+            return '%d..%d' % (self.high, self.low)
+        return '%d' % self.index
+
+    def __repr__(self):
+        if self.is_vector():
+            return 'Bitrange(%d, %d)' % (self.high, self.low)
+        return 'Bitrange(%d)' % self.index

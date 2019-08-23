@@ -183,10 +183,10 @@ A field descriptor is a (usually) YAML description of either a single field or
 an array of fields. Each field produced by a field descriptor has exactly the
 same characteristics, but maps to a different bitrange, and uses a different
 array index on the register file interface. These bitranges can be described
-either manually as an array or by means of a repeat count and the necessary
-strides. Such repetition is useful when you have an array of similar registers,
-for instance in a DMA controller with multiple channels, where each channel has
-its own set of status and control flags.
+by means of a repeat count and the necessary strides. Such repetition is useful
+when you have an array of similar registers, for instance in a DMA controller
+with multiple channels, where each channel has its own set of status and
+control flags.
 
 Note that this means that you can have four kinds of field descriptors:
 

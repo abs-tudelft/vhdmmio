@@ -69,6 +69,7 @@ setup(
         'markdown2'
     ],
     setup_requires = [
+        'wheel',
         'setuptools-lint',
         'pylint',
         'setuptools-git'

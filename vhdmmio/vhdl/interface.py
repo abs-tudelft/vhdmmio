@@ -3,114 +3,14 @@
 from collections import OrderedDict
 from .types import Record, Array, SizedArray, Object, StdLogic, StdLogicVector
 
-class InterfaceOptions:
-    """Class containing VHDL interface generation flags."""
-
-    def __init__(self, **kwargs):
-        """Constructs an interface option store from its YAML dictionary
-        representation."""
-
-        def check_group(name):
-            value = kwargs.pop(name, None)
-            if value is None:
-                return None
-            if value is not False and not isinstance(value, str):
-                raise ValueError(
-                    'invalid value for interface.%s: must be false or a '
-                    'string' % name.replace('_', '-'))
-            return value
-
-        def check_flatten(name):
-            value = kwargs.pop(name, None)
-            if value is None:
-                return None
-            if isinstance(value, bool):
-                if value:
-                    value = 'all'
-                else:
-                    value = 'never'
-            if value not in {'never', 'record', 'all'}:
-                raise ValueError(
-                    'invalid value for interface.%s: must be a boolean, '
-                    '"never", "record", or "all"' % name.replace('_', '-'))
-            return value
-
-        self._port_group = check_group('port_group')
-        self._port_flatten = check_flatten('port_flatten')
-        self._generic_group = check_group('generic_group')
-        self._generic_flatten = check_flatten('generic_flatten')
-
-        # Check for unknown keys.
-        for key in kwargs:
-            raise ValueError('unexpected key in interface options: %s' % key)
-
-    @classmethod
-    def from_dict(cls, dictionary):
-        """Constructs an interface option store from a dictionary."""
-        dictionary = dictionary.copy()
-        for key in list(dictionary.keys()):
-            if '-' in key:
-                dictionary[key.replace('-', '_')] = dictionary.pop(key)
-        return cls(**dictionary)
-
-    def to_dict(self, dictionary=None):
-        """Returns a dictionary representation of this object."""
-        if dictionary is None:
-            dictionary = {}
-
-        if self.port_group is not None:
-            dictionary['port-group'] = self.port_group
-        if self.port_flatten is not None:
-            dictionary['port-flatten'] = self.port_flatten
-        if self.generic_group is not None:
-            dictionary['generic-group'] = self.generic_group
-        if self.generic_flatten is not None:
-            dictionary['generic-flatten'] = self.generic_flatten
-
-        return dictionary
-
-    @property
-    def port_group(self):
-        """Returns the port group to use for this object as a string, `False`
-        if grouping is explicitly disabled, or `None` if the default should be
-        used."""
-        return self._port_group
-
-    @property
-    def port_flatten(self):
-        """Returns the port flattening mode to use for this object. Either
-        `'never'`, `'record'` or `'all'` to indicate the desired mode, or
-        `None` to indicate that the default should be used."""
-        return self._port_flatten
-
-    @property
-    def generic_group(self):
-        """Returns the generic group to use for this object as a string,
-        `False` if grouping is explicitly disabled, or `None` if the default
-        should be used."""
-        return self._generic_group
-
-    @property
-    def generic_flatten(self):
-        """Returns the generic flattening mode to use for this object. Either
-        `'never'`, `'record'` or `'all'` to indicate the desired mode, or
-        `None` to indicate that the default should be used."""
-        return self._generic_flatten
-
-
 class Interface:
     """Builder class for a VHDL entity description."""
 
-    def __init__(self, type_namespace, options=None):
+    def __init__(self, type_namespace):
         """Constructs an interface builder. `type_namespace` is used as a
-        prefix for the VHDL type names constructed for the interface. `options`
-        should be a `core.iface_opts.InterfaceOptions` object if specified,
-        used as the default interface configuration."""
+        prefix for the VHDL type names constructed for the interface."""
         super().__init__()
         self._type_namespace = type_namespace
-        if options is None:
-            options = InterfaceOptions()
-        self._options = options
 
         # (prefix, name) -> (comment, {descs}, OrderedDict: full_name -> (typ, count, mode))
         self._decls = OrderedDict()
@@ -118,7 +18,7 @@ class Interface:
     def add(self,
             obj_name, obj_desc, obj_type, obj_cnt,
             sig_name, sig_mode, sig_type, sig_cnt,
-            options=None):
+            options):
         """Registers a signal or generic.
 
          - `obj_name`: the name of the object (field, register, interrupt,
@@ -136,7 +36,7 @@ class Interface:
          - `sig_name`: name of the interface signal for this object. Needs only
            be unique within the scope of the object it belongs to, but should
            not contain underscores, be uppercase, or consist of only a single
-           character.
+           character. Can also be `None`, but only if records are flattened.
          - `sig_mode`: I/O mode. `'i'` for input signals, `'o'` for output
            signals, `'g'` for generics.
          - `sig_type`: type class from the `.types` submodule, including the
@@ -144,10 +44,10 @@ class Interface:
            or `std_logic_vector` depending on `sig_cnt` when set to `None`.
          - `sig_cnt`: if `sig_type` is an incomplete array, specify the size
            of the array here. Leave `None` otherwise.
-         - `options` optionally specifies an `InterfaceOptions` object to
-           control how the interface is generated. The contained `group` option
-           specifies whether this object/signal should be grouped in a record
-           with others. The `flatten` option specifies the flattening mode, see
+         - `options` must be an `InterfaceOptions` object to control how the
+           interface is generated. The contained `group` option specifies
+           whether this object/signal should be grouped in a record with
+           others. The `flatten` option specifies the flattening mode, see
            below. Specify `None` to use the default value specified at
            initialization-time.
 
@@ -262,31 +162,11 @@ class Interface:
 
         # Substitute defaults for group/flatten.
         if sig_mode == 'g':
-            group = False
-            flatten = 'all'
-            if self._options.generic_group is not None:
-                group = self._options.generic_group
-            if self._options.generic_flatten is not None:
-                flatten = self._options.generic_flatten
-            if options is not None:
-                if options.generic_group is not None:
-                    group = options.generic_group
-                if options.generic_flatten is not None:
-                    flatten = options.generic_flatten
+            group = options.generic_group
+            flatten = options.generic_flatten
         else:
-            group = False
-            flatten = 'never'
-            if self._options.port_group is not None:
-                group = self._options.port_group
-            if self._options.port_flatten is not None:
-                flatten = self._options.port_flatten
-            if options is not None:
-                if options.port_group is not None:
-                    group = options.port_group
-                if options.port_flatten is not None:
-                    flatten = options.port_flatten
-        if group is False:
-            group = None
+            group = options.port_group
+            flatten = options.port_flatten
 
         # Check input.
         if sig_type is None:
@@ -336,15 +216,17 @@ class Interface:
                 (sig_type, [sig_cnt])]
 
         else:
-            new_name = '_'.join((obj_type, obj_name, sig_name))
+            name_tup = (obj_type, obj_name)
+            if sig_name is not None:
+                name_tup += (sig_name,)
+            new_name = '_'.join(name_tup)
             if flatten == 'record':
                 new_type = sig_type
 
                 if obj_cnt is not None:
                     if sig_cnt is not None:
-                        new_type = SizedArray(
-                            '_'.join((self._type_namespace, obj_type, obj_name, sig_name)),
-                            new_type, sig_cnt)
+                        type_name = '_'.join((self._type_namespace,) + name_tup)
+                        new_type = SizedArray(type_name, new_type, sig_cnt)
                     new_type = Array(new_type.name, new_type, True)
                     new_cnt = obj_cnt
                 else:

@@ -14,17 +14,16 @@
 
 """Main module for vhdmmio.
 
-Use `run_cli()` to run vhdmmio as if it was run from the command line. For a
-more script-friendly interface, use `RegisterFile.load()`, `generate_html()`,
-and `generate_vhdl()`."""
+Use `run_cli()` to run vhdmmio as if it was run from the command line."""
 
 import sys
 import os
 import argparse
 from vhdmmio.version import __version__
-import vhdmmio.vhdl as vhdl
-import vhdmmio.html as html
-from .core.regfile import RegisterFile
+from vhdmmio.vhdl import VhdlEntitiesGenerator, VhdlPackageGenerator
+from vhdmmio.html import HtmlDocumentationGenerator
+from vhdmmio.config import RegisterFileConfig
+from vhdmmio.core import RegisterFile
 
 def run_cli(args=None):
     """Runs the vhdmmio CLI. The command-line arguments are taken from `args`
@@ -64,6 +63,13 @@ def run_cli(args=None):
         '-H', '--html', metavar='dir', const='vhdmmio-doc', nargs='?',
         help='Generate HTML documentation for the register files. [dir] '
         'defaults to \'./vhdmmio-doc\'.')
+
+    parser.add_argument(
+        '--trusted', action='store_true',
+        help='Indicates that the register description source files come from '
+        'a trusted source. This allows the "custom" field behavior to be '
+        'used, which, through vhdmmio\'s template engine, can potentially '
+        'execute arbitrary Python code.')
 
     parser.add_argument(
         '--vhd-annotate', action='store_true',
@@ -106,7 +112,14 @@ def run_cli(args=None):
                         input_files.append(os.path.join(root, name))
 
         # Load the input files.
-        register_files = list(map(RegisterFile.load, input_files))
+        register_files_cfgs = list(map(RegisterFileConfig.load, input_files))
+
+        # Compile the register files.
+        register_files = [
+            RegisterFile(cfg, trusted=args.trusted)
+            for cfg in register_files_cfgs]
+
+        # Print that the front-end is complete.
         if not register_files:
             print('Warning: no register files found!')
         elif len(register_files) == 1:
@@ -114,18 +127,20 @@ def run_cli(args=None):
         else:
             print('Loaded %d register files' % len(register_files))
 
-        # Handle the pkg generator before loading any register file
-        # descriptions.
+        # Handle the VHDL package generator.
         if args.pkg is not None:
-            vhdl.generate_pkg(args.pkg)
+            gen = VhdlPackageGenerator()
+            gen.generate(args.pkg)
 
-        # Handle the VHDL generator.
+        # Handle the VHDL register file generator.
         if args.vhd is not None:
-            vhdl.generate(register_files, args.vhd, args.vhd_annotate)
+            gen = VhdlEntitiesGenerator(register_files)
+            gen.generate(args.vhd, annotate=args.vhd_annotate)
 
-        # Handle the HTML generator.
+        # Handle the HTML documentation generator.
         if args.html:
-            html.generate(register_files, args.html)
+            gen = HtmlDocumentationGenerator(register_files)
+            gen.generate(args.html)
 
         return 0
 
