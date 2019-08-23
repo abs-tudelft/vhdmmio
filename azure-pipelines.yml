@@ -23,6 +23,7 @@ jobs:
       python3 setup.py lint
     displayName: Lint
   - script: |
+      python3 -m pip install --user pyyaml markdown2
       make examples
     displayName: Examples
   - script: |
