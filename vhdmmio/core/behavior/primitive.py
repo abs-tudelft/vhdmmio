@@ -27,6 +27,24 @@ class PrimitiveBehavior(Behavior):
                 raise ValueError('hardware write mode "%s" cannot be combined with a '
                                  'post-write operation' % behavior_cfg.hw_write)
 
+        # The underrun and overrun internals only make sense when the field can
+        # be read or written respectively.
+        if behavior_cfg.bus_read in ('disabled', 'error'):
+            if behavior_cfg.underrun_internal is not None:
+                raise ValueError('bus read mode "%s" cannot be combined with an '
+                                 'underrun internal' % behavior_cfg.bus_read)
+        if behavior_cfg.bus_write in ('disabled', 'error', 'masked'):
+            if behavior_cfg.overrun_internal is not None:
+                raise ValueError('bus write mode "%s" cannot be combined with an '
+                                 'overrun internal' % behavior_cfg.bus_write)
+
+        # The lock control signal only affects bus writes, so it doesn't make
+        # sense if the bus cannot write.
+        if behavior_cfg.bus_write in ('disabled', 'error'):
+            if behavior_cfg.ctrl_lock:
+                raise ValueError('bus write mode "%s" cannot be combined with a '
+                                 'lock control signal' % behavior_cfg.bus_write)
+
         # If the field is a status field, ensure that nothing else is trying to
         # write to it.
         is_int_stat = (

@@ -36,6 +36,26 @@ architecture behavioral of $r.name$ is
 begin
   reg_proc: process (clk) is
 
+    -- Convenience function for unsigned accumulation with differing vector
+    -- widths.
+    procedure accum_add(
+      accum: inout std_logic_vector;
+      addend: std_logic_vector) is
+    begin
+      accum := std_logic_vector(
+        unsigned(accum) + resize(unsigned(addend), accum'length));
+    end procedure accum_add;
+
+    -- Convenience function for unsigned subtraction with differing vector
+    -- widths.
+    procedure accum_sub(
+      accum: inout std_logic_vector;
+      addend: std_logic_vector) is
+    begin
+      accum := std_logic_vector(
+        unsigned(accum) - resize(unsigned(addend), accum'length));
+    end procedure accum_sub;
+
     -- Bus response output register.
     variable bus_v : axi4l$bw$_s2m_type := AXI4L$bw$_S2M_RESET; -- reg
 

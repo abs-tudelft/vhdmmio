@@ -4,8 +4,7 @@ from ...template import TemplateEngine, preload_template
 from ...core.behavior import InterruptBehavior
 from .base import BehaviorCodeGen, behavior_code_gen
 
-_LOGIC_READ = preload_template('interrupt-read.template.vhd', '--')
-_LOGIC_WRITE = preload_template('interrupt-write.template.vhd', '--')
+_TEMPLATE = preload_template('interrupt.template.vhd', '--')
 
 @behavior_code_gen(InterruptBehavior)
 class InterruptBehaviorCodeGen(BehaviorCodeGen):
@@ -30,14 +29,15 @@ class InterruptBehaviorCodeGen(BehaviorCodeGen):
         # expanded by the add_field_*_logic() functions.
         tple.passthrough('i', 'r_data', 'w_data', 'w_strobe')
 
-        def expand(template):
-            expanded = tple.apply_str_to_str(template, postprocess=False)
+        def expand(block):
+            expanded = tple.apply_str_to_str(
+                '%s\n\n$%s' % (_TEMPLATE, block), postprocess=False)
             if not expanded.strip():
                 expanded = None
             return expanded
 
         if self.behavior.bus.can_read():
-            self.add_read_logic(expand(_LOGIC_READ))
+            self.add_read_logic(expand('READ'))
 
         if self.behavior.bus.can_write():
-            self.add_write_logic(expand(_LOGIC_WRITE))
+            self.add_write_logic(expand('WRITE'))

@@ -366,7 +366,7 @@ class BehaviorCodeGen:
             tple = TemplateEngine()
             tple['i'] = index
             if field.bitrange.is_vector():
-                rnge = '%d downto %d' % (field.bitrange.high_bit, field.bitrange.low)
+                rnge = '%d downto %d' % (field.bitrange.high, field.bitrange.low)
             else:
                 rnge = '%d' % field.bitrange.index
             tple['r_data'] = 'r_hold(%s)' % rnge
