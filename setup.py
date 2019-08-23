@@ -72,7 +72,7 @@ setup(
         'wheel',
         'setuptools-lint',
         'pylint',
-        'setuptools-git'
+        'better-setuptools-git-version'
     ],
     tests_require = [
         'nose',
