@@ -67,7 +67,7 @@ class InterruptBehavior(Behavior):
         with self.field_descriptor.context:
             if self._interrupt is not None:
                 raise ValueError('interrupt already attached')
-            if self.field_descriptor.base_bitrange.shape != interrupt.shape:
+            if self.field_descriptor.shape != interrupt.shape:
                 raise ValueError('mismatch between field and interrupt repetition')
             self._interrupt = interrupt
 

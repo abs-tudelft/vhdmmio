@@ -156,7 +156,7 @@ class RegisterFile(Named, Configured, Unique):
             return self.cfg.features.bus_width
         if filt is not None:
             registers = filter(filt, self.registers)
-        max_blocks = max(map(lambda register: len(register.blocks), registers))
+        max_blocks = max(map(lambda register: len(register.blocks), registers), default=1)
         return max_blocks * self.cfg.features.bus_width
 
     def get_max_logical_read_width(self):
