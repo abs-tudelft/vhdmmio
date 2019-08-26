@@ -45,7 +45,7 @@ class SubAddress(Shaped, Configured):
                             address=start))
                     else:
                         cfg.append(SubAddressConfig(
-                            address='%d..%d' % (start, end)))
+                            address='%d..%d' % (end, start)))
 
         # Construct the components from the configuration.
         width = 0
@@ -57,6 +57,7 @@ class SubAddress(Shaped, Configured):
             # Handle bus address components.
             if component_cfg.address is not None:
                 source = BitRange.parse_config(component_cfg.address, 32)
+                target = BitRange(width)
                 if source.is_vector():
                     target = BitRange(width + source.width - 1, width)
                 component.append(self.ADDRESS(target, source))
@@ -90,9 +91,8 @@ class SubAddress(Shaped, Configured):
                     'is only applicable for internal vector signals')
             if len(component) != 1:
                 raise ValueError(
-                    'cannot specify exactly one of the `address`, '
-                    '`internal`, or `blank` keys for each subaddress '
-                    'component')
+                    'exactly one of the `address`, `internal`, and `blank` '
+                    'keys must be specified for each subaddress component')
             component = component[0]
 
             width += component.target.width

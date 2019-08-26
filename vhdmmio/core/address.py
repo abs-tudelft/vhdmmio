@@ -2,6 +2,8 @@
 paging."""
 
 from collections import namedtuple, OrderedDict
+from ..utils import doc_enumerate
+from .field import Field
 from .mixins import Shaped, Named, Unique
 
 _MaskedAddress = namedtuple('_MaskedAddress', ['address', 'mask'])
@@ -33,77 +35,83 @@ class MaskedAddress(_MaskedAddress):
         if value is True:
             return cls(1, full_mask)
         if isinstance(value, int):
-            return cls(value & default_mask, default_mask)
-
-        # Handle mask suffix syntax.
-        if '/' in value:
-            value, size = value.split('/')
-            mask = -1 << int(size)
-        elif '|' in value:
-            value, ignore = value.split('|')
-            mask = ~int(ignore, 0)
-        elif '&' in value:
-            value, mask = value.split('&')
-            mask = int(mask, 0)
-        else:
             mask = default_mask
-
-        # Handle hexadecimal numbers with don't cares.
-        if value.startswith('0x'):
-            value = value[2:]
-            parsed_value = 0
-            parsed_mask = 0
-            while value:
-                if value[0] == '-':
-                    parsed_value <<= 4
-                    parsed_mask <<= 4
-                    value = value[1:]
-                elif value[0] == '[':
-                    for idx in range(1, 5):
-                        parsed_value <<= 1
-                        parsed_mask <<= 1
-                        if value[idx] == '1':
-                            parsed_value |= 1
-                            parsed_mask |= 1
-                        elif value[idx] == '0':
-                            parsed_mask |= 1
-                        else:
-                            assert value[idx] == '-'
-                    assert value[5] == ']'
-                    value = value[6:]
-                elif value[0] != '_':
-                    parsed_value <<= 4
-                    parsed_mask <<= 4
-                    parsed_value |= int(value[0], 16)
-                    parsed_mask |= 15
-                    value = value[1:]
-            value = parsed_value
-            mask &= parsed_mask
-
-        # Handle binary numbers with don't cares.
-        elif value.startswith('0b'):
-            value = value[2:]
-            parsed_value = 0
-            parsed_mask = 0
-            while value:
-                if value[0] == '_':
-                    continue
-                parsed_value <<= 1
-                parsed_mask <<= 1
-                if value[0] == '1':
-                    parsed_value |= 1
-                    parsed_mask |= 1
-                elif value[0] == '0':
-                    parsed_mask |= 1
-                else:
-                    assert value[0] == '-'
-                value = value[1:]
-            value = parsed_value
-            mask &= parsed_mask
-
-        # Handle decimal numbers.
         else:
-            value = int(value)
+
+            # Handle mask suffix syntax.
+            if '/' in value:
+                value, size = value.split('/')
+                mask = -1 << int(size)
+            elif '|' in value:
+                value, ignore = value.split('|')
+                mask = ~int(ignore, 0)
+            elif '&' in value:
+                value, mask = value.split('&')
+                mask = int(mask, 0)
+            else:
+                mask = default_mask
+
+            # Handle hexadecimal numbers with don't cares.
+            if value.startswith('0x'):
+                value = value[2:]
+                parsed_value = 0
+                parsed_mask = full_mask
+                while value:
+                    if value[0] == '-':
+                        parsed_value <<= 4
+                        parsed_mask <<= 4
+                        value = value[1:]
+                    elif value[0] == '[':
+                        for idx in range(1, 5):
+                            parsed_value <<= 1
+                            parsed_mask <<= 1
+                            if value[idx] == '1':
+                                parsed_value |= 1
+                                parsed_mask |= 1
+                            elif value[idx] == '0':
+                                parsed_mask |= 1
+                            else:
+                                assert value[idx] == '-'
+                        assert value[5] == ']'
+                        value = value[6:]
+                    elif value[0] != '_':
+                        parsed_value <<= 4
+                        parsed_mask <<= 4
+                        parsed_value |= int(value[0], 16)
+                        parsed_mask |= 15
+                        value = value[1:]
+                value = parsed_value
+                mask &= parsed_mask
+
+            # Handle binary numbers with don't cares.
+            elif value.startswith('0b'):
+                value = value[2:]
+                parsed_value = 0
+                parsed_mask = full_mask
+                while value:
+                    if value[0] == '_':
+                        continue
+                    parsed_value <<= 1
+                    parsed_mask <<= 1
+                    if value[0] == '1':
+                        parsed_value |= 1
+                        parsed_mask |= 1
+                    elif value[0] == '0':
+                        parsed_mask |= 1
+                    else:
+                        assert value[0] == '-'
+                    value = value[1:]
+                value = parsed_value
+                mask &= parsed_mask
+
+            # Handle decimal numbers.
+            else:
+                value = int(value)
+
+        # Check range.
+        if value & ~full_mask:
+            raise ValueError('address 0x%X is out of range for %d bits' % (
+                value, signal_width))
 
         # Post-process to make the mask and value valid for the given signal
         # width.
@@ -418,6 +426,28 @@ class AddressManager:
             subaddresses[internal] = value
         return self.signals.construct_address(subaddresses)
 
+    def _raise_map_conflict(self, mode, exc, mapping_a):
+        """Raises the exception for a conflict error."""
+        mapping_b = getattr(self, mode)[exc.address_b]
+        def prettify_mapping(mapping):
+            # Ugly special case for sets of fields, used during the process of
+            # assigning fields to registers.
+            if isinstance(mapping, set) and mapping and isinstance(next(iter(mapping)), Field):
+                return '%s %s' % (
+                    'field' if len(mapping) == 1 else 'fields',
+                    doc_enumerate(mapping, map_using=lambda f: '"%s"' % f.name))
+            return str(mapping)
+        raise ValueError(
+            'address conflict between %s (%s) and %s (%s) at %s in %s mode' % (
+                prettify_mapping(mapping_a),
+                self.signals.doc_represent_address(exc.address_a),
+                prettify_mapping(mapping_b),
+                self.signals.doc_represent_address(exc.address_b),
+                self.signals.doc_represent_address(MaskedAddress(
+                    exc.address_a.common(exc.address_b),
+                    (1 << self.signals.width) - 1)),
+                mode))
+
     def read_map(self, internal_address, constructor, *args, **kwargs):
         """Returns the current read mapping for `internal_address`, or
         constructs the mapping by calling `constructor(*args, **kwargs)` if
@@ -429,15 +459,7 @@ class AddressManager:
             try:
                 self.read[internal_address] = mapping
             except AddressConflictError as exc:
-                raise ValueError(
-                    'address conflict between %s (%s) and %s (%s) at %s in read mode' % (
-                        mapping,
-                        self.signals.doc_represent_address(exc.address_a),
-                        self.read[exc.address_b],
-                        self.signals.doc_represent_address(exc.address_b),
-                        self.signals.doc_represent_address(MaskedAddress(
-                            exc.address_a.common(exc.address_b),
-                            (1 << self.signals.width) - 1))))
+                self._raise_map_conflict('read', exc, mapping)
         return mapping
 
     def read_set(self, internal_address, mapping):
@@ -462,15 +484,7 @@ class AddressManager:
             try:
                 self.write[internal_address] = mapping
             except AddressConflictError as exc:
-                raise ValueError(
-                    'address conflict between %s (%s) and %s (%s) at %s in write mode' % (
-                        mapping,
-                        self.signals.doc_represent_address(exc.address_a),
-                        self.write[exc.address_b],
-                        self.signals.doc_represent_address(exc.address_b),
-                        self.signals.doc_represent_address(MaskedAddress(
-                            exc.address_a.common(exc.address_b),
-                            (1 << self.signals.width) - 1))))
+                self._raise_map_conflict('write', exc, mapping)
         return mapping
 
     def write_set(self, internal_address, mapping):

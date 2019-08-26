@@ -219,6 +219,12 @@ class Configurable:
                     print(loader)
                 yield cfg
 
+    def __repr__(self):
+        result = []
+        for key, val in self.save().items():
+            result.append('%s=%r' % (key, val))
+        return '%s(%s)' % (type(self).__name__, ', '.join(result))
+
 
 def configurable(*loaders, name=None, doc=None):
     """Decorator that makes a class that can be constructed from a

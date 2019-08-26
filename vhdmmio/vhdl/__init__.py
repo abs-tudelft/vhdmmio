@@ -325,12 +325,12 @@ class VhdlEntityGenerator:
             tple['dir'] = 'r'
             block = tple.apply_str_to_str(
                 _BLOCK_ACCESS_TEMPLATE, postprocess=False)
-            self._read_decoder[address_block.address] = block
+            self._read_decoder[address_block.internal_address] = block
         if address_block.can_write():
             tple['dir'] = 'w'
             block = tple.apply_str_to_str(
                 _BLOCK_ACCESS_TEMPLATE, postprocess=False)
-            self._write_decoder[address_block.address] = block
+            self._write_decoder[address_block.internal_address] = block
 
     def _add_internal_signal(self, internal):
         """Adds the boilerplate code that supports the given internal signal

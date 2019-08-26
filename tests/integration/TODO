@@ -1,9 +1,9 @@
 test:
- - paging/conditions
- - interrupt logic
+ - multi-word access
+ - subaddresses
+ - repetition parameters
+ - prot + hardening
  - register boilerplate logic:
-    - multi-word access
-    - prot + hardening
     - blocking
     - deferral
     - errors

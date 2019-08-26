@@ -27,10 +27,10 @@ class Field(Named, Configured, Unique):
             self._subaddress = resources.construct_subaddress(self)
             if self.behavior.bus.can_read():
                 resources.addresses.read_map(
-                    self._internal_address, set).add(self)
+                    self._internal_address, lambda: {self}).add(self)
             if self.behavior.bus.can_write():
                 resources.addresses.write_map(
-                    self._internal_address, set).add(self)
+                    self._internal_address, lambda: {self}).add(self)
 
             self._registers_assigned = False
             self._register_read = None
