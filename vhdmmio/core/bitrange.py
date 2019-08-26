@@ -59,6 +59,8 @@ class BitRange(Shaped):
         low = int(low)
         if high >= width and not flexible:
             raise ValueError('bitrange index out of range')
+        if low > high and not flexible:
+            raise ValueError('bitranges should be descending')
         return cls(high, low)
 
     def __lshift__(self, value):

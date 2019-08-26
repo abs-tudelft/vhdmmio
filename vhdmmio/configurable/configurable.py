@@ -9,6 +9,7 @@ import textwrap
 import inspect
 import os
 from os.path import join as pjoin
+import copy
 import json
 import yaml
 from .loader import Loader
@@ -101,7 +102,7 @@ class Configurable:
         loader = yaml.safe_load if hasattr(yaml, 'safe_load') else yaml.load
 
         if isinstance(obj, dict):
-            return cls(parent, obj)
+            return cls(parent, copy.deepcopy(obj))
 
         if isinstance(obj, str):
             if obj.lower().endswith('.json'):
