@@ -79,6 +79,8 @@ class PrimitiveBehavior(Behavior):
             self._doc_reset = None
         elif behavior_cfg.reset is None:
             self._doc_reset = 0
+        elif behavior_cfg.reset == 'generic':
+            self._doc_reset = None
         else:
             self._doc_reset = int(behavior_cfg.reset)
 
