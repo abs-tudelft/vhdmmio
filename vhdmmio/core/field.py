@@ -1,6 +1,21 @@
 """Submodule for the `Field` class."""
 
 from .mixins import Named, Configured, Unique
+from ..utils import doc_enumerate
+
+
+class FieldSet(set):
+    """Represents a set of field, with improved `__str__`."""
+    def __init__(self, field):
+        super().__init__([field])
+
+    def __str__(self):
+        if self:
+            return '%s %s' % (
+                'field' if len(self) == 1 else 'fields',
+                doc_enumerate(self, map_using=lambda f: '"%s"' % f.name))
+        return 'empty set of fields'
+
 
 class Field(Named, Configured, Unique):
     """Represents a parsed field descriptor. That is, a single field or a
@@ -27,10 +42,10 @@ class Field(Named, Configured, Unique):
             self._subaddress = resources.construct_subaddress(self)
             if self.behavior.bus.can_read():
                 resources.addresses.read_map(
-                    self._internal_address, lambda: {self}).add(self)
+                    self._internal_address, lambda: FieldSet(self)).add(self)
             if self.behavior.bus.can_write():
                 resources.addresses.write_map(
-                    self._internal_address, lambda: {self}).add(self)
+                    self._internal_address, lambda: FieldSet(self)).add(self)
 
             self._registers_assigned = False
             self._register_read = None

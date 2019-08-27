@@ -35,8 +35,12 @@ _INTERRUPT_TEMPLATE = annotate_block("""
 
 _BLOCK_ACCESS_TEMPLATE = annotate_block("""
 |$block BEFORE_READ
-  |@ Clear holding register location prior to read.
-  |r_hold($bw*word_idx + bw-1$ downto $bw*word_idx$) := (others => '0');
+  |$if blk_idx == 0
+    |if r_req then
+    |  @ Clear holding register location prior to read.
+    |  r_hold := (others => '0');
+    |end if;
+  |$endif
 |$endblock
 |
 |$block AFTER_READ
@@ -71,6 +75,9 @@ _BLOCK_ACCESS_TEMPLATE = annotate_block("""
   |  w_hold($bw*word_idx + bw-1$ downto $bw*word_idx$) := w_data;
   |  w_hstb($bw*word_idx + bw-1$ downto $bw*word_idx$) := w_strb;
   |  w_multi := '$'1' if blk_idx < blk_cnt - 1 else '0'$';
+    |$ if blk_idx < blk_cnt - 1
+    |  w_ack := true;
+    |$endif
   |end if;
 |$endblock
 |

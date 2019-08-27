@@ -1,5 +1,4 @@
 test:
- - multi-word access
  - subaddresses
  - repetition parameters
  - prot + hardening
