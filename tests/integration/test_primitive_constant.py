@@ -1,6 +1,5 @@
 """Primitive constant field tests."""
 
-from copy import deepcopy
 from unittest import TestCase
 from ..testbench import RegisterFileTestbench
 
