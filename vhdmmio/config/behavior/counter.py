@@ -74,7 +74,8 @@ class VolatileCounter(Counter):
 @behavior(
     'internal-counter', 'internal event counter, reset explicitly by a write.', 2)
 @derive(
-    name='`internal-counter` behavior')
+    name='`internal-counter` behavior',
+    ctrl_increment=[False])
 class InternalCounter(Counter):
     """This field behaves like `counter`, but instead of the counter being
     incremented by an external signal, it is incremented by an internal
@@ -93,7 +94,8 @@ class InternalCounter(Counter):
     'volatile-internal-counter', 'internal event counter, reset implicitly by the '
     'read.', 2)
 @derive(
-    name='`volatile-internal-counter` behavior')
+    name='`volatile-internal-counter` behavior',
+    ctrl_increment=[False])
 class VolatileInternalCounter(VolatileCounter):
     """This field behaves like `volatile-counter`, but instead of the counter
     being incremented by an external signal, it is incremented by an internal

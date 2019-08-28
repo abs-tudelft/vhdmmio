@@ -82,6 +82,7 @@ class VolatileFlag(Flag):
     'internal-flag', 'like `flag`, but set by an internal signal.', 2)
 @derive(
     name='`internal-flag` behavior',
+    ctrl_bit_set=False,
     monitor_mode='bit-set')
 class InternalFlag(Flag):
     """`internal-flag` fields behave like `flag` fields, but instead of the
@@ -103,6 +104,7 @@ class InternalFlag(Flag):
     '`internal-flag`.', 2)
 @derive(
     name='`volatile-internal-flag` behavior',
+    ctrl_bit_set=False,
     monitor_mode='bit-set')
 class VolatileInternalFlag(VolatileFlag):
     """`volatile-internal-flag` fields behave like `volatile-flag` fields, but

@@ -280,13 +280,13 @@
 |$endblock
 
 |$block HANDLE_WRITE
-  |$if b.underrun_internal is not None
+  |$if b.overrun_internal is not None
     |@ If the field is already valid, assert the overrun flag.
     |if $state[i].v$ = '1' then
-      |$if b.underrun_internal.is_vector()
-      |  $b.underrun_internal.drive_name$($i$) := '1';
+      |$if b.overrun_internal.is_vector()
+      |  $b.overrun_internal.drive_name$($i$) := '1';
       |$else
-      |  $b.underrun_internal.drive_name$ := '1';
+      |  $b.overrun_internal.drive_name$ := '1';
       |$endif
     |end if;
     |

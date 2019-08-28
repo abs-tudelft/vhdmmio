@@ -76,9 +76,9 @@ Controls the existence of the `ctrl_increment` control input
 signal. When this signal is asserted, the internal data register is
 incremented.
 
-The value must be a boolean (default `yes`).
+The value must be a boolean (default `no`).
 
-This key is optional unless required by context. If not specified, the default value (`yes`) is used.
+This key is optional unless required by context. If not specified, the default value (`no`) is used.
 
 ## `ctrl-decrement`
 
