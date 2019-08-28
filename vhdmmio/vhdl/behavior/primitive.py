@@ -110,7 +110,7 @@ class PrimitiveBehaviorCodeGen(BehaviorCodeGen):
         state_array = Array(state_name, state_record)
         state_decl, state_ob = state_array.make_variable(
             state_name, self.field_descriptor.width)
-        tple['state'] = state_ob
+        tple['state'] = state_ob['$i$']
         state_defs = gather_defs(state_array)
         state_defs.append(state_decl + ';')
         self.add_declarations(private='\n'.join(state_defs))
