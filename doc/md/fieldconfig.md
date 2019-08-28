@@ -163,6 +163,8 @@ This key can take the following values:
 
        - [`strobe`](strobe.md): one flag per bit, strobed by an MMIO write to signal some request to hardware.
 
+       - [`internal-strobe`](internalstrobe.md): one flag per bit, strobed by an MMIO write to signal some request to another `vhdmmio` construct.
+
        - [`request`](request.md): like `strobe`, but the request flags stay high until acknowledged by hardware.
 
        - [`multi-request`](multirequest.md): allows multiple software-to-hardware requests to be queued up atomically by counting.

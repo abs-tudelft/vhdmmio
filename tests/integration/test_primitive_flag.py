@@ -3,7 +3,7 @@
 from unittest import TestCase
 from ..testbench import RegisterFileTestbench
 
-class TestFlagControlFields(TestCase):
+class TestPrimitiveFlagFields(TestCase):
     """Primitive flag field tests"""
 
     def test_normal(self):

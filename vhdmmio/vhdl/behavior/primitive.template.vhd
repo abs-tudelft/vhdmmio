@@ -393,13 +393,13 @@
     |@ Handle accumulation for field $fd.name$.
     |accum_add($state[i].a$, $state[i].d$);
     |$if vec
-    |  $state[i].d$ := $state[i].a$(0);
+      |$state[i].d$ := $state[i].a$($fd.base_bitrange.width-1$ downto 0);
     |$else
-    |  $state[i].d$ := $state[i].a$($fd.base_bitrange.width-1$ downto 0);
+      |$state[i].d$ := $state[i].a$(0);
     |$endif
     |$if b.overflow_internal is not None or b.underflow_internal is not None
       |@ Handle over/underflow flags for field $fd.name$.
-      |if $state[i].a$($fd.base_bitrange.width+1$ downto $fd.base_bitrange.width$) /= "11" then
+      |if $state[i].a$($fd.base_bitrange.width+1$ downto $fd.base_bitrange.width$) /= "00" then
         |$if b.overflow_internal is not None
         |  if $state[i].a$($fd.base_bitrange.width+2$) = '0' then
             |$if b.overflow_internal.is_vector()
@@ -410,7 +410,7 @@
         |  end if;
         |$endif
         |$if b.underflow_internal is not None
-        |  if $state[i].a$($fd.base_bitrange.width+2$) = '0' then
+        |  if $state[i].a$($fd.base_bitrange.width+2$) = '1' then
             |$if b.underflow_internal.is_vector()
           |    $b.underflow_internal.drive_name$($i$) := '1';
             |$else

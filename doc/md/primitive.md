@@ -277,8 +277,9 @@ This key is optional unless required by context. If not specified, the default v
 
 ## `drive-internal`
 
-Configures driving an internal signal with the internal data
-register belonging to this field.
+Configures driving or strobing an internal signal with the internal
+data register belonging to this field. The signal is strobed when
+`after-bus-write` is set to `invalidate`, otherwise it is driven.
 
 The following values are supported:
 

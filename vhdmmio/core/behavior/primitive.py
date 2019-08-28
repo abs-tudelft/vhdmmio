@@ -112,6 +112,14 @@ class PrimitiveBehavior(Behavior):
             return resources.internals.drive(
                 field_descriptor, name, field_descriptor.base_bitrange.shape)
 
+        def strobe_internal(name):
+            if name is None:
+                return None
+            if field_descriptor.is_vector():
+                raise ValueError('repeated fields cannot drive an internal signal')
+            return resources.internals.strobe(
+                field_descriptor, name, field_descriptor.base_bitrange.shape)
+
         def monitor_internal(name):
             if name is None:
                 return None
@@ -138,7 +146,10 @@ class PrimitiveBehavior(Behavior):
             return resources.internals.use(
                 field_descriptor, name, field_descriptor.shape)
 
-        self._drive_internal = drive_internal(behavior_cfg.drive_internal)
+        if behavior_cfg.after_bus_write == 'invalidate':
+            self._drive_internal = strobe_internal(behavior_cfg.drive_internal)
+        else:
+            self._drive_internal = drive_internal(behavior_cfg.drive_internal)
         self._full_internal = drive_flag_internal(behavior_cfg.full_internal)
         self._empty_internal = drive_flag_internal(behavior_cfg.empty_internal)
         self._overflow_internal = strobe_flag_internal(behavior_cfg.overflow_internal)

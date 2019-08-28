@@ -1,6 +1,7 @@
 """Flag-like fields for signalling requests from software to hardware."""
 
-from ...configurable import derive
+import re
+from ...configurable import derive, checked, ParseError
 from .registry import behavior, behavior_doc
 from .primitive import Primitive, BasePrimitive
 
@@ -14,7 +15,7 @@ behavior_doc('Flag-like fields for signalling requests from software to hardware
     bus_read='disabled',
     after_bus_read='nothing',
     bus_write='enabled',
-    after_bus_write='nothing',
+    after_bus_write='invalidate',
     hw_read='simple',
     hw_write='disabled',
     after_hw_write='nothing',
@@ -35,6 +36,45 @@ class Strobe(BasePrimitive):
     that can always handle the request immediately. When a 1 is written to a
     bit in this register, the respective output bit is strobed high for one
     cycle. Zero writes are ignored."""
+
+@behavior(
+    'internal-strobe', 'one flag per bit, strobed by an MMIO write to signal '
+    'some request to another `vhdmmio` construct.', 2)
+@derive(
+    name='`internal-strobe` behavior',
+    bus_read='disabled',
+    after_bus_read='nothing',
+    bus_write='enabled',
+    after_bus_write='invalidate',
+    hw_read='disabled',
+    hw_write='disabled',
+    after_hw_write='nothing',
+    ctrl_lock=False,
+    ctrl_validate=False,
+    ctrl_invalidate=False,
+    ctrl_ready=False,
+    ctrl_clear=False,
+    ctrl_reset=False,
+    ctrl_increment=False,
+    ctrl_decrement=False,
+    ctrl_bit_set=True,
+    ctrl_bit_clear=False,
+    ctrl_bit_toggle=False,
+    reset=0)
+class InternalStrobe(BasePrimitive):
+    """This behavior may be used to signal a request to another `vhdmmio`
+    entity, such as a counter field. When a 1 is written to a bit in this
+    register, the respective bit in the internal signal is strobed high for one
+    cycle. Zero writes are ignored."""
+
+    @checked
+    def internal(self, value):
+        """Configures the internal signal that is to be driven. The value
+        must be a string matching `[a-zA-Z][a-zA-Z0-9_]*`."""
+        if not isinstance(value, str) or not re.fullmatch(r'[a-zA-Z][a-zA-Z0-9_]*', value):
+            ParseError.invalid('', value, 'a string matching `[a-zA-Z][a-zA-Z0-9_]*`')
+        self.drive_internal = value
+        return value
 
 @behavior(
     'request', 'like `strobe`, but the request flags stay high until '

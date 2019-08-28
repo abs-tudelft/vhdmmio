@@ -57,6 +57,7 @@ insanely high. If your active logic requires a high clock speed and
     - [`internal-flag` behavior](internalflag.md)
     - [`volatile-internal-flag` behavior](volatileinternalflag.md)
     - [`strobe` behavior](strobe.md)
+    - [`internal-strobe` behavior](internalstrobe.md)
     - [`request` behavior](request.md)
     - [`multi-request` behavior](multirequest.md)
     - [`counter` behavior](counter.md)

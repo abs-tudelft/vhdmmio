@@ -167,8 +167,9 @@ class Primitive(Configurable):
 
     @choice
     def drive_internal():
-        """Configures driving an internal signal with the internal data
-        register belonging to this field."""
+        """Configures driving or strobing an internal signal with the internal
+        data register belonging to this field. The signal is strobed when
+        `after-bus-write` is set to `invalidate`, otherwise it is driven."""
         yield None, 'the feature is disabled.'
         yield (re.compile(r'[a-zA-Z][a-zA-Z0-9_]*'),
                'an internal signal with the given name is created and driven '

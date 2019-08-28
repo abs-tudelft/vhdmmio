@@ -19,6 +19,7 @@
     - [`internal-flag` behavior](internalflag.md)
     - [`volatile-internal-flag` behavior](volatileinternalflag.md)
     - [`strobe` behavior](strobe.md)
+    - [`internal-strobe` behavior](internalstrobe.md)
     - [`request` behavior](request.md)
     - [`multi-request` behavior](multirequest.md)
     - [`counter` behavior](counter.md)

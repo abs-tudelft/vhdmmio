@@ -531,6 +531,7 @@ class TestConfig(TestCase):
                 'internalflag.md',
                 'internalioconfig.md',
                 'internalstatus.md',
+                'internalstrobe.md',
                 'interrupt.md',
                 'interruptconfig.md',
                 'interruptenable.md',
