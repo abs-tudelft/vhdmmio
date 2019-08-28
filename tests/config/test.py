@@ -522,6 +522,7 @@ class TestConfig(TestCase):
                 'control.md',
                 'counter.md',
                 'custom.md',
+                'custominterfaceconfig.md',
                 'featureconfig.md',
                 'fieldconfig.md',
                 'flag.md',

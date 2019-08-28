@@ -77,6 +77,7 @@ insanely high. If your active logic requires a high clock speed and
     - [`interrupt-status` behavior](interruptstatus.md)
     - [`interrupt-raw` behavior](interruptraw.md)
     - [`custom` behavior](custom.md)
+      - [Interfaces for `custom` field behavior](custominterfaceconfig.md)
     - [Additional address match conditions](conditionconfig.md)
     - [Subaddress components](subaddressconfig.md)
     - [Permissions](permissionconfig.md)
