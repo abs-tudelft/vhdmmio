@@ -18,7 +18,7 @@ behavior_doc('Flag-like fields for signalling events from hardware to software:'
     bus_write='bit-clear',
     after_bus_write='nothing',
     hw_read=('disabled', 'simple'),
-    hw_write='nothing',
+    hw_write='disabled',
     after_hw_write='nothing',
     ctrl_lock=False,
     ctrl_validate=False,
@@ -67,7 +67,8 @@ class Flag(Primitive):
 @derive(
     name='`volatile-flag` behavior',
     after_bus_read='clear',
-    bus_write='disabled')
+    bus_write='disabled',
+    bit_underflow_internal=None)
 class VolatileFlag(Flag):
     """This behavior is similar to `flag`, but the flags are immediately
     cleared when the field is read. The field is therefore read-only, allowing
