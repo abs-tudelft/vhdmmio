@@ -37,7 +37,7 @@ behavior_doc('Fields for counting events:', 1)
     overrun_internal=None,
     underrun_internal=None,
     monitor_internal=None,
-    monitor_mode='status',
+    monitor_mode='increment',
     reset=(False, True, int, 'generic'))
 class Counter(Primitive):
     """Similar to `flag` fields, `counter`s are used to signal events from
@@ -60,7 +60,8 @@ class Counter(Primitive):
 @derive(
     name='`volatile-counter` behavior',
     after_bus_read='clear',
-    bus_write='disabled')
+    bus_write='disabled',
+    underflow_internal=None)
 class VolatileCounter(Counter):
     """This behavior is similar to `counter`, but the counter value is
     immediately cleared when the field is read. The field is therefore
