@@ -160,7 +160,13 @@ class SubAddressManager:
             subaddress = self._subaddresses.get(new_subaddress, None)
             if subaddress is None:
                 subaddress = new_subaddress
-                subaddress.name = 'subaddr_%s_etc' % field.name
+                trivial = (len(subaddress.components) == 1
+                           and isinstance(subaddress.components[0], SubAddress.BLANK)
+                           and not subaddress.offset)
+                if trivial:
+                    subaddress.name = 'subaddr_none'
+                else:
+                    subaddress.name = 'subaddr_%s_etc' % field.name
                 self._subaddresses[subaddress] = subaddress
             return subaddress
 

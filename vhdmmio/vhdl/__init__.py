@@ -4,6 +4,7 @@ import os
 from os.path import join as pjoin
 import shutil
 from ..core.address import AddressSignalMap
+from ..core.subaddress import SubAddress
 from ..template import TemplateEngine, annotate_block
 from .types import Axi4Lite, gather_defs
 from .interface import Interface
@@ -157,13 +158,17 @@ class VhdlEntityGenerator:
             'w_rtag', regfile.defer_tag_info.write_width,
             optimize=True)
 
+        # Generate code for interrupts.
+        for interrupt in regfile.interrupts:
+            self._add_interrupt(interrupt)
+
         # Generate code for internal address concatenation.
         self._add_address_construction(
             regfile.address_info)
 
-        # Generate code for interrupts.
-        for interrupt in regfile.interrupts:
-            self._add_interrupt(interrupt)
+        # Generate code for subaddresses.
+        self._add_subaddress_construction(
+            regfile.iter_subaddresses())
 
         # Generate the block access code that comes before the field code.
         for register in regfile.registers:
@@ -276,30 +281,6 @@ class VhdlEntityGenerator:
         if block is not None:
             self._tple.append_block(key, '@ %s for %s' % (region, desc), block)
 
-    def _add_address_construction(self, signals):
-        """Adds the code for constructing the internal address to the template
-        engine."""
-        block = ['@ Concatenate page/condition signals to the address when '
-                 'we\'re ready for a new command.']
-        trivial = True
-        for signal, offset in signals:
-            if signal is AddressSignalMap.BUS:
-                # This signal is always present, so it's part of the entity
-                # template.
-                continue
-            trivial = False
-            if signal.is_vector():
-                block.append('{target}(%d downto %d) := %s;' % (
-                    offset + signal.width - 1, offset, signal.use_name))
-            else:
-                block.append('{target}(%d) := %s;' % (
-                    offset, signal.use_name))
-        if trivial:
-            return
-        block = '\n'.join(block)
-        self._tple.append_block('WRITE_ADDR_CONCAT', block.format(target='w_addr'))
-        self._tple.append_block('READ_ADDR_CONCAT', block.format(target='r_addr'))
-
     def _add_interrupt(self, interrupt):
         """Adds the logic for asserting the internal interrupt request
         variable when an interrupt is requested."""
@@ -329,6 +310,91 @@ class VhdlEntityGenerator:
         self._add_code_block(
             'IRQ_LOGIC', 'Logic', desc,
             tple.apply_str_to_str(_INTERRUPT_TEMPLATE, postprocess=False))
+
+    def _add_address_construction(self, signals):
+        """Adds the code for constructing the internal address to the template
+        engine."""
+        block = ['@ Concatenate page/condition signals to the address when '
+                 'we\'re ready for a new command.']
+        trivial = True
+        for signal, offset in signals:
+            if signal is AddressSignalMap.BUS:
+                # This signal is always present, so it's part of the entity
+                # template.
+                continue
+            trivial = False
+            if signal.is_vector():
+                block.append('{target}(%d downto %d) := %s;' % (
+                    offset + signal.width - 1, offset, signal.use_name))
+            else:
+                block.append('{target}(%d) := %s;' % (
+                    offset, signal.use_name))
+        if trivial:
+            return
+        block = '\n'.join(block)
+        self._tple.append_block('WRITE_ADDR_CONCAT', block.format(target='w_addr'))
+        self._tple.append_block('READ_ADDR_CONCAT', block.format(target='r_addr'))
+
+    @staticmethod
+    def _bitrange_to_vhdl(bitrange):
+        if bitrange.is_scalar():
+            return '(%d)' % (bitrange.index,)
+        return '(%d downto %d)' % (bitrange.high, bitrange.low)
+
+    def _add_subaddress_construction(self, subaddresses):
+        declarations = ['@ Subaddress variables, used to index within large '
+                        'fields like memories and AXI passthroughs.']
+        construct_read = ['@ Construct the subaddresses for read mode.']
+        construct_write = ['@ Construct the subaddresses for write mode.']
+        for subaddress in subaddresses:
+            declarations.append(
+                'variable %-20s : std_logic_vector(%d downto 0);'
+                % (subaddress.name, subaddress.width - 1))
+
+            for component in subaddress.components:
+                if isinstance(component, SubAddress.BLANK):
+                    if component.target.is_vector():
+                        line = '%%s%%s := \"%s\";' % ('0' * component.target.width)
+                    else:
+                        line = '%s%s := \'0\';'
+                    line %= subaddress.name, self._bitrange_to_vhdl(component.target)
+                    construct_read.append(line)
+                    construct_write.append(line)
+                    continue
+
+                if isinstance(component, SubAddress.ADDRESS):
+                    line = '%s%s := %%s_addr%s;' % (
+                        subaddress.name,
+                        self._bitrange_to_vhdl(component.target),
+                        self._bitrange_to_vhdl(component.source))
+                    construct_read.append(line % 'r')
+                    construct_write.append(line % 'w')
+                    continue
+
+                if isinstance(component, SubAddress.INTERNAL):
+                    line = '%s%s := %s%s;' % (
+                        subaddress.name,
+                        self._bitrange_to_vhdl(component.target),
+                        component.internal.use_name,
+                        self._bitrange_to_vhdl(component.source))
+                    construct_read.append(line)
+                    construct_write.append(line)
+                    continue
+
+                assert False
+
+            if subaddress.offset:
+                line = '%s := std_logic_vector(unsigned(%s) + %d);' % (
+                    subaddress.name, subaddress.name, subaddress.offset)
+                construct_read.append(line)
+                construct_write.append(line)
+
+        if len(declarations) == 1:
+            return
+
+        self._tple.append_block('DECLARATIONS', declarations)
+        self._tple.append_block('FIELD_LOGIC_READ', construct_read)
+        self._tple.append_block('FIELD_LOGIC_WRITE', construct_write)
 
     def _add_address_block(self, address_block, position):
         """Adds the boilerplate bus logic for the given block. `position`

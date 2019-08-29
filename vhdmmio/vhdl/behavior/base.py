@@ -388,8 +388,10 @@ class BehaviorCodeGen:
                 suffix = ''
             tple['rnge'] = rnge
             tple['r_data'] = 'tmp_data%s' % suffix
+            tple['r_sub'] = field.subaddress.name
             tple['w_data'] = 'tmp_data%s' % suffix
             tple['w_strobe'] = 'tmp_strb%s' % suffix
+            tple['w_sub'] = field.subaddress.name
             tple['desc'] = desc
             tple['dir'] = direction
             if direction == 'r':

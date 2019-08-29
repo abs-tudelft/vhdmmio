@@ -130,6 +130,10 @@ class RegisterFile(Named, Configured, Unique):
         `address.AddressSignalMap`."""
         return self._resources.addresses.signals
 
+    def iter_subaddresses(self):
+        """Iterates over the subaddresses used in the register file."""
+        return iter(self._resources.subaddresses)
+
     @property
     def defer_tag_info(self):
         """Information about the defer tags used by this register file. See
