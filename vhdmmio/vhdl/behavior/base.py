@@ -7,6 +7,14 @@ _BEHAVIOR_CODE_GEN_CLASS_MAP = []
 
 _BUS_REQ_FIELD_TEMPLATE = annotate_block("""
 |$block HANDLE
+  |$if defined('LOOKAHEAD') or defined('NORMAL') or defined('BOTH')
+    |$if dir == 'r'
+      |$r_data$ := r_hold($rnge$);
+    |$else
+      |$w_data$ := w_hold($rnge$);
+      |$w_strobe$ := w_hstb($rnge$);
+    |$endif
+  |$endif
   |$if defined('LOOKAHEAD')
     |if $dir$_lreq then
     |$ LOOKAHEAD
@@ -21,6 +29,11 @@ _BUS_REQ_FIELD_TEMPLATE = annotate_block("""
     |if $dir$_req or $dir$_lreq then
     |$ BOTH
     |end if;
+  |$endif
+  |$if defined('LOOKAHEAD') or defined('NORMAL') or defined('BOTH')
+    |$if dir == 'r'
+      |r_hold($rnge$) := $r_data$;
+    |$endif
   |$endif
 |$endblock
 |
@@ -369,11 +382,14 @@ class BehaviorCodeGen:
             tple['i'] = index
             if field.bitrange.is_vector():
                 rnge = '%d downto %d' % (field.bitrange.high, field.bitrange.low)
+                suffix = '%d' % field.bitrange.width
             else:
                 rnge = '%d' % field.bitrange.index
-            tple['r_data'] = 'r_hold(%s)' % rnge
-            tple['w_data'] = 'w_hold(%s)' % rnge
-            tple['w_strobe'] = 'w_hstb(%s)' % rnge
+                suffix = ''
+            tple['rnge'] = rnge
+            tple['r_data'] = 'tmp_data%s' % suffix
+            tple['w_data'] = 'tmp_data%s' % suffix
+            tple['w_strobe'] = 'tmp_strb%s' % suffix
             tple['desc'] = desc
             tple['dir'] = direction
             if direction == 'r':

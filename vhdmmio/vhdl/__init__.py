@@ -178,6 +178,27 @@ class VhdlEntityGenerator:
                 self._read_decoder, self._write_decoder,
                 self._read_tag_decoder, self._write_tag_decoder).generate()
 
+        # The fields share temporary variables for read/write/strobe data of
+        # the right sizes for the fields, such that the templates don't have to
+        # deal with those variables already representing VHDL slices. Generate
+        # those shared variables here.
+        tmp_variables = set()
+        for field_descriptor in regfile.field_descriptors:
+            size = field_descriptor.base_bitrange.shape
+            if size is None:
+                order = 0
+                fmt = 'variable tmp_%s    : std_logic;'
+            else:
+                order = size
+                fmt = 'variable tmp_%%s%-4d: std_logic_vector(%d downto 0);' % (
+                    size, size - 1)
+            tmp_variables.add((order, fmt % 'data'))
+            if field_descriptor.behavior.bus.write is not None:
+                tmp_variables.add((order, fmt % 'strb'))
+        block = ['@ Temporary variables for the field templates.']
+        block.extend((line for _, line in sorted(tmp_variables)))
+        self._tple.append_block('DECLARATIONS', block)
+
         # Generate the block access code that comes after the field code.
         for register in regfile.registers:
             for address_block in register.blocks:

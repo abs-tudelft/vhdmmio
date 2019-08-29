@@ -78,12 +78,8 @@ class CustomBehaviorCodeGen(BehaviorCodeGen):
             tple['s'] = identifiers
             return tple
 
-        def expand(tple, block, ld='', sv=''):
+        def expand(tple, block):
             if block is not None:
-                if ld:
-                    block = '%s\n\n%s' % (ld, block)
-                if sv:
-                    block = '%s\n\n%s' % (block, sv)
                 block = tple.apply_str_to_str(block, postprocess=False)
                 if not block.strip():
                     block = None
@@ -98,44 +94,35 @@ class CustomBehaviorCodeGen(BehaviorCodeGen):
 
         # Expand read actions.
         if self.behavior.bus.read is not None:
-            ldsub = '' # TODO: subaddress
-            lddat = '$data$ := $$r_data$$;\n'
-            svdat = '$$r_data$$ := $data$;\n'
-
             tple = new_tple()
             tple['prot'] = 'r_prot'
             tple['addr'] = 'r_addr'
-            tple['sub'] = 'f_%s_sub' % name
+            tple['sub'] = '$r_sub$'
             if self.behavior.bus.read.deferring:
                 tple['defer'] = 'r_defer'
-            lookahead = expand(
-                tple, self.behavior.read_lookahead_template,
-                ld=ldsub)
+            lookahead = expand(tple, self.behavior.read_lookahead_template)
 
-            tple['data'] = 'f_%s_data' % name
+            tple['data'] = '$r_data$'
             tple['ack'] = 'r_ack'
             tple['nack'] = 'r_nack'
             if self.behavior.bus.read.blocking:
                 tple['block'] = 'r_block'
             normal = expand(
-                tple, self.behavior.read_template,
-                ld=lddat + ldsub, sv=svdat)
+                tple, self.behavior.read_template)
 
             tple['resp_ready'] = 'r_req'
             both = expand(
-                tple, self.behavior.read_request_template,
-                ld=lddat + ldsub, sv=svdat)
+                tple, self.behavior.read_request_template)
 
             if self.behavior.bus.read.deferring:
                 tple = new_tple()
-                tple['data'] = 'f_%s_data' % name
+                tple['data'] = '$r_data$'
                 tple['ack'] = 'r_ack'
                 tple['nack'] = 'r_nack'
                 if self.behavior.bus.read.blocking:
                     tple['block'] = 'r_block'
                 deferred = expand(
-                    tple, self.behavior.read_response_template,
-                    ld=lddat, sv=svdat)
+                    tple, self.behavior.read_response_template)
             else:
                 deferred = None
 
@@ -143,27 +130,24 @@ class CustomBehaviorCodeGen(BehaviorCodeGen):
 
         # Expand write actions.
         if self.behavior.bus.write is not None:
-            ldreq = ('$data$ := $$w_data$$;\n'
-                     '$strb$ := $$w_strobe$$;\n') # TODO: subaddress
-
             tple = new_tple()
-            tple['data'] = 'f_%s_data' % name
-            tple['strb'] = 'f_%s_strb' % name
+            tple['data'] = '$w_data$'
+            tple['strb'] = '$w_strobe$'
             tple['prot'] = 'w_prot'
             tple['addr'] = 'w_addr'
-            tple['sub'] = 'f_%s_sub' % name
+            tple['sub'] = '$w_sub$'
             if self.behavior.bus.write.deferring:
                 tple['defer'] = 'w_defer'
-            lookahead = expand(tple, self.behavior.write_lookahead_template, ld=ldreq)
+            lookahead = expand(tple, self.behavior.write_lookahead_template)
 
             tple['ack'] = 'w_ack'
             tple['nack'] = 'w_nack'
             if self.behavior.bus.write.blocking:
                 tple['block'] = 'w_block'
-            normal = expand(tple, self.behavior.write_template, ld=ldreq)
+            normal = expand(tple, self.behavior.write_template)
 
             tple['resp_ready'] = 'w_req'
-            both = expand(tple, self.behavior.write_request_template, ld=ldreq)
+            both = expand(tple, self.behavior.write_request_template)
 
             if self.behavior.bus.write.deferring:
                 tple = new_tple()
