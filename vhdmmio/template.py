@@ -229,7 +229,7 @@ class TemplateEngine:
                 if source.startswith('@!^->'):
                     directive_source = None
                 elif source.startswith('@!v->source='):
-                    directive_source, directive_line_number = source[12:].split(':')
+                    directive_source, directive_line_number = source[12:].rsplit(':', maxsplit=1)
                     directive_line_number = int(directive_line_number)
                 else:
                     assert False

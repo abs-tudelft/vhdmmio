@@ -144,7 +144,7 @@ class BusBehavior:
     def __init__(self, read=None, write=None, can_read_for_rmw=True):
         super().__init__()
         if read is None and write is None:
-            raise ValueError('read and write cannot both be None')
+            raise ValueError('must support either or both read and write mode')
         if read is not None and read.no_op_method not in (
                 BusAccessNoOpMethod.ALWAYS, BusAccessNoOpMethod.NEVER):
             raise ValueError('read no-op method must be ALWAYS or NEVER')

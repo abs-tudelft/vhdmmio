@@ -117,18 +117,18 @@ class CustomBehavior(Behavior):
         # Figure out a decent source "filename" for the template blocks, such
         # that parse error messages can be made somewhat sane.
         source = []
-        if field_descriptor.regfile.source_file is not None:
-            source.append(field_descriptor.regfile.source_file)
+        if field_descriptor.regfile.cfg.source_file is not None:
+            source.append(field_descriptor.regfile.cfg.source_file)
         source.append(field_descriptor.regfile.name)
         source.append(field_descriptor.name)
-        source = ':'.join(source)
+        source = '/'.join(source)
 
         # Annotate the template blocks with the source.
         def annotate(name):
             tpl = getattr(behavior_cfg, name.replace('-', '_'))
             if tpl is None:
                 return None
-            return annotate_block(tpl, '%s:%s' % (source, name))
+            return annotate_block(tpl, '%s/%s' % (source, name))
         self._pre_access_template = annotate('pre-access')
         self._read_template = annotate('read')
         self._read_lookahead_template = annotate('read-lookahead')
@@ -141,8 +141,12 @@ class CustomBehavior(Behavior):
         self._post_access_template = annotate('post-access')
 
         # Decode the bus access behavior.
-        bus_behavior = BusBehavior(
-            read=BusAccessBehavior(
+        can_read = (
+            self._read_template is not None
+            or self._read_lookahead_template is not None
+            or self._read_request_template is not None)
+        if can_read:
+            read_behavior = BusAccessBehavior(
                 read_allow_cfg,
                 blocking=behavior_cfg.read_can_block,
                 volatile=behavior_cfg.read_volatile,
@@ -150,8 +154,16 @@ class CustomBehavior(Behavior):
                 no_op_method={
                     True: BusAccessNoOpMethod.NEVER,
                     False: BusAccessNoOpMethod.ALWAYS,
-                }[behavior_cfg.read_has_side_effects]),
-            write=BusAccessBehavior(
+                }[behavior_cfg.read_has_side_effects])
+        else:
+            read_behavior = None
+
+        can_write = (
+            self._write_template is not None
+            or self._write_lookahead_template is not None
+            or self._write_request_template is not None)
+        if can_write:
+            write_behavior = BusAccessBehavior(
                 write_allow_cfg,
                 blocking=behavior_cfg.write_can_block,
                 volatile=behavior_cfg.write_volatile,
@@ -163,7 +175,12 @@ class CustomBehavior(Behavior):
                     'mask': BusAccessNoOpMethod.MASK,
                     'current-or-mask': BusAccessNoOpMethod.WRITE_CURRENT_OR_MASK,
                     'always': BusAccessNoOpMethod.ALWAYS,
-                }[behavior_cfg.write_no_op]),
+                }[behavior_cfg.write_no_op])
+        else:
+            write_behavior = None
+
+        bus_behavior = BusBehavior(
+            read=read_behavior, write=write_behavior,
             can_read_for_rmw=behavior_cfg.read_write_related)
 
         super().__init__(field_descriptor, behavior_cfg, bus_behavior)
