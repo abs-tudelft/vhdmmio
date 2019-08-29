@@ -1,0 +1,168 @@
+metadata:
+  name: stream_monitor
+  doc: |
+    This register file can be used as an interface for monitoring the
+    performance of a stream.
+
+features:
+  bus-width: 32
+  optimize: yes
+
+interface:
+  flatten: yes
+
+interrupts:
+
+  - mnemonic: OVF
+    name: overflow
+    brief: counter overflow interrupt.
+    doc: |
+      This interrupt is triggered when one of the counters overflows.
+    internal: overflow
+
+  - mnemonic: VAL
+    name: valid
+    brief: stream valid interrupt.
+    doc: |
+      This interrupt is active when the stream is valid.
+    internal: valid
+    active: high
+
+  - mnemonic: INV
+    name: invalid
+    brief: stream invalid interrupt.
+    doc: |
+      This interrupt is active when the stream is invalid.
+    internal: valid
+    active: low
+
+  - mnemonic: RDY
+    name: ready
+    brief: stream ready interrupt.
+    doc: |
+      This interrupt is active when the stream is ready.
+    internal: ready
+    active: high
+
+  - mnemonic: BSY
+    name: busy
+    brief: stream busy interrupt.
+    doc: |
+      This interrupt is active when the stream is not ready/busy.
+    internal: ready
+    active: low
+
+fields:
+
+  - address: 0x0000
+    register-mnemonic: CSR
+    register-name: ctrl_status_reg
+    register-brief: control/status register.
+
+    subfields:
+      - bitrange: 0
+        mnemonic: VAL
+        name: valid
+        brief: reflects the stream's current valid signal.
+        behavior: internal-status
+        internal: valid
+
+      - bitrange: 1
+        mnemonic: RDY
+        name: ready
+        brief: reflects the stream's current ready signal.
+        behavior: internal-status
+        internal: ready
+
+      - bitrange: 8
+        mnemonic: OVF
+        name: overflow
+        brief: overflow flag.
+        doc: |
+          Set when one of the counters overflows. Write one to reset.
+        behavior: interrupt-flag
+        interrupt: overflow
+
+      - bitrange: 9
+        mnemonic: OEN
+        name: overflow_irq_enable
+        brief: overflow interrupt enable flag.
+        doc: |
+          Whether a counter overflow triggers an interrupt.
+        behavior: interrupt-unmask
+        interrupt: overflow
+
+      - bitrange: 10
+        mnemonic: VEN
+        name: valid_irq_enable
+        brief: stream valid interrupt enable flag.
+        doc: |
+          Whether the stream being valid triggers an interrupt.
+        behavior: interrupt-unmask
+        interrupt: valid
+
+      - bitrange: 11
+        mnemonic: IEN
+        name: invalid_irq_enable
+        brief: stream invalid interrupt enable flag.
+        doc: |
+          Whether the stream being invalid triggers an interrupt.
+        behavior: interrupt-unmask
+        interrupt: invalid
+
+      - bitrange: 12
+        mnemonic: REN
+        name: ready_irq_enable
+        brief: stream ready interrupt enable flag.
+        doc: |
+          Whether the stream being ready triggers an interrupt.
+        behavior: interrupt-unmask
+        interrupt: ready
+
+      - bitrange: 13
+        mnemonic: BEN
+        name: busy_irq_enable
+        brief: stream busy interrupt enable flag.
+        doc: |
+          Whether the stream being busy/not ready triggers an interrupt.
+        behavior: interrupt-unmask
+        interrupt: busy
+
+  - address: 0x0004
+    mnemonic: VCNT
+    name: valid_count
+    brief: stream valid cycle counter.
+    doc: |
+      Increments each cycle that the stream is valid. Writing to the register
+      subtracts the written value.
+    behavior: internal-counter
+    internal: valid
+    overflow-internal: overflow
+
+  - address: 0x0008
+    mnemonic: RCNT
+    name: ready_count
+    brief: stream ready cycle counter.
+    doc: |
+      Increments each cycle that the stream is ready. Writing to the register
+      subtracts the written value.
+    behavior: internal-counter
+    internal: ready
+    overflow-internal: overflow
+
+  - address: 0x000C
+    mnemonic: ECNT
+    name: element_count
+    brief: stream element counter.
+    doc: |
+      Accumulates the number of elements transferred on the stream.
+    behavior: counter
+    hw-write: accumulate
+    ctrl-increment: no
+
+internal-io:
+  - direction: input
+    internal: valid
+
+  - direction: input
+    internal: ready
