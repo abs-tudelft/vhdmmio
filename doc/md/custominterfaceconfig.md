@@ -3,7 +3,7 @@
 Custom fields can specify any interfaces and state variables they want
 to use through this configuration structure. The interface type is
 determined based on which of the `input`, `output`, `generic`, `drive`,
-`strobe`, `use`, and `state` keys is present to reduce verbosity in the
+`strobe`, `monitor`, and `state` keys is present to reduce verbosity in the
 configuration files; exactly *one* of these must therefore be specified.
 
 This structure supports the following configuration keys.
@@ -81,14 +81,14 @@ The following values are supported:
 
 This key is optional unless required by context. If not specified, the default value (`null`) is used.
 
-## `use`
+## `monitor`
 
-Use this key to request an internal signal used/read by this field
+Use this key to request an internal signal monitored by this field
 to be generated.
 
 The following values are supported:
 
- - `null` (default): this interface does not specify a used internal.
+ - `null` (default): this interface does not specify a monitored internal.
 
  - a string matching `[a-zA-Za-z][a-zA-Z0-9_]*`: an internal with the specified name is generated and expected to only be read by this field. If the field is not repeated, the signal is scalar, otherwise its width equals the field repetition. The VHDL identifier for it is made available to the templates through `$s.<name>$`; it always behaves like an `std_logic`.
 

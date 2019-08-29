@@ -115,7 +115,7 @@ class BehaviorCodeGen:
         the interface, which must be indexed by the field index first (index
         is ignored if the field is scalar) to get the requested type. It can
         then be converted to a string to get the VHDL representation."""
-        return self._add_interface('i', name, count, typ)
+        return self.add_interface('i', name, count, typ)
 
     def add_output(self, name, count=None, typ=None):
         """Registers an output port with the specified name, shape (defaults to
@@ -124,7 +124,7 @@ class BehaviorCodeGen:
         the interface, which must be indexed by the field index first (index
         is ignored if the field is scalar) to get the requested type. It can
         then be converted to a string to get the VHDL representation."""
-        return self._add_interface('o', name, count, typ)
+        return self.add_interface('o', name, count, typ)
 
     def add_generic(self, name, count=None, typ=None):
         """Registers a generic with the specified name, shape (defaults to
@@ -133,7 +133,17 @@ class BehaviorCodeGen:
         the interface, which must be indexed by the field index first (index
         is ignored if the field is scalar) to get the requested type. It can
         then be converted to a string to get the VHDL representation."""
-        return self._add_interface('g', name, count, typ)
+        return self.add_interface('g', name, count, typ)
+
+    def add_interface(self, mode, name, count=None, typ=None):
+        """Implementation for registering generics and ports. `mode` must be
+        `'i'`, `'o'`, or `'g'` for adding respectively an input, an output, or
+        a generic."""
+        return self._interface.add(
+            self.field_descriptor.name, self._describe(),
+            'f', self.field_descriptor.shape,
+            name, mode, typ, count,
+            self.field_descriptor.interface_options)
 
     def add_declarations(self, private=None, public=None, body=None):
         """Registers declarative code blocks for the represented field
@@ -336,14 +346,6 @@ class BehaviorCodeGen:
         return 'field %s: %s' % (
             field.name,
             field.brief)
-
-    def _add_interface(self, mode, name, count=None, typ=None):
-        """Implementation for registering generics and ports."""
-        return self._interface.add(
-            self.field_descriptor.name, self._describe(),
-            'f', self.field_descriptor.shape,
-            name, mode, typ, count,
-            self.field_descriptor.interface_options)
 
     def _add_bus_logic(self, direction, normal, lookahead, both, deferred):
         """Implements `add_read_logic()` and `add_write_logic()`. They are

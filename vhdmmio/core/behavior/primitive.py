@@ -116,7 +116,7 @@ class PrimitiveBehavior(Behavior):
             if name is None:
                 return None
             if field_descriptor.is_vector():
-                raise ValueError('repeated fields cannot drive an internal signal')
+                raise ValueError('repeated fields cannot strobe an internal signal')
             return resources.internals.strobe(
                 field_descriptor, name, field_descriptor.base_bitrange.shape)
 

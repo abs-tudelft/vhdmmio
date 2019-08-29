@@ -9,7 +9,7 @@ class CustomInterfaceConfig(Configurable):
     """Custom fields can specify any interfaces and state variables they want
     to use through this configuration structure. The interface type is
     determined based on which of the `input`, `output`, `generic`, `drive`,
-    `strobe`, `use`, and `state` keys is present to reduce verbosity in the
+    `strobe`, `monitor`, and `state` keys is present to reduce verbosity in the
     configuration files; exactly *one* of these must therefore be specified."""
     #pylint: disable=E0211
 
@@ -77,10 +77,10 @@ class CustomInterfaceConfig(Configurable):
                'prevents field repetition from being used.')
 
     @choice
-    def use():
-        """Use this key to request an internal signal used/read by this field
+    def monitor():
+        """Use this key to request an internal signal monitored by this field
         to be generated."""
-        yield None, 'this interface does not specify a used internal.'
+        yield None, 'this interface does not specify a monitored internal.'
         yield (re.compile(r'[a-zA-Za-z][a-zA-Z0-9_]*'), 'an internal '
                'with the specified name is generated and expected to only '
                'be read by this field. If the field is not repeated, the '
