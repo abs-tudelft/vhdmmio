@@ -1,0 +1,7 @@
+include vhdmmio/html/base.template.html
+include vhdmmio/html/style.template.css
+include vhdmmio/vhdl/vhdmmio_pkg.template.vhd
+include vhdmmio/vhdl/entity.template.vhd
+include vhdmmio/vhdl/package.template.vhd
+include vhdmmio/vhdl/behavior/interrupt.template.vhd
+include vhdmmio/vhdl/behavior/primitive.template.vhd

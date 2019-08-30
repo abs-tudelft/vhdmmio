@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import glob
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 from setuptools.command.build_py import build_py as BuildCommand
@@ -55,15 +56,12 @@ setup(
     project_urls = {
         'Source': 'https://github.com/abs-tudelft/vhdmmio',
     },
-    packages = [
-        'vhdmmio',
-        'vhdmmio.core',
-        'vhdmmio.vhdl',
-        'vhdmmio.html'
-    ],
+    packages = list(map(
+        lambda path: os.path.dirname(path).replace(os.sep, '.'),
+        glob.glob('vhdmmio/**/__init__.py', recursive=True))),
     include_package_data=True,
     entry_points = {'console_scripts': ['vhdmmio=vhdmmio:run_cli']},
-    python_requires = '>=3',
+    python_requires = '>=3.5',
     install_requires = [
         'pyyaml',
         'markdown2'
