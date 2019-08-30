@@ -3,6 +3,7 @@
 import os
 from os.path import join as pjoin
 import shutil
+import vhdmmio
 from ..core.address import AddressSignalMap
 from ..core.subaddress import SubAddress
 from ..template import TemplateEngine, annotate_block
@@ -131,6 +132,7 @@ class VhdlEntityGenerator:
 
         # Add some basic variables and shorthands to the template engine for
         # the template to use.
+        self._tple['version'] = vhdmmio.__version__
         self._tple['r'] = regfile
         self._tple['e'] = regfile.cfg.entity
         self._tple['bw'] = regfile.cfg.features.bus_width
@@ -536,10 +538,14 @@ class VhdlPackageGenerator:
 
     @staticmethod
     def generate(output_dir):
-        """Generates the HTML documentation files for the register files in the
-        given directory."""
+        """Generates the common `vhdmmio_pkg.gen.vhd` file in the given
+        directory."""
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        shutil.copyfile(
-            pjoin(_MODULE_DIR, 'vhdmmio_pkg.vhd'),
-            pjoin(output_dir, 'vhdmmio_pkg.gen.vhd'))
+        tple = TemplateEngine()
+        tple['version'] = vhdmmio.__version__
+        tple.apply_file_to_file(
+            pjoin(_MODULE_DIR, 'vhdmmio_pkg.template.vhd'),
+            pjoin(output_dir, 'vhdmmio_pkg.gen.vhd'),
+            comment='-- ')
+        print('Wrote %s' % pjoin(output_dir, 'vhdmmio_pkg.gen.vhd'))

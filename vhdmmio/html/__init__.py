@@ -4,6 +4,7 @@ import os
 from os.path import join as pjoin
 import shutil
 from markdown2 import Markdown
+import vhdmmio
 from ..core.address import AddressSignalMap
 from ..template import TemplateEngine, annotate_block
 
@@ -521,10 +522,11 @@ class HtmlDocumentationGenerator:
         tple = TemplateEngine()
         for regfile in self._regfiles:
             tple.append_block('BODY', self._regfile_to_html(regfile))
-        tple['title'] = 'TODO'
+        tple['title'] = 'Register file documentation'
+        tple['version'] = vhdmmio.__version__
         tple.apply_file_to_file(
             pjoin(_MODULE_DIR, 'base.template.html'),
             pjoin(output_dir, 'index.html'))
-        shutil.copyfile(
-            pjoin(_MODULE_DIR, 'style.css'),
+        tple.apply_file_to_file(
+            pjoin(_MODULE_DIR, 'style.template.css'),
             pjoin(output_dir, 'style.css'))

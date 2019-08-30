@@ -1,3 +1,4 @@
+/* Generated using vhdMMIO $version$ (https://github.com/abs-tudelft/vhdmmio) */
 
 body {
     font-family: sans-serif;
@@ -36,6 +37,18 @@ emph {
 .de-emph {
     font-style: italic;
     color: rgba(0, 0, 0, 0.5);
+}
+
+div.version {
+    padding: 5px 10px;
+    font-style: italic;
+    font-size: 0.9em;
+    color: #999;
+    text-align: right;
+}
+
+div.version a {
+    color: #999;
 }
 
 /*****************************************************************************/
