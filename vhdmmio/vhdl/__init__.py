@@ -486,13 +486,38 @@ class VhdlEntityGenerator:
     def generate(self, output_dir, annotate=False):
         """Generates the files for this register file in the specified
         directory."""
-        relpath = ''
-        if self._regfile.cfg.source_directory is not None:
-            relpath = os.path.relpath(self._regfile.cfg.source_directory)
-        output_dir = output_dir.replace('@', relpath)
-        if not os.path.exists(output_dir):
+        output_dir = os.path.normpath(output_dir)
+        if '@' in output_dir:
+            left, right = output_dir.split('@', maxsplit=1)
+
+            relpath = ''
+            if self._regfile.cfg.source_directory is not None:
+                relpath = self._regfile.cfg.source_directory
+                if relpath:
+                    relpath = os.path.relpath(os.path.normpath(relpath))
+            if relpath == '.':
+                relpath = ''
+
+            relpath = relpath.split(os.sep)
+
+            output_dir = [left]
+            if output_dir[-1].endswith(os.sep):
+                output_dir.extend(relpath)
+            else:
+                output_dir[-1] += relpath[0]
+                output_dir.extend(relpath[1:])
+            if right.startswith(os.sep):
+                output_dir.append(right[1:])
+            else:
+                output_dir[-1] += right
+
+            output_dir = os.path.join(*output_dir)
+
+            if output_dir == '.':
+                output_dir = ''
+        if output_dir and not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        name = output_dir + os.sep + self._regfile.name
+        name = os.path.join(output_dir, self._regfile.name)
 
         self._tple.apply_file_to_file(
             pjoin(_MODULE_DIR, 'entity.template.vhd'),
@@ -527,8 +552,6 @@ class VhdlEntitiesGenerator:
     def generate(self, output_dir, annotate=False):
         """Generates the HTML documentation files for the register files in the
         given directory."""
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
         for regfile in self._regfiles:
             VhdlEntityGenerator(regfile).generate(output_dir, annotate)
 

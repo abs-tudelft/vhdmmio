@@ -90,8 +90,7 @@ def run_cli(args=None):
         args = parser.parse_args(args)
 
         if not args.source:
-            parser.print_usage()
-            return 1
+            args.source = ['.']
 
     except SystemExit as exc:
         return exc.code
