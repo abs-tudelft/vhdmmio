@@ -4,6 +4,7 @@ for this file."""
 
 from .register_file import RegisterFileConfig
 from .features import FeatureConfig
+from .entity import EntityConfig
 from .interface import InterfaceConfig
 from .permissions import PermissionConfig
 from .field import FieldConfig

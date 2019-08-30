@@ -8,6 +8,13 @@ features:
   bus-width: 32
   optimize: yes
 
+entity:
+  clock-name: axil_aclk
+  reset-name: axil_aresetn
+  reset-active: low
+  bus-prefix: axil_
+  bus-flatten: yes
+
 interface:
   flatten: yes
 

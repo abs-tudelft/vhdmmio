@@ -6,7 +6,7 @@ resulting configuration file syntax."""
 # Re-export the classes, functions, and decorators intended to be used by users
 # of this submodule.
 from .configurable import Configurable, configurable, derive, document_configurables
-from .choice import choice, required_choice, flag
+from .choice import choice, required_choice, choice_default, flag
 from .checked import checked, opt_checked
 from .parsed import parsed
 from .subconfig import subconfig, opt_subconfig, embedded, opt_embedded

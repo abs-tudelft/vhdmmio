@@ -6,6 +6,7 @@ from .interface import InterfaceConfig
 from .field import FieldConfig
 from .interrupt import InterruptConfig
 from .features import FeatureConfig
+from .entity import EntityConfig
 from .internal_io import InternalIOConfig
 
 @configurable(name='Register files')
@@ -25,6 +26,12 @@ class RegisterFileConfig(Configurable):
         """This configuration structure is used to specify some options that
         affect register file as a whole."""
         return FeatureConfig
+
+    @subconfig
+    def entity():
+        """This configuration structure is used to configure how the MMIO
+        entity is generated."""
+        return EntityConfig
 
     @subconfig
     def interface():

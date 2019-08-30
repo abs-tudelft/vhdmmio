@@ -19,6 +19,13 @@ affect register file as a whole.
 
 This key must be set to a dictionary. Its structure is defined [here](featureconfig.md). Not specifying the key is equivalent to specifying an empty dictionary.
 
+## `entity`
+
+This configuration structure is used to configure how the MMIO
+entity is generated.
+
+This key must be set to a dictionary. Its structure is defined [here](entityconfig.md). Not specifying the key is equivalent to specifying an empty dictionary.
+
 ## `interface`
 
 This key specifies the default VHDL entity interface generation

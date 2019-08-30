@@ -42,6 +42,7 @@ insanely high. If your active logic requires a high clock speed and
 - [Register files](registerfileconfig.md)
   - [Metadata](metadataconfig.md)
   - [Register file options](featureconfig.md)
+  - [VHDL entity configuration](entityconfig.md)
   - [VHDL interface configuration](interfaceconfig.md)
   - [Field descriptors](fieldconfig.md)
     - [`primitive` behavior](primitive.md)

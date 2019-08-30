@@ -132,6 +132,7 @@ class VhdlEntityGenerator:
         # Add some basic variables and shorthands to the template engine for
         # the template to use.
         self._tple['r'] = regfile
+        self._tple['e'] = regfile.cfg.entity
         self._tple['bw'] = regfile.cfg.features.bus_width
         self._tple['ai'] = regfile.address_info
         self._tple['di'] = regfile.defer_tag_info

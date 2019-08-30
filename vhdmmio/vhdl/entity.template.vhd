@@ -19,22 +19,45 @@ $   GENERICS
 $endif
   port (
 
-    -- Clock sensitive to the rising edge and synchronous, active-high reset.
-    clk   : in  std_logic;
-    reset : in  std_logic := '0';
+    -- Clock sensitive to the rising edge and synchronous, active-$e.reset_active$ reset.
+    $e.clock_name$ : in std_logic;
+    $e.reset_name$ : in std_logic := '$'0' if e.reset_active == 'high' else '1'$';
 
 $   PORTS
 
     -- AXI4-lite + interrupt request bus to the master.
-    bus_i : in  axi4l$bw$_m2s_type := AXI4L$bw$_M2S_RESET;
-    bus_o : out axi4l$bw$_s2m_type := AXI4L$bw$_S2M_RESET
+$if e.bus_flatten
+    $e.bus_prefix$awvalid : in  std_logic := '0';
+    $e.bus_prefix$awready : out std_logic := '1';
+    $e.bus_prefix$awaddr  : in  std_logic_vector(31 downto 0) := X"00000000";
+    $e.bus_prefix$awprot  : in  std_logic_vector(2 downto 0) := "000";
+    $e.bus_prefix$wvalid  : in  std_logic := '0';
+    $e.bus_prefix$wready  : out std_logic := '1';
+    $e.bus_prefix$wdata   : in  std_logic_vector($bw-1$ downto 0) := (others => '0');
+    $e.bus_prefix$wstrb   : in  std_logic_vector($bw//8-1$ downto 0) := (others => '0');
+    $e.bus_prefix$bvalid  : out std_logic := '0';
+    $e.bus_prefix$bready  : in  std_logic := '1';
+    $e.bus_prefix$bresp   : out std_logic_vector(1 downto 0) := "00";
+    $e.bus_prefix$arvalid : in  std_logic := '0';
+    $e.bus_prefix$arready : out std_logic := '1';
+    $e.bus_prefix$araddr  : in  std_logic_vector(31 downto 0) := X"00000000";
+    $e.bus_prefix$arprot  : in  std_logic_vector(2 downto 0) := "000";
+    $e.bus_prefix$rvalid  : out std_logic := '0';
+    $e.bus_prefix$rready  : in  std_logic := '1';
+    $e.bus_prefix$rdata   : out std_logic_vector($bw-1$ downto 0) := (others => '0');
+    $e.bus_prefix$rresp   : out std_logic_vector(1 downto 0) := "00";
+    $e.bus_prefix$uirq    : out std_logic := '0'
+$else
+    $e.bus_prefix$i : in  axi4l$bw$_m2s_type := AXI4L$bw$_M2S_RESET;
+    $e.bus_prefix$o : out axi4l$bw$_s2m_type := AXI4L$bw$_S2M_RESET
+$endif
 
   );
 end $r.name$;
 
 architecture behavioral of $r.name$ is
 begin
-  reg_proc: process (clk) is
+  reg_proc: process ($e.clock_name$) is
 
     -- Convenience function for unsigned accumulation with differing vector
     -- widths.
@@ -55,6 +78,11 @@ begin
       accum := std_logic_vector(
         unsigned(accum) - resize(unsigned(addend), accum'length));
     end procedure accum_sub;
+
+$if e.reset_name != 'reset'
+    -- Internal alias for the reset input.
+    variable reset : std_logic;
+$endif
 
     -- Bus response output register.
     variable bus_v : axi4l$bw$_s2m_type := AXI4L$bw$_S2M_RESET; -- reg
@@ -267,9 +295,16 @@ $if ii.concat_width > 0
 $endif
 $   DECLARATIONS
   begin
-    if rising_edge(clk) then
+    if rising_edge($e.clock_name$) then
 
       -- Reset variables that shouldn't become registers to default values.
+$if e.reset_name != 'reset'
+ |$if e.reset_active == 'high'
+      reset   := $e.reset_name$;
+ |$else
+      reset   := not $e.reset_name$;
+ |$endif
+$endif
       w_req   := false;
       r_req   := false;
       w_lreq  := false;
@@ -310,10 +345,18 @@ $endif
       -------------------------------------------------------------------------
       -- Invalidate responses that were acknowledged by the master in the
       -- previous cycle.
-      if bus_i.b.ready = '1' then
+$if e.bus_flatten
+      if $e.bus_prefix$bready = '1' then
+$else
+      if $e.bus_prefix$i.b.ready = '1' then
+$endif
         bus_v.b.valid := '0';
       end if;
-      if bus_i.r.ready = '1' then
+$if e.bus_flatten
+      if $e.bus_prefix$rready = '1' then
+$else
+      if $e.bus_prefix$i.r.ready = '1' then
+$endif
         bus_v.r.valid := '0';
       end if;
 
@@ -321,13 +364,31 @@ $endif
       -- any of the incoming channels, we must latch any incoming requests. If
       -- we're ready but there is no incoming request this becomes don't-care.
       if bus_v.aw.ready = '1' then
-        awl := bus_i.aw;
+$if e.bus_flatten
+        awl.valid := $e.bus_prefix$awvalid;
+        awl.addr  := $e.bus_prefix$awaddr;
+        awl.prot  := $e.bus_prefix$awprot;
+$else
+        awl := $e.bus_prefix$i.aw;
+$endif
       end if;
       if bus_v.w.ready = '1' then
-        wl := bus_i.w;
+$if e.bus_flatten
+        wl.valid := $e.bus_prefix$wvalid;
+        wl.data  := $e.bus_prefix$wdata;
+        wl.strb  := $e.bus_prefix$wstrb;
+$else
+        wl := $e.bus_prefix$i.w;
+$endif
       end if;
       if bus_v.ar.ready = '1' then
-        arl := bus_i.ar;
+$if e.bus_flatten
+        arl.valid := $e.bus_prefix$arvalid;
+        arl.addr  := $e.bus_prefix$araddr;
+        arl.prot  := $e.bus_prefix$arprot;
+$else
+        arl := $e.bus_prefix$i.ar;
+$endif
       end if;
 
 $if defined('INTERNAL_SIGNAL_EARLY')
@@ -706,7 +767,19 @@ $if ii.concat_width > 0
 $endif
       end if;
 
-      bus_o <= bus_v;
+$if e.bus_flatten
+      $e.bus_prefix$awready <= bus_v.aw.ready;
+      $e.bus_prefix$wready  <= bus_v.w.ready;
+      $e.bus_prefix$bvalid  <= bus_v.b.valid;
+      $e.bus_prefix$bresp   <= bus_v.b.resp;
+      $e.bus_prefix$arready <= bus_v.ar.ready;
+      $e.bus_prefix$rvalid  <= bus_v.r.valid;
+      $e.bus_prefix$rdata   <= bus_v.r.data;
+      $e.bus_prefix$rresp   <= bus_v.r.reso;
+      $e.bus_prefix$uirq    <= bus_v.u.irq;
+$else
+      $e.bus_prefix$o <= bus_v;
+$endif
 
     end if;
   end process;

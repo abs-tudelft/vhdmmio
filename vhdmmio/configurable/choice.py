@@ -252,6 +252,15 @@ def required_choice(method):
     return Choice(method.__name__, method.__doc__, *method(), default=Unset)
 
 
+def choice_default(default):
+    """Same as `choice`, but called with the desired default value as an
+    argument to the annotation."""
+    def annotate(method, default=default):
+        """Annotation function."""
+        return Choice(method.__name__, method.__doc__, *method(), default=default)
+    return annotate
+
+
 def flag(method):
     """Convenience method for making flag `Choice`s, i.e. booleans that default
     to `False`. The return value of the annotated method (cast to bool) is used
