@@ -3,7 +3,7 @@
 import os
 from os.path import join as pjoin
 import shutil
-import vhdmmio
+from ..version import __version__
 from ..core.address import AddressSignalMap
 from ..core.subaddress import SubAddress
 from ..template import TemplateEngine, annotate_block
@@ -132,7 +132,7 @@ class VhdlEntityGenerator:
 
         # Add some basic variables and shorthands to the template engine for
         # the template to use.
-        self._tple['version'] = vhdmmio.__version__
+        self._tple['version'] = __version__
         self._tple['r'] = regfile
         self._tple['e'] = regfile.cfg.entity
         self._tple['bw'] = regfile.cfg.features.bus_width
@@ -543,7 +543,7 @@ class VhdlPackageGenerator:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         tple = TemplateEngine()
-        tple['version'] = vhdmmio.__version__
+        tple['version'] = __version__
         tple.apply_file_to_file(
             pjoin(_MODULE_DIR, 'vhdmmio_pkg.template.vhd'),
             pjoin(output_dir, 'vhdmmio_pkg.gen.vhd'),
