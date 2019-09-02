@@ -27,7 +27,7 @@ behavior_doc('Flag-like fields for signalling requests from software to hardware
     ctrl_reset=False,
     ctrl_increment=False,
     ctrl_decrement=False,
-    ctrl_bit_set=True,
+    ctrl_bit_set=False,
     ctrl_bit_clear=False,
     ctrl_bit_toggle=False,
     reset=0)
@@ -57,7 +57,7 @@ class Strobe(BasePrimitive):
     ctrl_reset=False,
     ctrl_increment=False,
     ctrl_decrement=False,
-    ctrl_bit_set=True,
+    ctrl_bit_set=False,
     ctrl_bit_clear=False,
     ctrl_bit_toggle=False,
     reset=0)

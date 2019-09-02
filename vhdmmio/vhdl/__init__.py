@@ -523,13 +523,13 @@ class VhdlEntityGenerator:
             pjoin(_MODULE_DIR, 'entity.template.vhd'),
             name + '.gen.vhd',
             comment='-- ', annotate=annotate)
-        print('Wrote %s.vhd' % name)
+        print('Wrote %s.gen.vhd' % name)
 
         self._tple.apply_file_to_file(
             pjoin(_MODULE_DIR, 'package.template.vhd'),
             name + '_pkg.gen.vhd',
             comment='-- ', annotate=annotate)
-        print('Wrote %s_pkg.vhd' % name)
+        print('Wrote %s_pkg.gen.vhd' % name)
 
     def gather_ports(self):
         """Yields all the inputs/outputs/generics excluding `clk` and `reset`
