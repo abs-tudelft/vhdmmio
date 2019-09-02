@@ -2,6 +2,8 @@
 
 import functools
 import tempfile
+import os
+import shutil
 from vhdmmio.config import RegisterFileConfig
 from vhdmmio.core import RegisterFile
 from vhdmmio.vhdl import VhdlEntityGenerator, VhdlPackageGenerator
@@ -201,8 +203,14 @@ class RegisterFileTestbench:
         self._entity_generator.generate(self._tempdir.name)
         VhdlPackageGenerator().generate(self._tempdir.name)
         self._testbench.add_include(self._tempdir.name)
-        self._testbench.__enter__()
-        self._testbench.reset()
+        try:
+            self._testbench.__enter__()
+            self._testbench.reset()
+        except ValueError:
+            if os.path.isdir('/tmp/vhdmmio-parse-failed'):
+                shutil.rmtree('/tmp/vhdmmio-parse-failed')
+            shutil.copytree(self._tempdir.name, '/tmp/vhdmmio-parse-failed')
+            print('offending VHDL source tree was written to /tmp/vhdmmio-parse-failed')
         return AttributeDict(self._tb_obs)
 
     def __exit__(self, *args):
