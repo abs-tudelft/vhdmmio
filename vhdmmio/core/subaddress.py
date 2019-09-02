@@ -2,10 +2,10 @@
 
 from collections import OrderedDict, namedtuple
 from ..config import SubAddressConfig
-from .mixins import Shaped, Configured
+from .mixins import Shaped
 from .bitrange import BitRange
 
-class SubAddress(Shaped, Configured):
+class SubAddress(Shaped):
     """Represents a subaddress, used for one or more fields."""
 
     BLANK = namedtuple('BLANK', ['target'])
@@ -105,7 +105,7 @@ class SubAddress(Shaped, Configured):
         self._components = components
         self._offset = offset
         self._name = None
-        super().__init__(shape=width, cfg=cfg)
+        super().__init__(shape=width)
 
     @property
     def components(self):

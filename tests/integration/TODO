@@ -1,5 +1,4 @@
 test:
- - subaddresses
  - repetition parameters
  - prot + hardening
  - register boilerplate logic:
