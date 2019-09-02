@@ -12,7 +12,7 @@ class CustomBehaviorCodeGen(BehaviorCodeGen):
     def generate(self):
         """Code generator implementation."""
 
-        name = self.field_descriptor.name
+        fd_name = self.field_descriptor.name
 
         # Record the identifier strings that the templates can use in a
         # simplistic object, such that the templates can access the
@@ -23,7 +23,7 @@ class CustomBehaviorCodeGen(BehaviorCodeGen):
 
         # Construct the external interfaces.
         for mode, name, count, typ in self.behavior.external_interfaces:
-            setattr(identifiers, name, self.add_interface(mode, name, count, typ))
+            setattr(identifiers, name, self.add_interface(mode, name, count, typ)['$i$'])
 
         # Register the internal interfaces.
         for internal, identifier in self.behavior.internal_interfaces:
@@ -31,7 +31,7 @@ class CustomBehaviorCodeGen(BehaviorCodeGen):
 
         # Construct the state record, if the behavior is stateful.
         if self.behavior.state:
-            state_name = 'f_%s_r' % name
+            state_name = 'f_%s_r' % fd_name
             state_record = Record(state_name)
             for name, shape in self.behavior.state:
                 if shape is not None:
@@ -57,17 +57,17 @@ class CustomBehaviorCodeGen(BehaviorCodeGen):
         if self.field_descriptor.base_bitrange.is_vector():
             var_defs.append(
                 'variable f_%s_data: std_logic_vector(%d downto 0);' % (
-                    name, self.field_descriptor.base_bitrange.width - 1))
+                    fd_name, self.field_descriptor.base_bitrange.width - 1))
             if self.behavior.bus.write is not None:
                 var_defs.append(
                     'variable f_%s_strb: std_logic_vector(%d downto 0);' % (
-                        name, self.field_descriptor.base_bitrange.width - 1))
+                        fd_name, self.field_descriptor.base_bitrange.width - 1))
         else:
             var_defs.append(
-                'variable f_%s_data: std_logic;' % name)
+                'variable f_%s_data: std_logic;' % fd_name)
             if self.behavior.bus.write is not None:
                 var_defs.append(
-                    'variable f_%s_strb: std_logic;' % name)
+                    'variable f_%s_strb: std_logic;' % fd_name)
         # TODO: subaddress
 
         self.add_declarations(private='\n'.join(var_defs))

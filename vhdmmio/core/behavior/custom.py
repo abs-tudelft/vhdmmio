@@ -42,9 +42,9 @@ class CustomBehavior(Behavior):
                     '`drive`, `strobe`, `use`, and `state` keys')
 
             # Split the name from the shape.
-            name, *shape = ':'.split(value)
+            name, *shape = value.split(':')
             if shape:
-                shape = shape[0]
+                shape = int(shape[0])
             else:
                 shape = None
 
