@@ -203,6 +203,86 @@ class TestCustomFields(TestCase):
             self.assertEqual(objs.bus.read(0), 0xCCCCCCCC)
             self.assertEqual(objs.bus.read(4), 0xBDBDBDBD)
 
+    def test_internals(self):
+        """test custom field internal connectivity"""
+        rft = RegisterFileTestbench({
+            'metadata': {'name': 'test'},
+            'fields': [
+                {
+                    'address': 0,
+                    'bitrange': '2..0',
+                    'name': 'a',
+                    'behavior': 'custom',
+                    'interfaces': [
+                        {'drive': 'a:3'},
+                        {'strobe': 'b:3'},
+                        {'state': 'data:3'},
+                    ],
+                    'write': (
+                        '$s.data$ := $data$;\n'
+                        '$ack$ := true;\n'
+                        '$s.b$ := "111";\n'
+                    ),
+                    'post-access': (
+                        '$s.a$ := $s.data$;\n'
+                        'if reset = \'1\' then'
+                        '  $s.data$ := "000";\n'
+                        'end if;\n'
+                    ),
+                },
+                {
+                    'address': 4,
+                    'bitrange': 0,
+                    'repeat': 3,
+                    'name': 'b',
+                    'behavior': 'custom',
+                    'interfaces': [
+                        {'monitor': 'a'},
+                        {'strobe': 'b'},
+                    ],
+                    'read': (
+                        '$data$ := $s.a$;\n'
+                        '$ack$ := true;\n'
+                        '$s.b$ := \'1\';\n'
+                    ),
+                },
+                {
+                    'address': 8,
+                    'name': 'c',
+                    'behavior': 'custom',
+                    'interfaces': [
+                        {'monitor': 'b:3'},
+                        {'state': 'count:32'},
+                    ],
+                    'pre-access': (
+                        'if $s.b$(0) = \'1\' then'
+                        '  $s.count$ := std_logic_vector(unsigned($s.count$) + 1);\n'
+                        'end if;\n'
+                    ),
+                    'read': (
+                        '$data$ := $s.count$;\n'
+                        '$ack$ := true;\n'
+                    ),
+                    'post-access': (
+                        'if reset = \'1\' then'
+                        '  $s.count$ := (others => \'0\');\n'
+                        'end if;\n'
+                    ),
+                },
+            ]})
+        with rft as objs:
+            self.assertEqual(objs.bus.read(8), 0)
+            self.assertEqual(objs.bus.read(4), 0)
+            self.assertEqual(objs.bus.read(8), 1)
+            objs.bus.write(0, 3)
+            self.assertEqual(objs.bus.read(8), 2)
+            self.assertEqual(objs.bus.read(4), 3)
+            self.assertEqual(objs.bus.read(8), 3)
+            objs.bus.write(0, 4)
+            self.assertEqual(objs.bus.read(8), 4)
+            self.assertEqual(objs.bus.read(4), 4)
+            self.assertEqual(objs.bus.read(8), 5)
+
     def test_errors(self):
         """test custom field errors"""
         msg = ('must support either or both read and write mode')

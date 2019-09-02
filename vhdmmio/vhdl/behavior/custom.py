@@ -19,6 +19,8 @@ class CustomBehaviorCodeGen(BehaviorCodeGen):
         # identifiers using `<object>.<ident>`.
         class Identifiers: #pylint: disable=R0903
             """Storage object for VHDL identifiers."""
+            def __getattr__(self, attr):
+                raise ValueError('template object $s.%s$ does not exist' % attr)
         identifiers = Identifiers()
 
         # Construct the external interfaces.

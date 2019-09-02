@@ -70,6 +70,13 @@ class CustomBehavior(Behavior):
                         'repeated fields cannot %s a vector internal signal'
                         % kind)
 
+            # Internal signals are shaped based on the field repetition.
+            internal_shape = shape
+            internal_suffix = ''
+            if field_descriptor.is_vector():
+                internal_shape = field_descriptor.width
+                internal_suffix = '($i$)'
+
             # Determine the VHDL type.
             vhdl_type = None
             if interface.type == 'natural':
@@ -91,18 +98,21 @@ class CustomBehavior(Behavior):
             elif kind == 'drive':
                 assert vhdl_type is None
                 internal = resources.internals.drive(
-                    field_descriptor, name, shape)
-                internal_interfaces.append(internal, internal.drive_name)
+                    field_descriptor, name, internal_shape)
+                internal_interfaces.append((
+                    internal, internal.drive_name + internal_suffix))
             elif kind == 'strobe':
                 assert vhdl_type is None
                 internal = resources.internals.strobe(
-                    field_descriptor, name, shape)
-                internal_interfaces.append(internal, internal.drive_name)
+                    field_descriptor, name, internal_shape)
+                internal_interfaces.append((
+                    internal, internal.drive_name + internal_suffix))
             elif kind == 'monitor':
                 assert vhdl_type is None
                 internal = resources.internals.use(
-                    field_descriptor, name, shape)
-                internal_interfaces.append(internal, internal.use_name)
+                    field_descriptor, name, internal_shape)
+                internal_interfaces.append((
+                    internal, internal.use_name + internal_suffix))
             elif kind == 'state':
                 assert vhdl_type is None
                 state.append((name, shape))
