@@ -33,7 +33,6 @@ class TestCustomFields(TestCase):
                     )
                 },
             ]})
-        #rft.testbench.with_gui()
         with rft as objs:
             self.assertEqual(objs.bus.read(0), 0x11223344)
             with self.assertRaisesRegex(ValueError, 'decode'):
@@ -111,7 +110,6 @@ class TestCustomFields(TestCase):
                     ),
                 },
             ]}, ('F_A_WRITE_RESET', 'X"4433221111223344"'))
-        #rft.testbench.with_gui()
         with rft as objs:
             self.assertEqual(int(objs.f_a_o[0].read_toggle), 0)
             self.assertEqual(int(objs.f_a_o[0].write_toggle), 0)
@@ -155,6 +153,55 @@ class TestCustomFields(TestCase):
             self.assertEqual(int(objs.f_a_o[1].write_toggle), 1)
             self.assertEqual(int(objs.f_b_o.write_toggle), 1)
             self.assertEqual(int(objs.f_b_o.write_data), 25)
+
+    def test_state(self):
+        """test custom field state and non-std_logic types"""
+        rft = RegisterFileTestbench({
+            'metadata': {'name': 'test'},
+            'fields': [
+                {
+                    'address': 0,
+                    'repeat': 2,
+                    'field-repeat': 1,
+                    'name': 'a',
+                    'behavior': 'custom',
+                    'interfaces': [
+                        {'state': 'data:32'},
+                        {'state': 'toggle'},
+                        {'generic': 'reset', 'type': 'natural'},
+                    ],
+                    'read': (
+                        'if $s.toggle$ = \'0\' then\n'
+                        '  $data$ := $s.data$;\n'
+                        'else\n'
+                        '  $data$ := not $s.data$;\n'
+                        'end if;\n'
+                        '$s.toggle$ := not $s.toggle$;\n'
+                        '$ack$ := true;\n'
+                    ),
+                    'write': (
+                        '$s.data$ := $data$;\n'
+                        '$ack$ := true;\n'
+                    ),
+                    'post-access': (
+                        'if reset = \'1\' then'
+                        '  $s.toggle$ := \'0\';\n'
+                        '  $s.data$ := std_logic_vector(to_unsigned($s.reset$, 32));\n'
+                        'end if;\n'
+                    ),
+                },
+            ]}, ('F_A_RESET', '(0 => 33, 1 => 42)'))
+        with rft as objs:
+            self.assertEqual(objs.bus.read(0), 0x00000021)
+            self.assertEqual(objs.bus.read(4), 0x0000002A)
+            self.assertEqual(objs.bus.read(0), 0xFFFFFFDE)
+            self.assertEqual(objs.bus.read(4), 0xFFFFFFD5)
+            objs.bus.write(0, 0x33333333)
+            objs.bus.write(4, 0x42424242)
+            self.assertEqual(objs.bus.read(0), 0x33333333)
+            self.assertEqual(objs.bus.read(4), 0x42424242)
+            self.assertEqual(objs.bus.read(0), 0xCCCCCCCC)
+            self.assertEqual(objs.bus.read(4), 0xBDBDBDBD)
 
     def test_errors(self):
         """test custom field errors"""
