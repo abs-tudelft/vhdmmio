@@ -50,28 +50,6 @@ class CustomBehaviorCodeGen(BehaviorCodeGen):
         else:
             var_defs = []
 
-        # Construct appropriately sized variables for data, strobe, and
-        # subaddress. These can then be presented to the user template instead
-        # of the slices generated downstream. If they were to be passed
-        # directly, the user template wouldn't be able to slice again; you'd
-        # get for instance r_hold(31 downto 16)(4) to get bit 20, which is not
-        # legal in VHDL because reasons...
-        if self.field_descriptor.base_bitrange.is_vector():
-            var_defs.append(
-                'variable f_%s_data: std_logic_vector(%d downto 0);' % (
-                    fd_name, self.field_descriptor.base_bitrange.width - 1))
-            if self.behavior.bus.write is not None:
-                var_defs.append(
-                    'variable f_%s_strb: std_logic_vector(%d downto 0);' % (
-                        fd_name, self.field_descriptor.base_bitrange.width - 1))
-        else:
-            var_defs.append(
-                'variable f_%s_data: std_logic;' % fd_name)
-            if self.behavior.bus.write is not None:
-                var_defs.append(
-                    'variable f_%s_strb: std_logic;' % fd_name)
-        # TODO: subaddress
-
         self.add_declarations(private='\n'.join(var_defs))
 
         def new_tple():
