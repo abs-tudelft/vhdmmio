@@ -22,7 +22,7 @@ class Checked(ScalarLoader):
         return self._has_default
 
     def deserialize(self, dictionary, parent):
-        """`Parsed` deserializer. See `Loader.deserialize()` for more info."""
+        """`Checked` deserializer. See `Loader.deserialize()` for more info."""
         value = self.get_value(dictionary)
         with ParseError.wrap(self.key):
             return self._validator(parent, value)
