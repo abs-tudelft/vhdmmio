@@ -7,10 +7,15 @@ _BEHAVIOR_CODE_GEN_CLASS_MAP = []
 
 _BUS_REQ_FIELD_TEMPLATE = annotate_block("""
 |$block HANDLE
-  |$if defined('LOOKAHEAD') or defined('NORMAL') or defined('BOTH')
+  |$if defined('NORMAL') or defined('BOTH')
     |$if dir == 'r'
-      |$r_data$ := r_hold($rnge$);
-    |$else
+      |if $dir$_req then
+      |  $r_data$ := r_hold($rnge$);
+      |end if;
+    |$endif
+  |$endif
+  |$if defined('LOOKAHEAD') or defined('NORMAL') or defined('BOTH')
+    |$if dir == 'w'
       |$w_data$ := w_hold($rnge$);
       |$w_strobe$ := w_hstb($rnge$);
     |$endif
@@ -30,9 +35,11 @@ _BUS_REQ_FIELD_TEMPLATE = annotate_block("""
     |$ BOTH
     |end if;
   |$endif
-  |$if defined('LOOKAHEAD') or defined('NORMAL') or defined('BOTH')
+  |$if defined('NORMAL') or defined('BOTH')
     |$if dir == 'r'
-      |r_hold($rnge$) := $r_data$;
+      |if $dir$_req then
+      |  r_hold($rnge$) := $r_data$;
+      |end if;
     |$endif
   |$endif
 |$endblock
@@ -44,6 +51,14 @@ _BUS_REQ_FIELD_TEMPLATE = annotate_block("""
   |if std_match($dir$_prot, "$prot$") then
   |$ HANDLE
   |end if;
+|$endif
+""", comment='--')
+
+_BUS_RESP_FIELD_TEMPLATE = annotate_block("""
+|$RESP
+|$if dir == 'r'
+  |r_hold := (others => '0');
+  |r_hold($rnge$) := $r_data$;
 |$endif
 """, comment='--')
 
@@ -412,10 +427,10 @@ class BehaviorCodeGen:
 
             # Add the deferred block.
             if deferred is not None:
-                tag = {'r': register.read_tag, 'w': register.write_tag}[direction]
-                assert tag is not None and tag.startswith('"') and tag.endswith('"')
-                tag = int(tag[1:-1], 2)
-                decoder = {'r': self._read_tag_decoder, 'w': self._write_tag_decoder}[direction]
-                decoder[tag] = '@ Deferred %s logic for %s\n%s' % (
-                    {'r': 'read', 'w': 'write'}[direction],
-                    desc, tple.apply_str_to_str(deferred, postprocess=False))
+                tple.append_block('RESP', '@ Response logic.', deferred)
+                tag_decoder, tag = {
+                    'r': (self._read_tag_decoder, register.blocks[0].read_tag),
+                    'w': (self._write_tag_decoder, register.blocks[-1].write_tag)
+                }[direction]
+                block = tple.apply_str_to_str(_BUS_RESP_FIELD_TEMPLATE, postprocess=False)
+                tag_decoder[tag] = block

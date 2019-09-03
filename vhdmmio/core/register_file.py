@@ -70,7 +70,7 @@ class RegisterFile(Named, Configured, Unique):
             # Expose the requisite information about the used resources in an
             # immutable way.
             self._defer_tag_info = DeferTagInfo(
-                resources.read_tags, resources.write_tags)
+                resources.read_tags, resources.write_tags, cfg.features.max_outstanding)
             self._interrupt_info = InterruptInfo(
                 resources.interrupts)
             self._internals = tuple(resources.internals)

@@ -115,10 +115,10 @@ $if di.write_count
 
     -- Write tag FIFO.
     type w_tag_array is array (natural range <>) of std_logic_vector($di.write_width-1$ downto 0);
-    variable w_tags     : w_tag_array(0 to $2**r.tag_depth_log2-1$); -- mem
-    variable w_tag_wptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
-    variable w_tag_rptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
-    variable w_tag_cnt  : std_logic_vector($r.tag_depth_log2$ downto 0) := (others => '0'); -- reg;
+    variable w_tags     : w_tag_array(0 to $2**di.tag_depth_log2-1$); -- mem
+    variable w_tag_wptr : std_logic_vector($di.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
+    variable w_tag_rptr : std_logic_vector($di.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
+    variable w_tag_cnt  : std_logic_vector($di.tag_depth_log2$ downto 0) := (others => '0'); -- reg;
 $endif
 
 $if di.read_count
@@ -129,10 +129,10 @@ $if di.read_count
 
     -- Read tag FIFO.
     type r_tag_array is array (natural range <>) of std_logic_vector($di.read_width-1$ downto 0);
-    variable r_tags     : r_tag_array(0 to $2**r.tag_depth_log2-1$); -- mem
-    variable r_tag_wptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
-    variable r_tag_rptr : std_logic_vector($r.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
-    variable r_tag_cnt  : std_logic_vector($r.tag_depth_log2$ downto 0) := (others => '0'); -- reg;
+    variable r_tags     : r_tag_array(0 to $2**di.tag_depth_log2-1$); -- mem
+    variable r_tag_wptr : std_logic_vector($di.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
+    variable r_tag_rptr : std_logic_vector($di.tag_depth_log2-1$ downto 0) := (others => '0'); -- reg;
+    variable r_tag_cnt  : std_logic_vector($di.tag_depth_log2$ downto 0) := (others => '0'); -- reg;
 $endif
 
     -- Request signals. w_strb is a validity bit for each data bit; it actually
@@ -440,7 +440,7 @@ $endif
 $if di.write_count
       -- Handle outstanding write requests.
       w_rtag := w_tags(to_integer(unsigned(w_tag_rptr)));
-      if w_tag_cnt = "0$'0'*r.tag_depth_log2$" then
+      if w_tag_cnt /= "0$'0'*di.tag_depth_log2$" then
 
         -- There are outstanding requests, so everything is a lookahead now.
         w_lreq := w_lreq or w_req;
@@ -451,7 +451,7 @@ $if di.write_count
           w_rreq := true;
         end if;
 
-      elsif w_tag_cnt($r.tag_depth_log2$) = '1' then
+      elsif w_tag_cnt($di.tag_depth_log2$) = '1' then
 
         -- FIFO full; disable even lookaheads (since we wouldn't be able to do
         -- anything with the deferral tag if the lookahead can be deferred).
@@ -464,7 +464,7 @@ $endif
 $if di.read_count
       -- Handle outstanding read requests.
       r_rtag := r_tags(to_integer(unsigned(r_tag_rptr)));
-      if r_tag_cnt = "0$'0'*r.tag_depth_log2$" then
+      if r_tag_cnt /= "0$'0'*di.tag_depth_log2$" then
 
         -- There are outstanding requests, so everything is a lookahead now.
         r_lreq := r_lreq or r_req;
@@ -475,7 +475,7 @@ $if di.read_count
           r_rreq := true;
         end if;
 
-      elsif r_tag_cnt($r.tag_depth_log2$) = '1' then
+      elsif r_tag_cnt($di.tag_depth_log2$) = '1' then
 
         -- FIFO full; disable even lookaheads (since we wouldn't be able to do
         -- anything with the deferral tag if the lookahead can be deferred).
@@ -592,9 +592,41 @@ $endif
       -------------------------------------------------------------------------
       -- Perform the write action dictated by the field logic.
 $if di.write_count
-      if (w_rreq or w_req) and not w_block then
+      if (w_req and not w_block) or w_defer then
+
+        -- Accept write requests by invalidating the request holding
+        -- registers.
+        awl.valid := '0';
+        wl.valid := '0';
+
+      end if;
+
+      if w_defer then
+        assert w_req or w_lreq severity failure;
+
+        -- Defer the write: push the register tag into the FIFO...
+        w_tags(to_integer(unsigned(w_tag_wptr))) := w_dtag;
+        w_tag_wptr := std_logic_vector(unsigned(w_tag_wptr) + 1);
+        w_tag_cnt := std_logic_vector(unsigned(w_tag_cnt) + 1);
+
+      end if;
+
+      if w_rreq and not w_block then
+
+        -- Complete deferred write by popping the tag FIFO.
+        w_tag_rptr := std_logic_vector(unsigned(w_tag_rptr) + 1);
+        w_tag_cnt := std_logic_vector(unsigned(w_tag_cnt) - 1);
+
+      end if;
+
+      if (w_rreq or (w_req and not w_defer)) and not w_block then
 $else
       if w_req and not w_block then
+
+        -- Accept write requests by invalidating the request holding
+        -- registers.
+        awl.valid := '0';
+        wl.valid := '0';
 $endif
 
         -- Send the appropriate write response.
@@ -607,51 +639,43 @@ $endif
           bus_v.b.resp := AXI4L_RESP_DECERR;
         end if;
 
-$if not di.write_count
-        -- Accept write requests by invalidating the request holding
-        -- registers.
-        awl.valid := '0';
-        wl.valid := '0';
       end if;
-$else
-        if w_rreq then
-
-          -- Complete deferred write by popping the tag FIFO.
-          w_tag_rptr := std_logic_vector(unsigned(w_tag_rptr) + 1);
-          w_tag_cnt := std_logic_vector(unsigned(w_tag_cnt) - 1);
-
-        else
-          assert w_req severity failure;
-
-          -- Accept write requests by invalidating the request holding
-          -- registers.
-          awl.valid := '0';
-          wl.valid := '0';
-
-        end if;
-      end if;
-
-      -- Handle write deferral.
-      if w_defer then
-        assert w_req or w_lreq severity failure;
-
-        -- Defer the write: push the register tag into the FIFO...
-        w_tags(to_integer(unsigned(w_tag_wptr))) := w_dtag;
-        w_tag_wptr := std_logic_vector(unsigned(w_tag_wptr) + 1);
-        w_tag_cnt := std_logic_vector(unsigned(w_tag_cnt) + 1);
-
-        -- ...and accept the request.
-        awl.valid := '0';
-        wl.valid := '0';
-
-      end if;
-$endif
 
       -- Perform the read action dictated by the field logic.
 $if di.read_count
-      if (r_rreq or r_req) and not r_block then
+      if (r_req and not r_block) or r_defer then
+
+        -- Accept read requests by invalidating the request holding
+        -- registers.
+        arl.valid := '0';
+
+      end if;
+
+      if r_defer then
+        assert r_req or r_lreq severity failure;
+
+        -- Defer the read: push the register tag into the FIFO...
+        r_tags(to_integer(unsigned(r_tag_wptr))) := r_dtag;
+        r_tag_wptr := std_logic_vector(unsigned(r_tag_wptr) + 1);
+        r_tag_cnt := std_logic_vector(unsigned(r_tag_cnt) + 1);
+
+      end if;
+
+      if r_rreq and not r_block then
+
+        -- Complete deferred read by popping the tag FIFO.
+        r_tag_rptr := std_logic_vector(unsigned(r_tag_rptr) + 1);
+        r_tag_cnt := std_logic_vector(unsigned(r_tag_cnt) - 1);
+
+      end if;
+
+      if (r_rreq or (r_req and not r_defer)) and not r_block then
 $else
       if r_req and not r_block then
+
+        -- Accept read requests by invalidating the request holding
+        -- registers.
+        arl.valid := '0';
 $endif
 
         -- Send the appropriate read response.
@@ -665,43 +689,7 @@ $endif
           bus_v.r.resp := AXI4L_RESP_DECERR;
         end if;
 
-$if not di.read_count
-        -- Accept read requests by invalidating the request holding
-        -- registers.
-        arl.valid := '0';
-
       end if;
-$else
-        if r_rreq then
-
-          -- Complete deferred read by popping the tag FIFO.
-          r_tag_rptr := std_logic_vector(unsigned(r_tag_rptr) + 1);
-          r_tag_cnt := std_logic_vector(unsigned(r_tag_cnt) - 1);
-
-        else
-          assert r_req severity failure;
-
-          -- Accept read requests by invalidating the request holding
-          -- registers.
-          arl.valid := '0';
-
-        end if;
-      end if;
-
-      -- Handle read deferral.
-      if r_defer then
-        assert r_req or r_lreq severity failure;
-
-        -- Defer the read: push the register tag into the FIFO...
-        r_tags(to_integer(unsigned(r_tag_wptr))) := r_dtag;
-        r_tag_wptr := std_logic_vector(unsigned(r_tag_wptr) + 1);
-        r_tag_cnt := std_logic_vector(unsigned(r_tag_cnt) + 1);
-
-        -- ...and accept the request.
-        arl.valid := '0';
-
-      end if;
-$endif
 
 $if r.harden
       -- If this was the end of a multi-word access, clear the holding

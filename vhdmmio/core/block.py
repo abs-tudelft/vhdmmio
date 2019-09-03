@@ -135,6 +135,21 @@ class Block(Named, Unique, Accessed):
         self._address = resources.addresses.signals.split_address(
             self._internal_address)[AddressSignalMap.BUS]
 
+        # If the field that this block belongs to can defer (there is always
+        # only one field if this is the case), we need to grab defer tags. In
+        # write mode, only the last block needs such a tag; the preceding write
+        # buffering can just be done in lookahead mode. For reads, each block
+        # needs a tag, since we can only split the read data up into multiple
+        # accesses after the deferred access is performed.
+        self._read_tag = None
+        self._write_tag = None
+        if len(register.fields) == 1:
+            if self.can_read() and register.fields[0].behavior.bus.read.deferring:
+                self._read_tag = resources.read_tags.get_next()
+            if self.can_write() and register.fields[0].behavior.bus.write.deferring:
+                if index == count - 1:
+                    self._write_tag = resources.write_tags.get_next()
+
         # If there are multiple blocks, register each block in the register
         # namespace as well. The blocks will get their own definitions and such
         # in the generated software, so they need to be unique.
@@ -241,6 +256,20 @@ class Block(Named, Unique, Accessed):
         """Internal address of this block (concatenation of the bus address and
         any other match conditions)."""
         return self._internal_address
+
+    @property
+    def read_tag(self):
+        """The tag used when a field is deferring the bus response to support
+        multiple outstanding requests in read mode, or `None` if no such tag is
+        needed for this block."""
+        return self._read_tag
+
+    @property
+    def write_tag(self):
+        """The tag used when a field is deferring the bus response to support
+        multiple outstanding requests in write mode, or `None` if no such tag
+        is needed for this block."""
+        return self._write_tag
 
     def doc_address(self):
         """Formats documentation for this block's internal address. Returns a

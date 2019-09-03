@@ -1,8 +1,4 @@
 test:
- - prot + hardening
  - register boilerplate logic:
-    - blocking
     - deferral
-    - errors
-    - the above in the presence of multiple fields
  - field logic for every behavior class

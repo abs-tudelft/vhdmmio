@@ -120,9 +120,8 @@ class LogicalRegister(Named, Unique, Accessed):
             for field in self.fields:
                 resources.register_namespace.add(self, field)
 
-            # Check for behavioral conflicts and grab a deferral tag if we need
-            # one.
-            self._read_tag, self._write_tag = self._check_behavior_and_get_tag(resources)
+            # Check for behavioral conflicts.
+            self._check_behavior()
 
             # Determine the endianness of the blocks in this logical register.
             self._endianness = self._determine_endianness()
@@ -138,14 +137,10 @@ class LogicalRegister(Named, Unique, Accessed):
                 Block(resources, self, index, num_blocks)
                 for index in range(num_blocks)))
 
-    def _check_behavior_and_get_tag(self, resources):
+    def _check_behavior(self):
         """Helper method for the constructor that checks for behavioral
         conflicts in the fields, for instance a volatile field combined with a
-        blocking field. This also acquires deferral tags if a field needs
-        them and returns them as a two-tuple (first is for reads, second for
-        writes), using `None` if no tag is needed."""
-        read_tag = None
-        write_tag = None
+        blocking field."""
         for mode in 'RW':
             if mode not in self._mode:
                 continue
@@ -181,13 +176,6 @@ class LogicalRegister(Named, Unique, Accessed):
                         'fields (%s)' % (
                             _enumerate_fields(deferring)))
 
-                if mode == 'R':
-                    read_tag = resources.read_tags.get_next()
-                else:
-                    write_tag = resources.write_tags.get_next()
-
-        return read_tag, write_tag
-
     def _determine_endianness(self):
         """Helper method for the constructor that determines the endianness of
         the register based on the register file and field configuration."""
@@ -213,20 +201,6 @@ class LogicalRegister(Named, Unique, Accessed):
         """The fields contained by this logical register as a tuple, in LSB to
         MSB order."""
         return self._fields
-
-    @property
-    def read_tag(self):
-        """The tag used when a field is deferring the bus response to support
-        multiple outstanding requests in read mode, or `None` if no such tag is
-        needed for this register."""
-        return self._read_tag
-
-    @property
-    def write_tag(self):
-        """The tag used when a field is deferring the bus response to support
-        multiple outstanding requests in write mode, or `None` if no such tag
-        is needed for this register."""
-        return self._write_tag
 
     @property
     def address(self):

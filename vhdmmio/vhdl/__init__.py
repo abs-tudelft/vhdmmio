@@ -36,58 +36,82 @@ _INTERRUPT_TEMPLATE = annotate_block("""
 
 
 _BLOCK_ACCESS_TEMPLATE = annotate_block("""
+|$block BEFORE_READ_RESP
+  |@ Clear holding register location prior to read.
+  |r_hold := (others => '0');
+|$endblock
+|
 |$block BEFORE_READ
   |$if blk_idx == 0
-    |if r_req then
-    |  @ Clear holding register location prior to read.
-    |  r_hold := (others => '0');
-    |end if;
+    |$if phase == 'request'
+      |if r_req then
+      |$ BEFORE_READ_RESP
+      |end if;
+    |$else
+      |$BEFORE_READ_RESP
+    |$endif
+  |$endif
+|$endblock
+|
+|$block AFTER_READ_RESP
+  |r_data := r_hold($bw*word_idx + bw-1$ downto $bw*word_idx$);
+  |$if blk_cnt > 1
+    |$if blk_idx == 0
+      |r_multi := '1';
+    |$else
+      |if r_multi = '1' then
+      |  r_ack := true;
+      |else
+      |  r_nack := true;
+      |end if;
+    |$endif
+  |$endif
+  |$if blk_idx == blk_cnt - 1
+    |r_multi := '0';
   |$endif
 |$endblock
 |
 |$block AFTER_READ
   |@ Read logic for $desc$
-  |if r_req then
-  |  r_data := r_hold($bw*word_idx + bw-1$ downto $bw*word_idx$);
-  |$if blk_cnt > 1
-    |$if blk_idx == 0
-      |  r_multi := '1';
-    |$else
-      |  if r_multi = '1' then
-      |    r_ack := true;
-      |  else
-      |    r_nack := true;
-      |  end if;
-    |$endif
-  |$endif
-  |$if blk_idx == blk_cnt - 1
-    |  r_multi := '0';
-  |$endif
-  |end if;
-  |$if blk_idx == 0 and read_tag is not None
-    |if r_defer then
-    |  r_dtag := $read_tag$;
+  |$if phase == 'request'
+    |if r_req then
+    |$ AFTER_READ_RESP
     |end if;
+  |$else
+    |$AFTER_READ_RESP
+  |$endif
+  |$if blk_idx == 0 and read_tag is not None
+    |$if phase == 'request'
+      |if r_defer then
+      |  r_dtag := $read_tag$;
+      |end if;
+    |$endif
   |$endif
 |$endblock
 |
 |$block BEFORE_WRITE
-  |@ Write logic for $desc$
-  |if w_req then
-  |  w_hold($bw*word_idx + bw-1$ downto $bw*word_idx$) := w_data;
-  |  w_hstb($bw*word_idx + bw-1$ downto $bw*word_idx$) := w_strb;
-  |  w_multi := '$'1' if blk_idx < blk_cnt - 1 else '0'$';
-    |$ if blk_idx < blk_cnt - 1
-    |  w_ack := true;
+  |$if phase == 'request'
+    |@ Write logic for $desc$
+    |if w_req or w_lreq then
+    |  w_hold($bw*word_idx + bw-1$ downto $bw*word_idx$) := w_data;
+    |  w_hstb($bw*word_idx + bw-1$ downto $bw*word_idx$) := w_strb;
+    |  w_multi := '$'1' if blk_idx < blk_cnt - 1 else '0'$';
+    |end if;
+    |$if blk_idx < blk_cnt - 1
+      |if w_req then
+      |  w_ack := true;
+      |end if;
     |$endif
-  |end if;
+  |$endif
 |$endblock
 |
 |$block AFTER_WRITE
-  |$if blk_idx == blk_cnt - 1 and write_tag is not None
-    |if w_defer then
-    |  w_dtag := $write_tag$;
-    |end if;
+  |$if phase == 'request'
+    |$if blk_idx == blk_cnt - 1 and write_tag is not None
+      |if w_defer then
+      |  w_dtag := $write_tag$;
+      |end if;
+    |$endif
   |$endif
 |$endblock
 |
@@ -156,10 +180,10 @@ class VhdlEntityGenerator:
         # Construct defer tag decoder builders.
         self._read_tag_decoder = AddressDecoder(
             'r_rtag', regfile.defer_tag_info.read_width,
-            optimize=True)
+            optimize=True, allow_duplicate=True)
         self._write_tag_decoder = AddressDecoder(
             'w_rtag', regfile.defer_tag_info.write_width,
-            optimize=True)
+            optimize=True, allow_duplicate=True)
 
         # Generate code for interrupts.
         for interrupt in regfile.interrupts:
@@ -416,18 +440,30 @@ class VhdlEntityGenerator:
             tple['word_idx'] = address_block.index
         else:
             tple['word_idx'] = len(address_block.register.blocks) - address_block.index - 1
-        tple['read_tag'] = address_block.register.read_tag
-        tple['write_tag'] = address_block.register.write_tag
+        tple['read_tag'] = address_block.read_tag
+        tple['write_tag'] = address_block.write_tag
         if address_block.can_read():
             tple['dir'] = 'r'
+            tple['phase'] = 'request'
             block = tple.apply_str_to_str(
                 _BLOCK_ACCESS_TEMPLATE, postprocess=False)
             self._read_decoder[address_block.internal_address] = block
+            if address_block.read_tag is not None:
+                tple['phase'] = 'response'
+                block = tple.apply_str_to_str(
+                    _BLOCK_ACCESS_TEMPLATE, postprocess=False)
+                self._read_tag_decoder[address_block.read_tag] = block
         if address_block.can_write():
             tple['dir'] = 'w'
+            tple['phase'] = 'request'
             block = tple.apply_str_to_str(
                 _BLOCK_ACCESS_TEMPLATE, postprocess=False)
             self._write_decoder[address_block.internal_address] = block
+            if address_block.write_tag is not None:
+                tple['phase'] = 'response'
+                block = tple.apply_str_to_str(
+                    _BLOCK_ACCESS_TEMPLATE, postprocess=False)
+                self._write_tag_decoder[address_block.write_tag] = block
 
     def _add_internal_signal(self, internal):
         """Adds the boilerplate code that supports the given internal signal
