@@ -34,6 +34,10 @@ class TestPrimitiveCounterFields(TestCase):
                     'internal': 'c',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'f_a_i.increment',
+        ))
         with rft as objs:
             self.assertEqual(objs.bus.read(0), 0x00)
             self.assertEqual(objs.bus.read(4), 0x00)
@@ -83,6 +87,10 @@ class TestPrimitiveCounterFields(TestCase):
                     'internal': 'b',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'f_a_i.increment',
+        ))
         with rft as objs:
             self.assertEqual(objs.bus.read(0), 0x0)
             self.assertEqual(objs.bus.read(4), 0x0)

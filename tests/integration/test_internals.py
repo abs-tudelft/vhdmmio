@@ -40,6 +40,7 @@ class TestInternals(TestCase):
                     'internal': 'y',
                 },
             ]})
+        self.assertEqual(rft.ports, ('bus',))
         with rft as objs:
             self.assertEqual(objs.bus.read(0), 0)
             self.assertEqual(objs.bus.read(4), 0)
@@ -76,6 +77,13 @@ class TestInternals(TestCase):
                     'port': 'yo',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            's_xi',
+            's_xo',
+            's_yi',
+            's_yo',
+        ))
         with rft as objs:
             # Note: latency is two cycles; one for the entity itself, and one
             # for the testbench.
@@ -132,6 +140,15 @@ class TestInternals(TestCase):
                     'port': 'yo',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            's_xa',
+            's_xb',
+            's_xo',
+            's_ya',
+            's_yb',
+            's_yo',
+        ))
         with rft as objs:
             # Note: latency is two cycles; one for the entity itself, and one
             # for the testbench.

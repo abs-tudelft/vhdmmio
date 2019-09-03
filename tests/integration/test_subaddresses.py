@@ -60,6 +60,7 @@ class TestSubaddresses(TestCase):
             sub_config=[],
             sub_offset=0,
             sub_width=1))
+        self.assertEqual(rft.ports, ('bus',))
         with rft as objs:
             self.assertEqual(objs.bus.read(0x0000), 0)
             objs.bus.write(0x1000, 0)
@@ -73,6 +74,7 @@ class TestSubaddresses(TestCase):
             sub_config=[],
             sub_offset=3,
             sub_width=3))
+        self.assertEqual(rft.ports, ('bus',))
         with rft as objs:
             for i in range(8):
                 self.assertEqual(objs.bus.read(i * 4), (i + 3) % 8)
@@ -88,6 +90,7 @@ class TestSubaddresses(TestCase):
             sub_config=[],
             sub_offset=0,
             sub_width=3))
+        self.assertEqual(rft.ports, ('bus',))
         with rft as objs:
             for i in range(8):
                 self.assertEqual(objs.bus.read(i * 16), i)
@@ -110,6 +113,7 @@ class TestSubaddresses(TestCase):
             sub_offset=0,
             sub_width=11,
             page_bits=4))
+        self.assertEqual(rft.ports, ('bus',))
         with rft as objs:
             objs.bus.write(0x2000, 0b0000)
             self.assertEqual(objs.bus.read(0b0000000), 0b00000000000)

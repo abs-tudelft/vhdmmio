@@ -33,6 +33,10 @@ class TestPrimitiveFlagFields(TestCase):
                     'internal': 'c',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'f_a_i.bit_set',
+        ))
         with rft as objs:
             self.assertEqual(objs.bus.read(0), 0)
             self.assertEqual(objs.bus.read(4), 0)
@@ -73,6 +77,10 @@ class TestPrimitiveFlagFields(TestCase):
                     'internal': 'b',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'f_a_i.bit_set',
+        ))
         with rft as objs:
             self.assertEqual(objs.bus.read(0), 0)
             self.assertEqual(objs.bus.read(4), 0)

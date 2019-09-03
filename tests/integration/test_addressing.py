@@ -60,6 +60,7 @@ class TestAddressing(TestCase):
                     'value': 42
                 },
             ]})
+        self.assertEqual(rft.ports, ('bus',))
         with rft as objs:
             for addr in range(4):
                 self.assertEqual(objs.bus.read(addr), 42)
@@ -176,6 +177,7 @@ class TestAddressing(TestCase):
             'metadata': {'name': 'test'},
             'fields': fields,
         })
+        self.assertEqual(rft.ports, ('bus',))
         with rft as objs:
             for idx, val in enumerate(magic):
                 objs.bus.write(4, idx)

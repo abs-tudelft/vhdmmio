@@ -49,6 +49,11 @@ class TestInterruptFields(TestCase):
                 },
             ],
             'fields': fields})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'i_x_request',
+            'i_y_request',
+        ))
         with rft as objs:
             objs.bus.write(types['enable'], 0x555)
             objs.bus.write(types['unmask'], 0x333)

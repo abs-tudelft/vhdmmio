@@ -50,7 +50,18 @@ class TestPrimitiveStatusFields(TestCase):
                     'direction': 'input',
                 },
             ]})
-        #rft.testbench.with_gui()
+        self.assertEqual(rft.ports, (
+            'bus',
+            'f_a_i.write_data',
+            'f_c_i.write_data',
+            'f_c_i.write_enable',
+            'f_d_i.validate',
+            'f_d_i.write_data',
+            'f_d_i.write_enable',
+            'f_e_i.write_data',
+            'f_e_i.write_enable',
+            's_b',
+        ))
         with rft as objs:
             objs.f_a_i.write_data.val = 33
             self.assertEqual(objs.bus.read(0), 33)

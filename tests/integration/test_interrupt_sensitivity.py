@@ -27,6 +27,10 @@ class TestInterruptSense(TestCase):
                     'interrupt': 'x',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'i_x_request',
+        ))
         with tempfile.TemporaryDirectory() as tdir:
             HtmlDocumentationGenerator([rft.regfile]).generate(tdir)
             with open(pjoin(tdir, 'index.html'), 'r') as fil:
@@ -65,6 +69,10 @@ class TestInterruptSense(TestCase):
                     'interrupt': 'x',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'i_x_request',
+        ))
         with tempfile.TemporaryDirectory() as tdir:
             HtmlDocumentationGenerator([rft.regfile]).generate(tdir)
             with open(pjoin(tdir, 'index.html'), 'r') as fil:
@@ -108,6 +116,10 @@ class TestInterruptSense(TestCase):
                     'interrupt': 'x',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'i_x_request',
+        ))
         with tempfile.TemporaryDirectory() as tdir:
             HtmlDocumentationGenerator([rft.regfile]).generate(tdir)
             with open(pjoin(tdir, 'index.html'), 'r') as fil:
@@ -144,6 +156,10 @@ class TestInterruptSense(TestCase):
                     'interrupt': 'x',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'i_x_request',
+        ))
         with tempfile.TemporaryDirectory() as tdir:
             HtmlDocumentationGenerator([rft.regfile]).generate(tdir)
             with open(pjoin(tdir, 'index.html'), 'r') as fil:
@@ -179,6 +195,10 @@ class TestInterruptSense(TestCase):
                     'interrupt': 'x',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'i_x_request',
+        ))
         with tempfile.TemporaryDirectory() as tdir:
             HtmlDocumentationGenerator([rft.regfile]).generate(tdir)
             with open(pjoin(tdir, 'index.html'), 'r') as fil:
@@ -222,6 +242,10 @@ class TestInterruptSense(TestCase):
                     'interrupt': 'x',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'i_x_request',
+        ))
         with tempfile.TemporaryDirectory() as tdir:
             HtmlDocumentationGenerator([rft.regfile]).generate(tdir)
             with open(pjoin(tdir, 'index.html'), 'r') as fil:
@@ -265,6 +289,10 @@ class TestInterruptSense(TestCase):
                     'interrupt': 'x',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'i_x_request',
+        ))
         with tempfile.TemporaryDirectory() as tdir:
             HtmlDocumentationGenerator([rft.regfile]).generate(tdir)
             with open(pjoin(tdir, 'index.html'), 'r') as fil:
@@ -314,6 +342,10 @@ class TestInterruptSense(TestCase):
                     'interrupt': 'x',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'i_x_request',
+        ))
         with rft as objs:
             self.assertEqual(objs.bus.read(0), 0)
             self.assertEqual(int(objs.bus.interrupt), 0)

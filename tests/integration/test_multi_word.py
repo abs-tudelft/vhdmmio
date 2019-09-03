@@ -56,6 +56,7 @@ class TestMultiWord(TestCase):
                     'internal': 'y',
                 },
             ]})
+        self.assertEqual(rft.ports, ('bus',))
         with rft as objs:
             objs.bus.write(0, 0x11223344)
             objs.bus.write(4, 0x55667788)

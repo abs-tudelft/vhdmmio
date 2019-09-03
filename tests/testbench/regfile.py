@@ -70,11 +70,13 @@ class RegisterFileTestbench:
 
         # Create testbench signal hooks/AXI4L mockups for all UUT ports.
         self._tb_obs = {}
+        ports = []
         axi_mocks = {}
         for mode, name, typ, count in self._entity_generator.gather_ports():
 
             # Skip generics.
             if mode == 'g':
+                ports.append(name)
                 continue
 
             # Function that strips _<mode> tags from the end of names.
@@ -185,6 +187,10 @@ class RegisterFileTestbench:
                     sub = sub[ent]
                 sub[tb_path[-1]] = tb_ob
 
+                ports.append('.'.join(map(str, tb_path)))
+
+        self._ports = tuple(sorted(ports))
+
         if axi_mocks:
             raise ValueError(
                 'failed to match all AXI4L ports, remaining identifiers: %s'
@@ -221,23 +227,28 @@ class RegisterFileTestbench:
 
     @property
     def regfile(self):
-        """Returns the `RegisterFile` object."""
+        """The `RegisterFile` object."""
         return self._regfile
 
     @property
     def entity_generator(self):
-        """Returns the `VhdlEntityGenerator` object."""
+        """The `VhdlEntityGenerator` object."""
         return self._entity_generator
 
     @property
     def testbench(self):
-        """Returns the `Testbench` object."""
+        """The `Testbench` object."""
         return self._testbench
 
     @property
     def tempdir(self):
-        """Returns the temporary directory that the VHDL files for the register
+        """The temporary directory that the VHDL files for the register
         file are generated in. Only valid when inside the context."""
         if self._tempdir is None:
             return None
         return self._tempdir.name
+
+    @property
+    def ports(self):
+        """A sorted tuple of all the detected port names/paths."""
+        return self._ports

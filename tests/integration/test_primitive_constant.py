@@ -23,6 +23,10 @@ class TestPrimitiveConstantFields(TestCase):
                     'behavior': 'config',
                 },
             ]}, ('F_B_RESET_DATA', '"{:032b}"'.format(42)))
+        self.assertEqual(rft.ports, (
+            'F_B_RESET_DATA',
+            'bus',
+        ))
         with rft as objs:
             objs.bus.read(0, 33)
             with self.assertRaisesRegex(ValueError, 'decode'):

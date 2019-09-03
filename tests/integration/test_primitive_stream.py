@@ -64,6 +64,15 @@ class TestPrimitiveStreamFields(TestCase):
                     'internal': 'b_empty',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'f_a_i.data',
+            'f_a_i.valid',
+            'f_a_o.ready',
+            'f_b_i.data',
+            'f_b_i.valid',
+            'f_b_o.ready',
+        ))
         with rft as objs:
             rft.testbench.clock()
             self.assertEqual(objs.bus.read(8), 0b01010)
@@ -166,6 +175,15 @@ class TestPrimitiveStreamFields(TestCase):
                     'internal': 'b_empty',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'f_a_i.ready',
+            'f_a_o.data',
+            'f_a_o.valid',
+            'f_b_i.ready',
+            'f_b_o.data',
+            'f_b_o.valid',
+        ))
         with rft as objs:
             rft.testbench.clock()
             self.assertEqual(objs.bus.read(8), 0b01010)

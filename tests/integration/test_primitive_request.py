@@ -83,6 +83,17 @@ class TestPrimitiveRequestFields(TestCase):
                     'underflow-internal': 'h',
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'f_ax_o.data',
+            'f_b_i.bit_clear',
+            'f_b_o.data',
+            'f_c_i.decrement',
+            'f_c_o.data',
+            'f_i_i.write_data',
+            'f_i_i.write_enable',
+            'f_i_o.data',
+        ))
         with rft as objs:
             resp = []
             def handle(code):

@@ -33,6 +33,7 @@ class TestCustomFields(TestCase):
                     )
                 },
             ]})
+        self.assertEqual(rft.ports, ('bus',))
         with rft as objs:
             self.assertEqual(objs.bus.read(0), 0x11223344)
             with self.assertRaisesRegex(ValueError, 'decode'):
@@ -110,6 +111,23 @@ class TestCustomFields(TestCase):
                     ),
                 },
             ]}, ('F_A_WRITE_RESET', 'X"4433221111223344"'))
+        self.assertEqual(rft.ports, (
+            'F_A_WRITE_RESET',
+            'F_B_WRITE_RESET',
+            'bus',
+            'f_a_i.0.read_data',
+            'f_a_i.1.read_data',
+            'f_a_o.0.read_toggle',
+            'f_a_o.0.write_data',
+            'f_a_o.0.write_toggle',
+            'f_a_o.1.read_toggle',
+            'f_a_o.1.write_data',
+            'f_a_o.1.write_toggle',
+            'f_b_i.read_data',
+            'f_b_o.read_toggle',
+            'f_b_o.write_data',
+            'f_b_o.write_toggle',
+        ))
         with rft as objs:
             self.assertEqual(int(objs.f_a_o[0].read_toggle), 0)
             self.assertEqual(int(objs.f_a_o[0].write_toggle), 0)
@@ -191,6 +209,10 @@ class TestCustomFields(TestCase):
                     ),
                 },
             ]}, ('F_A_RESET', '(0 => 33, 1 => 42)'))
+        self.assertEqual(rft.ports, (
+            'F_A_RESET',
+            'bus',
+        ))
         with rft as objs:
             self.assertEqual(objs.bus.read(0), 0x00000021)
             self.assertEqual(objs.bus.read(4), 0x0000002A)
@@ -270,6 +292,9 @@ class TestCustomFields(TestCase):
                     ),
                 },
             ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+        ))
         with rft as objs:
             self.assertEqual(objs.bus.read(8), 0)
             self.assertEqual(objs.bus.read(4), 0)

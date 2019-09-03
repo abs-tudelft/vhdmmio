@@ -55,7 +55,19 @@ class TestPrimitiveControlFields(TestCase):
                     'direction': 'output',
                 },
             ]})
-        #rft.testbench.with_gui()
+        self.assertEqual(rft.ports, (
+            'bus',
+            'f_a_o.data',
+            'f_b_i.reset',
+            'f_b_o.data',
+            'f_c_i.lock',
+            'f_c_o.data',
+            'f_c_o.valid',
+            'f_d_i.invalidate',
+            'f_d_o.data',
+            'f_d_o.valid',
+            's_e'
+        ))
         with rft as objs:
             self.assertEqual(objs.bus.read(0), 0)
             self.assertEqual(int(objs.f_a_o.data), 0)
