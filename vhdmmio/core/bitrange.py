@@ -65,15 +65,15 @@ class BitRange(Shaped):
 
     def __lshift__(self, value):
         """Shifts the bitrange left."""
+        if self.low + value < 0:
+            raise ValueError('bit index underflow while shifting bitrange')
         if self.is_vector():
             return BitRange(self.high + value, self.low + value)
         return BitRange(self.index + value)
 
     def __rshift__(self, value):
         """Shifts the bitrange right."""
-        if self.is_vector():
-            return BitRange(self.high - value, self.low - value)
-        return BitRange(self.index - value)
+        return self << -value
 
     def __eq__(self, other):
         if not isinstance(other, BitRange):

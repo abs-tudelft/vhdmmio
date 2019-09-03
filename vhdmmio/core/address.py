@@ -164,6 +164,14 @@ class MaskedAddress(_MaskedAddress):
             if (in_bits_set & 1) ^ bool(address & bitm):
                 address ^= bitm
             carry = in_bits_set >> 1
+        if value == 0:
+            if carry:
+                raise ValueError('overflow during address addition')
+        elif value == -1:
+            if not carry:
+                raise ValueError('underflow during address addition')
+        else:
+            raise ValueError('address summand out of range')
         return MaskedAddress(address, self.mask)
 
     def __mul__(self, other):
