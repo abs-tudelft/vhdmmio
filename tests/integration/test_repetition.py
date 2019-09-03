@@ -202,3 +202,31 @@ class TestFieldRepetition(TestCase):
                         'behavior': 'status',
                     },
                 ]})
+
+        with self.assertRaisesRegex(Exception, 'is an array, so it cannot end in a digit'):
+            RegisterFileTestbench({
+                'metadata': {'name': 'test'},
+                'fields': [
+                    {
+                        'address': 0,
+                        'bitrange': '7..0',
+                        'repeat': 4,
+                        'name': 'a0',
+                        'mnemonic': 'A',
+                        'behavior': 'status',
+                    },
+                ]})
+
+        with self.assertRaisesRegex(Exception, 'is an array, so it cannot end in a digit'):
+            RegisterFileTestbench({
+                'metadata': {'name': 'test'},
+                'fields': [
+                    {
+                        'address': 0,
+                        'bitrange': '7..0',
+                        'repeat': 4,
+                        'name': 'a',
+                        'mnemonic': 'A0',
+                        'behavior': 'status',
+                    },
+                ]})
