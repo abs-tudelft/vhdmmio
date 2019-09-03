@@ -576,7 +576,9 @@ $     FIELD_LOGIC_WRITE
 
  |$if di.write_count
       -- Handle deferred writes.
-$     FIELD_LOGIC_WRITE_TAG
+      if w_rreq then
+$       FIELD_LOGIC_WRITE_TAG
+      end if;
  |$endif
 $endif
 

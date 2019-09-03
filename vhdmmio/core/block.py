@@ -143,11 +143,13 @@ class Block(Named, Unique, Accessed):
         # accesses after the deferred access is performed.
         self._read_tag = None
         self._write_tag = None
-        if len(register.fields) == 1:
-            if self.can_read() and register.fields[0].behavior.bus.read.deferring:
+        for field in register.fields:
+            if field.behavior.bus.read is not None and field.behavior.bus.read.deferring:
+                assert self._read_tag is None
                 self._read_tag = resources.read_tags.get_next()
-            if self.can_write() and register.fields[0].behavior.bus.write.deferring:
+            if field.behavior.bus.write is not None and field.behavior.bus.write.deferring:
                 if index == count - 1:
+                    assert self._write_tag is None
                     self._write_tag = resources.write_tags.get_next()
 
         # If there are multiple blocks, register each block in the register

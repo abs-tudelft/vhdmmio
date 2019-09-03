@@ -1,4 +1,0 @@
-test:
- - register boilerplate logic:
-    - deferral
- - field logic for every behavior class
