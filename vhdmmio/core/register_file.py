@@ -51,9 +51,8 @@ class RegisterFile(Named, Configured, Unique):
 
             # Determine if the register file should be hardened against
             # privilege escalation.
-            self._harden = (
-                any(map(lambda register: register.is_protected(), registers))
-                and not cfg.features.insecure)
+            self._need_prot = any(map(lambda register: register.is_protected(), registers))
+            self._harden = self._need_prot and not cfg.features.insecure
 
             # Parse the interrupts.
             self._interrupts = tuple((
@@ -144,6 +143,11 @@ class RegisterFile(Named, Configured, Unique):
     def interrupt_info(self):
         """Information about the concatenated interrupt vector."""
         return self._interrupt_info
+
+    @property
+    def need_prot(self):
+        """Whether any field within the register file is prot-sensitive."""
+        return self._need_prot
 
     @property
     def harden(self):

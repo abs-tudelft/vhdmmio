@@ -142,13 +142,13 @@ $endif
     variable w_addr : std_logic_vector($ai.width-1$ downto 0);
     variable w_data : std_logic_vector($bw-1$ downto 0) := (others => '0');
     variable w_strb : std_logic_vector($bw-1$ downto 0) := (others => '0');
-$if r.harden
+$if r.need_prot
     variable w_prot : std_logic_vector(2 downto 0) := (others => '0'); -- reg
 $else
     constant w_prot : std_logic_vector(2 downto 0) := (others => '0');
 $endif
     variable r_addr : std_logic_vector($ai.width-1$ downto 0);
-$if r.harden
+$if r.need_prot
     variable r_prot : std_logic_vector(2 downto 0) := (others => '0'); -- reg
 $else
     constant r_prot : std_logic_vector(2 downto 0) := (others => '0');
@@ -493,7 +493,10 @@ $if r.harden
         (awl.prot(0) = '0' and w_prot(0) = '1') or (awl.prot(1) = '1' and w_prot(1) = '0')
       ) then
         if w_req then
-          w_nack := true;
+          bus_v.b.valid := '1';
+          bus_v.b.resp := AXI4L_RESP_SLVERR;
+          awl.valid := '0';
+          wl.valid := '0';
         end if;
         w_lreq := false;
         w_req := false;
@@ -502,7 +505,10 @@ $if r.harden
         (arl.prot(0) = '0' and r_prot(0) = '1') or (arl.prot(1) = '1' and r_prot(1) = '0')
       ) then
         if r_req then
-          r_nack := true;
+          bus_v.r.valid := '1';
+          bus_v.r.resp := AXI4L_RESP_SLVERR;
+          bus_v.r.data := (others => '0');
+          arl.valid := '0';
         end if;
         r_lreq := false;
         r_req := false;
@@ -510,7 +516,7 @@ $if r.harden
 $endif
 
       -- Capture request inputs into more consistently named variables.
-$if r.harden
+$if r.need_prot
       if w_req then
         w_prot := awl.prot;
       end if;
@@ -527,7 +533,7 @@ $endif
         w_strb(b) := wl.strb(b / 8);
       end loop;
       w_data := wl.data and w_strb;
-$if r.harden
+$if r.need_prot
       if r_req then
         r_prot := arl.prot;
       end if;
@@ -753,7 +759,7 @@ $if di.read_count
 $endif
         w_hstb     := (others => '0');
         w_hold     := (others => '0');
-$if r.harden
+$if r.need_prot
         w_prot     := (others => '0');
         r_prot     := (others => '0');
 $endif
