@@ -1,33 +1,66 @@
 |$block PRE
   |@ Complete the AXI stream handshakes that occurred in the previous cycle for
   |@ field $fd.name$.
-  |$if b.bus.can_write()
-    |if $s2m[i]$.aw.ready = '1' then
-    |  $state[i]$.aw.valid := '0';
-    |end if;
-    |if $s2m[i]$.w.ready = '1' then
-    |  $state[i]$.w.valid := '0';
-    |end if;
-    |if $state[i]$.b.valid = '0' then
-    |  $state[i]$.b := $s2m[i]$.b;
-    |end if;
-  |$endif
-  |$if b.bus.can_read()
-    |if $s2m[i]$.ar.ready = '1' then
-    |  $state[i]$.ar.valid := '0';
-    |end if;
-    |if $state[i]$.r.valid = '0' then
-    |  $state[i]$.r := $s2m[i]$.r;
-    |end if;
+  |$if b.cfg.bus_flatten
+    |$if b.bus.can_write()
+      |if $awready$ = '1' then
+      |  $state[i]$.aw.valid := '0';
+      |end if;
+      |if $wready$ = '1' then
+      |  $state[i]$.w.valid := '0';
+      |end if;
+      |if $state[i]$.b.valid = '0' then
+      |  $state[i]$.b.valid := $bvalid$;
+      |  $state[i]$.b.resp := $bresp$;
+      |end if;
+    |$endif
+    |$if b.bus.can_read()
+      |if $arready$ = '1' then
+      |  $state[i]$.ar.valid := '0';
+      |end if;
+      |if $state[i]$.r.valid = '0' then
+      |  $state[i]$.r.valid := $rvalid$;
+      |  $state[i]$.r.data := $rdata$;
+      |  $state[i]$.r.resp := $rresp$;
+      |end if;
+    |$endif
+  |$else
+    |$if b.bus.can_write()
+      |if $s2m[i]$.aw.ready = '1' then
+      |  $state[i]$.aw.valid := '0';
+      |end if;
+      |if $s2m[i]$.w.ready = '1' then
+      |  $state[i]$.w.valid := '0';
+      |end if;
+      |if $state[i]$.b.valid = '0' then
+      |  $state[i]$.b := $s2m[i]$.b;
+      |end if;
+    |$endif
+    |$if b.bus.can_read()
+      |if $s2m[i]$.ar.ready = '1' then
+      |  $state[i]$.ar.valid := '0';
+      |end if;
+      |if $state[i]$.r.valid = '0' then
+      |  $state[i]$.r := $s2m[i]$.r;
+      |end if;
+    |$endif
   |$endif
   |
   |$if b.interrupt_internal is not None
     |@ Connect the incoming interrupt signal for field $fd.name$
     |@ to the associated internal signal.
     |$if b.interrupt_internal.width is None
-      |$b.interrupt_internal.drive_name$ := $s2m[i]$.u.irq;
+      |$if b.cfg.bus_flatten
+        |$b.interrupt_internal.drive_name$ := $uirq$;
+      |$else
+        |$b.interrupt_internal.drive_name$ := $s2m[i]$.u.irq;
+      |$endif
     |$else
-      |$b.interrupt_internal.drive_name$($i$) := $s2m[i]$.u.irq;
+      |$if b.cfg.bus_flatten
+        |$b.interrupt_internal.drive_name$($i$) := $uirq$;
+      |$else
+        |$b.interrupt_internal.drive_name$($i$) := $s2m[i]$.u.irq;
+      |$endif
     |$endif
   |$endif
 |$endblock
@@ -105,20 +138,51 @@
   |end if;
   |
   |@ Assign output ports for field $fd.name$.
-  |$if b.bus.can_write()
-    |$m2s[i]$.aw <= $state[i]$.aw;
-    |$m2s[i]$.w <= $state[i]$.w;
-    |$m2s[i]$.b.ready <= not $state[i]$.b.valid;
+  |$if b.cfg.bus_flatten
+    |$if b.bus.can_write()
+      |$awvalid$ <= $state[i]$.aw.valid;
+      |$awaddr$ <= $state[i]$.aw.addr;
+      |$awprot$ <= $state[i]$.aw.prot;
+      |$wvalid$ <= $state[i]$.w.valid;
+      |$wdata$ <= $state[i]$.w.data;
+      |$wstrb$ <= $state[i]$.w.strb;
+      |$bready$ <= not $state[i]$.b.valid;
+    |$else
+      |$awvalid$ <= '0';
+      |$awaddr$ <= X"00000000";
+      |$awprot$ <= "000";
+      |$wvalid$ <= '0';
+      |$wdata$ <= X"$'0'*(width//4)$";
+      |$wstrb$ <= "$'0'*(width//8)$";
+      |$bready$ <= '1';
+    |$endif
+    |$if b.bus.can_read()
+      |$arvalid$ <= $state[i]$.ar.valid;
+      |$araddr$ <= $state[i]$.ar.addr;
+      |$arprot$ <= $state[i]$.ar.prot;
+      |$rready$ <= not $state[i]$.r.valid;
+    |$else
+      |$arvalid$ <= '0';
+      |$araddr$ <= X"00000000";
+      |$arprot$ <= "000";
+      |$rready$ <= '1';
+    |$endif
   |$else
-    |$m2s[i]$.aw <= AXI4LA_RESET;
-    |$m2s[i]$.w <= AXI4LW$width$_RESET;
-    |$m2s[i]$.b <= AXI4LH_RESET;
-  |$endif
-  |$if b.bus.can_read()
-    |$m2s[i]$.ar <= $state[i]$.ar;
-    |$m2s[i]$.r.ready <= not $state[i]$.r.valid;
-  |$else
-    |$m2s[i]$.ar <= AXI4LA_RESET;
-    |$m2s[i]$.r <= AXI4LH_RESET;
+    |$if b.bus.can_write()
+      |$m2s[i]$.aw <= $state[i]$.aw;
+      |$m2s[i]$.w <= $state[i]$.w;
+      |$m2s[i]$.b.ready <= not $state[i]$.b.valid;
+    |$else
+      |$m2s[i]$.aw <= AXI4LA_RESET;
+      |$m2s[i]$.w <= AXI4LW$width$_RESET;
+      |$m2s[i]$.b <= AXI4LH_RESET;
+    |$endif
+    |$if b.bus.can_read()
+      |$m2s[i]$.ar <= $state[i]$.ar;
+      |$m2s[i]$.r.ready <= not $state[i]$.r.valid;
+    |$else
+      |$m2s[i]$.ar <= AXI4LA_RESET;
+      |$m2s[i]$.r <= AXI4LH_RESET;
+    |$endif
   |$endif
 |$endblock

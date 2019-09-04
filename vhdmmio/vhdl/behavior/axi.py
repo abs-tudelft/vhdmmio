@@ -22,8 +22,30 @@ class AxiBehaviorCodeGen(BehaviorCodeGen):
         tple['width'] = bus_width
 
         # Generate I/Os.
-        tple['m2s'] = self.add_output('o', typ=Axi4Lite('m2s', bus_width))
-        tple['s2m'] = self.add_input('i', typ=Axi4Lite('s2m', bus_width))
+        if self.behavior.cfg.bus_flatten:
+            tple['awvalid'] = self.add_output('awvalid')
+            tple['awready'] = self.add_input('awready')
+            tple['awaddr'] = self.add_output('awaddr', 32)
+            tple['awprot'] = self.add_output('awprot', 3)
+            tple['wvalid'] = self.add_output('wvalid')
+            tple['wready'] = self.add_input('wready')
+            tple['wdata'] = self.add_output('wdata', bus_width)
+            tple['wstrb'] = self.add_output('wstrb', bus_width // 8)
+            tple['bvalid'] = self.add_input('bvalid')
+            tple['bready'] = self.add_output('bready')
+            tple['bresp'] = self.add_input('bresp', 2)
+            tple['arvalid'] = self.add_output('arvalid')
+            tple['arready'] = self.add_input('arready')
+            tple['araddr'] = self.add_output('araddr', 32)
+            tple['arprot'] = self.add_output('arprot', 3)
+            tple['rvalid'] = self.add_input('rvalid')
+            tple['rready'] = self.add_output('rready')
+            tple['rdata'] = self.add_input('rdata', bus_width)
+            tple['rresp'] = self.add_input('rresp', 2)
+            tple['uirq']  = self.add_input('uirq')
+        else:
+            tple['m2s'] = self.add_output('o', typ=Axi4Lite('m2s', bus_width))
+            tple['s2m'] = self.add_input('i', typ=Axi4Lite('s2m', bus_width))
 
         # Generate internal state.
         state_name = 'f_%s_r' % self.field_descriptor.name

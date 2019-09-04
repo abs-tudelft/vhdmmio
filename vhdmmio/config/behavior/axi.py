@@ -40,14 +40,14 @@ class Axi(Configurable):
 
     @choice
     def mode():
-        """Configures the supported bus access modes."""
+        """This key configures the supported bus access modes."""
         yield 'read-write', 'both read and write accesses are supported.'
         yield 'read-only', 'only read accesses are supported.'
         yield 'write-only', 'only write accesses are supported.'
 
     @choice
     def interrupt_internal():
-        """Configures driving an internal signal high when the
+        """This key configures driving an internal signal high when the
         `vhdmmio`-specific interrupt signal associated with the outgoing AXI4L
         stream is asserted. This internal signal can then be tied to an
         internal interrupt to propagate the flag."""
@@ -55,3 +55,14 @@ class Axi(Configurable):
         yield (re.compile(r'[a-zA-Z][a-zA-Z0-9_]*'),
                'an internal signal with the given name is created (if '
                'necessary) and driven by the incoming interrupt signal.')
+
+    @choice
+    def bus_flatten():
+        """This key specifies whether records or flattened signals are desired
+        for the bus interface. Note that `flatten` (defined
+        [here](interfaceconfig.md#flatten)) should also be set to `yes` to make
+        this work."""
+        yield (False, 'the bus is not flattened; the records from '
+               '`vhdmmio_pkg.vhd` are used.')
+        yield (True, 'the bus is flattened; the standard AXI4-lite signal '
+               'names are used.')

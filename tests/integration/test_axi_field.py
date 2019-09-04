@@ -1,13 +1,13 @@
-"""Primitive constant field tests."""
+"""AXI field tests."""
 
 from unittest import TestCase
 from ..testbench import RegisterFileTestbench
 
-class TestPrimitiveConstantFields(TestCase):
-    """Primitive constant field tests"""
+class TestAxiFields(TestCase):
+    """AXI field tests"""
 
-    def test_fields(self):
-        """test constant fields"""
+    def test_normal(self):
+        """test normal AXI field"""
         rft = RegisterFileTestbench({
             'metadata': {'name': 'test'},
             'fields': [
@@ -64,8 +64,49 @@ class TestPrimitiveConstantFields(TestCase):
             with self.assertRaisesRegex(ValueError, 'decode'):
                 objs.bus.write(0, 0)
 
+    def test_flattened(self):
+        """test flattened AXI field"""
+        rft = RegisterFileTestbench({
+            'metadata': {'name': 'test'},
+            'fields': [
+                {
+                    'address': '0x--',
+                    'name': 'a',
+                    'behavior': 'axi',
+                    'bus-flatten': True,
+                    'flatten': True
+                },
+            ]})
+        self.assertEqual(rft.ports, (
+            'bus',
+            'f_a_araddr',
+            'f_a_arprot',
+            'f_a_arready',
+            'f_a_arvalid',
+            'f_a_awaddr',
+            'f_a_awprot',
+            'f_a_awready',
+            'f_a_awvalid',
+            'f_a_bready',
+            'f_a_bresp',
+            'f_a_bvalid',
+            'f_a_rdata',
+            'f_a_rready',
+            'f_a_rresp',
+            'f_a_rvalid',
+            'f_a_uirq',
+            'f_a_wdata',
+            'f_a_wready',
+            'f_a_wstrb',
+            'f_a_wvalid',
+        ))
+        with rft as objs:
+            # This should probably be tested beyond just compiling. On the
+            # other hand, What Could Possibly Go Wrong? (TM)
+            pass
+
     def test_errors(self):
-        """test constant field config errors"""
+        """test AXI field config errors"""
         msg = ('AXI fields must be 32 or 64 bits wide')
         with self.assertRaisesRegex(Exception, msg):
             RegisterFileTestbench({
