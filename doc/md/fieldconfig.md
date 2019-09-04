@@ -191,7 +191,7 @@ This key can take the following values:
 
  - Fields for interfacing with memories:
 
-    - [`memory`](memory.md): not yet implemented!
+    - [`memory`](memory.md): infers a local memory inside the register file.
 
  - Fields for controlling `vhdmmio`-managed interrupts:
 

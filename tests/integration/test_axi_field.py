@@ -100,7 +100,7 @@ class TestAxiFields(TestCase):
             'f_a_wstrb',
             'f_a_wvalid',
         ))
-        with rft as objs:
+        with rft:
             # This should probably be tested beyond just compiling. On the
             # other hand, What Could Possibly Go Wrong? (TM)
             pass

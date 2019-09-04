@@ -42,7 +42,7 @@ class AxiBehaviorCodeGen(BehaviorCodeGen):
             tple['rready'] = self.add_output('rready')
             tple['rdata'] = self.add_input('rdata', bus_width)
             tple['rresp'] = self.add_input('rresp', 2)
-            tple['uirq']  = self.add_input('uirq')
+            tple['uirq'] = self.add_input('uirq')
         else:
             tple['m2s'] = self.add_output('o', typ=Axi4Lite('m2s', bus_width))
             tple['s2m'] = self.add_input('i', typ=Axi4Lite('s2m', bus_width))
