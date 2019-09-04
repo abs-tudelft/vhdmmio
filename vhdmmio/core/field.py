@@ -39,7 +39,6 @@ class Field(Named, Configured, Unique):
             self._internal_address = resources.construct_address(
                 address, cfg.conditions)
             self._bitrange = bitrange
-            self._subaddress = resources.construct_subaddress(self)
             if self.behavior.bus.can_read():
                 resources.addresses.read_map(
                     self._internal_address, lambda: FieldSet(self)).add(self)
@@ -103,7 +102,7 @@ class Field(Named, Configured, Unique):
     @property
     def subaddress(self):
         """The subaddress construction logic for this field."""
-        return self._subaddress
+        return self.descriptor.subaddress
 
     def assign_registers(self, read_reg, write_reg):
         """Assigns registers to this field once they've been constructed. Note

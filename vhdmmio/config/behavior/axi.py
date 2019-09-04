@@ -15,63 +15,22 @@ class Axi(Configurable):
     different AXI4L bus.
 
     The width of the outgoing AXI4L bus is set to the width of the field, which
-    must be 32 or 64 bits. The number of bus words mapped from the incoming bus
-    to the outgoing bus depends on the block size of the field (that is, the
-    number of address bits ignored by the field matcher) and the relation
-    between the bus widths of the incoming and outgoing busses. It is
-    recommended not to do bus width conversion with `vhdmmio` because the
-    access pattern is rather unintuitive, but it is fully supported. Using a
-    field with `0x100/4` for address and size as an example, the access
-    patterns and default address mappings for all combinations of bus widths
-    are as follows:
+    must therefore be 32 or 64 bits. The *word* address for the outgoing bus is
+    taken from the [subaddress](fieldconfig.md#subaddress); the 2 or 3 LSBs of
+    the address (depending on the bus width) are always zero. For example, a
+    field with address `0x0---` in a 32-bit system has a 10-bit subaddress,
+    therefore allowing access to 4kiB of address space on the child AXI4L port.
 
-     - 32-bit incoming bus, bitrange `0x100/4` (= `0x100/4:31..0`):
-
-       | Incoming address | Incoming data | Outgoing address | Outgoing data |
-       |------------------|---------------|------------------|---------------|
-       | 0x000..0x0FC     | n/a           | Unmapped         | n/a           |
-       | 0x100            | all           | 0x00             | all           |
-       | 0x104            | all           | 0x04             | all           |
-       | 0x108            | all           | 0x08             | all           |
-       | 0x10C            | all           | 0x0C             | all           |
-       | 0x110..*         | n/a           | Unmapped         | n/a           |
-
-     - 64-bit incoming bus, bitrange `0x100/4:31..0`:
-
-       | Incoming address | Incoming data | Outgoing address | Outgoing data |
-       |------------------|---------------|------------------|---------------|
-       | 0x000..0x0F8     | n/a           | Unmapped         | n/a           |
-       | 0x100            | 31..0         | 0x00             | all           |
-       | 0x108            | 31..0         | 0x04             | all           |
-       | 0x110..*         | n/a           | Unmapped         | n/a           |
-
-     - 32-bit incoming bus, bitrange `0x100/4:63..0`:
-
-       | Incoming address | Incoming data | Outgoing address | Outgoing data |
-       |------------------|---------------|------------------|---------------|
-       | 0x000..0x0FC     | n/a           | Unmapped         | n/a           |
-       | 0x100            | all           | 0x00             | 31..0         |
-       | 0x104            | all           | 0x08             | 31..0         |
-       | 0x108            | all           | 0x10             | 31..0         |
-       | 0x10C            | all           | 0x18             | 31..0         |
-       | 0x110            | all           | 0x00             | 63..32        |
-       | 0x114            | all           | 0x08             | 63..32        |
-       | 0x118            | all           | 0x10             | 63..32        |
-       | 0x11C            | all           | 0x18             | 63..32        |
-       | 0x120..*         | n/a           | Unmapped         | n/a           |
-
-       Note that to access for instance 0x08 in the outgoing address space,
-       0x104 MUST be accessed first, and 0x114 MUST be accessed second,
-       following `vhdmmio`'s multi-word register rules.
-
-     - 64-bit incoming bus, bitrange `0x100/4` (= `0x100/4:63..0`):
-
-       | Incoming address | Incoming data | Outgoing address | Outgoing data |
-       |------------------|---------------|------------------|---------------|
-       | 0x000..0x0F8     | n/a           | Unmapped         | n/a           |
-       | 0x100            | all           | 0x00             | all           |
-       | 0x108            | all           | 0x08             | all           |
-       | 0x110..*         | n/a           | Unmapped         | n/a           |
+    Note that going from a 64-bit bus to a 32-bit bus always "stretches" the
+    address space of the 32-bit bus, since only half the bus width can be
+    utilized. While it would technically be possible to avoid this by just
+    doing two transfers on the slave bus for each AXI field access, this adds
+    a bunch of complexity, ambiguity, and may prevent read-volatile fields on
+    the child bus from being accessed without side effects, so this feature was
+    not implemented. Going from a 32-bit bus to a 64-bit bus on the other hand
+    is perfectly fine, since this just makes the logical register for the AXI
+    field wider than the bus, following `vhdmmio`'s normal rules. Just make
+    sure that bit 2 of the field's address is
 
     `axi` fields support multiple outstanding requests. The amount of
     outstanding requests supported is controlled centrally in the register file

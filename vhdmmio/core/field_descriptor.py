@@ -20,10 +20,14 @@ class FieldDescriptor(Named, Shaped, Configured, Unique):
         with self.context:
             resources.descriptor_namespace.add(self)
             self._regfile = regfile
+            self._base_address = MaskedAddress.parse_config(
+                self.cfg.address,
+                ignore_lsbs=self.regfile.cfg.features.bus_width.bit_length() - 4)
             self._base_bitrange = BitRange.parse_config(
                 self.cfg.bitrange,
                 width=self.regfile.cfg.features.bus_width,
                 flexible=True)
+            self._subaddress = resources.construct_subaddress(self)
             self._behavior = Behavior.construct(
                 resources, self,
                 cfg.behavior, cfg.read_allow, cfg.write_allow)
@@ -38,6 +42,11 @@ class FieldDescriptor(Named, Shaped, Configured, Unique):
     def regfile(self):
         """The register file that this field descriptor resides in."""
         return self._regfile
+
+    @property
+    def base_address(self):
+        """The address for the first field in the descriptor."""
+        return self._base_address
 
     @property
     def base_bitrange(self):
@@ -56,6 +65,11 @@ class FieldDescriptor(Named, Shaped, Configured, Unique):
         return self._behavior
 
     @property
+    def subaddress(self):
+        """The subaddress construction logic for this field descriptor."""
+        return self._subaddress
+
+    @property
     def interface_options(self):
         """VHDL interface configuration."""
         return self._interface_options
@@ -63,11 +77,6 @@ class FieldDescriptor(Named, Shaped, Configured, Unique):
     def _compute_field_locations(self):
         """Compute and yield the location information for each field described
         by this descriptor as `(address, bitrange)` two-tuples."""
-
-        # Parse the base address.
-        address = MaskedAddress.parse_config(
-            self.cfg.address,
-            ignore_lsbs=self.regfile.cfg.features.bus_width.bit_length() - 4)
 
         # Load and substitute defaults for the relative placement configurations.
         field_repeat = self.cfg.field_repeat
@@ -78,6 +87,7 @@ class FieldDescriptor(Named, Shaped, Configured, Unique):
         if field_stride is None:
             field_stride = self.base_bitrange.width
 
+        address = self.base_address
         remain = self.width
         while True:
             for field in range(field_repeat):

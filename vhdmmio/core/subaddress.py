@@ -12,13 +12,13 @@ class SubAddress(Shaped):
     ADDRESS = namedtuple('ADDRESS', ['target', 'source'])
     INTERNAL = namedtuple('INTERNAL', ['target', 'source', 'internal'])
 
-    def __init__(self, resources, field, cfg, offset):
+    def __init__(self, resources, field_descriptor, cfg, offset):
         # Handle default subaddress construction from the masked bits in the
         # incoming address.
         if not cfg:
-            bus_width = field.descriptor.regfile.cfg.features.bus_width
+            bus_width = field_descriptor.regfile.cfg.features.bus_width
             ignore_lsbs = bus_width.bit_length() - 4
-            mask = field.address.mask
+            mask = field_descriptor.base_address.mask
 
             # Figure out the consecutive ranges of masked bits.
             start = None
@@ -150,13 +150,14 @@ class SubAddressManager:
         super().__init__()
         self._subaddresses = OrderedDict()
 
-    def construct(self, resources, field):
-        """Constructs and returns the subaddress signal for the given field."""
-        with field.context:
+    def construct(self, resources, field_descriptor):
+        """Constructs and returns the subaddress signal for the given field
+        descriptor."""
+        with field_descriptor.context:
             new_subaddress = SubAddress(
-                resources, field,
-                field.cfg.subaddress,
-                field.cfg.subaddress_offset)
+                resources, field_descriptor,
+                field_descriptor.cfg.subaddress,
+                field_descriptor.cfg.subaddress_offset)
             subaddress = self._subaddresses.get(new_subaddress, None)
             if subaddress is None:
                 subaddress = new_subaddress
@@ -166,7 +167,7 @@ class SubAddressManager:
                 if trivial:
                     subaddress.name = 'subaddr_none'
                 else:
-                    subaddress.name = 'subaddr_%s_etc' % field.name
+                    subaddress.name = 'subaddr_%s_etc' % field_descriptor.name
                 self._subaddresses[subaddress] = subaddress
             return subaddress
 
