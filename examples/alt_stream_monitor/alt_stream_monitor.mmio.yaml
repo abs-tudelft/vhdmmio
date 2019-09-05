@@ -1,0 +1,96 @@
+metadata:
+  name: stream_monitor
+  brief: monitors a number of streams.
+
+features:
+  bus-width: 32
+  optimize: yes
+
+entity:
+  clock-name: axil_aclk
+  reset-name: axil_aresetn
+  reset-active: low
+  bus-prefix: axil_
+  bus-flatten: yes
+
+interface:
+  flatten: yes
+
+fields:
+
+  - repeat: 4 # <-- number of streams!
+    stride: 5
+    field-repeat: 1
+    subfields:
+
+      - address: 0
+        name: ecnt
+        doc: |
+          Accumulates the number of elements transferred on the stream. Writing to
+          the register subtracts the written value.
+        behavior: custom
+        interfaces:
+         - input: valid
+         - input: ready
+         - input: count:8 # <-- width of count field!
+         - input: dvalid
+         - input: last
+         - drive: ivalid
+         - drive: iready
+         - drive: itransfer
+         - drive: ipacket
+         - state: accum:32
+        pre-access: |
+          $s.ivalid$ := $s.valid$;
+          $s.iready$ := $s.ready$;
+          $s.itransfer$ := $s.valid$ and $s.ready$;
+          $s.ipacket$ := $s.valid$ and $s.ready$ and $s.last$;
+          if $s.valid$ = '1' and $s.ready$ = '1' and $s.dvalid$ = '1' then
+            if unsigned($s.count$) = 0 then
+              $s.accum$ := std_logic_vector(unsigned($s.accum$) + 2**$s.count$'length);
+            else
+              $s.accum$ := std_logic_vector(unsigned($s.accum$) + unsigned($s.count$));
+            end if;
+          end if;
+        read: |
+          $data$ := $s.accum$;
+          $ack$ := true;
+        write: |
+          $s.accum$ := std_logic_vector(unsigned($s.accum$) - unsigned($data$));
+          $ack$ := true;
+        post-access: |
+          if reset = '1' then
+            $s.accum$ := (others => '0');
+          end if;
+
+      - address: 4
+        name: vcnt
+        doc: |
+          Increments each cycle that the stream is valid. Writing to the register
+          subtracts the written value.
+        behavior: internal-counter
+        internal: ivalid
+
+      - address: 8
+        name: rcnt
+        doc: |
+          Increments each cycle that the stream is ready. Writing to the register
+          subtracts the written value.
+        behavior: internal-counter
+        internal: iready
+
+      - address: 12
+        name: tcnt
+        doc: |
+          Increments for each transfer on the stream, i.e. when it is handshaked.
+          Writing to the register subtracts the written value.
+        behavior: internal-counter
+        internal: itransfer
+
+      - address: 16
+        name: pcnt
+        doc: |
+          Increments each time the last signal is set during a handshake. Writing
+          to the register subtracts the written value.
+        behavior: internal-counter
+        internal: ipacket
