@@ -771,7 +771,7 @@ $if e.bus_flatten
       $e.bus_prefix$arready <= bus_v.ar.ready;
       $e.bus_prefix$rvalid  <= bus_v.r.valid;
       $e.bus_prefix$rdata   <= bus_v.r.data;
-      $e.bus_prefix$rresp   <= bus_v.r.reso;
+      $e.bus_prefix$rresp   <= bus_v.r.resp;
       $e.bus_prefix$uirq    <= bus_v.u.irq;
 $else
       $e.bus_prefix$o <= bus_v;
