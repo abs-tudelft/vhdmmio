@@ -28,7 +28,11 @@ class CustomBehaviorCodeGen(BehaviorCodeGen):
             setattr(identifiers, name, self.add_interface(mode, name, count, typ)['$i$'])
 
         # Register the internal interfaces.
-        for internal, identifier in self.behavior.internal_interfaces:
+        for internal, direction, suffix in self.behavior.internal_interfaces:
+            if direction:
+                identifier = internal.drive_name + suffix
+            else:
+                identifier = internal.use_name + suffix
             setattr(identifiers, internal.name, identifier)
 
         # Construct the state record, if the behavior is stateful.

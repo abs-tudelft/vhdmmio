@@ -100,19 +100,19 @@ class CustomBehavior(Behavior):
                 internal = resources.internals.drive(
                     field_descriptor, name, internal_shape)
                 internal_interfaces.append((
-                    internal, internal.drive_name + internal_suffix))
+                    internal, True, internal_suffix))
             elif kind == 'strobe':
                 assert vhdl_type is None
                 internal = resources.internals.strobe(
                     field_descriptor, name, internal_shape)
                 internal_interfaces.append((
-                    internal, internal.drive_name + internal_suffix))
+                    internal, True, internal_suffix))
             elif kind == 'monitor':
                 assert vhdl_type is None
                 internal = resources.internals.use(
                     field_descriptor, name, internal_shape)
                 internal_interfaces.append((
-                    internal, internal.use_name + internal_suffix))
+                    internal, False, internal_suffix))
             elif kind == 'state':
                 assert vhdl_type is None
                 state.append((name, shape))
@@ -203,8 +203,8 @@ class CustomBehavior(Behavior):
 
     @property
     def internal_interfaces(self):
-        """A tuple consisting of `(Internal, identifier)` tuples, representing
-        the internal interfaces for this behavior."""
+        """A tuple consisting of `(Internal, direction, suffix)` tuples,
+        representing the internal interfaces for this behavior."""
         return self._internal_interfaces
 
     @property
