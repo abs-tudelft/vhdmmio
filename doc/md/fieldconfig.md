@@ -189,10 +189,6 @@ This key can take the following values:
 
     - [`axi`](axi.md): connects a field to an AXI4-lite master port for generating hierarchical bus structures.
 
- - Fields for interfacing with memories:
-
-    - [`memory`](memory.md): infers a local memory inside the register file.
-
  - Fields for controlling `vhdmmio`-managed interrupts:
 
     - [`interrupt`](interrupt.md): base class for interrupt field behaviors. Normally not used directly; it's easier to use one of its specializations:

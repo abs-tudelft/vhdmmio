@@ -68,7 +68,6 @@ insanely high. If your active logic requires a high clock speed and
     - [`stream-to-mmio` behavior](streamtommio.md)
     - [`mmio-to-stream` behavior](mmiotostream.md)
     - [`axi` behavior](axi.md)
-    - [`memory` behavior](memory.md)
     - [`interrupt` behavior](interrupt.md)
     - [`interrupt-flag` behavior](interruptflag.md)
     - [`volatile-interrupt-flag` behavior](volatileinterruptflag.md)

@@ -1,12 +1,11 @@
 """Submodule for `Memory` configurable."""
 
 from ...configurable import configurable, Configurable, choice
-from .registry import behavior, behavior_doc
+#from .registry import behavior, behavior_doc
 
-behavior_doc('Fields for interfacing with memories:')
+#behavior_doc('Fields for interfacing with memories:')
 
-@behavior(
-    'memory', 'infers a local memory inside the register file.', 1)
+#@behavior('memory', 'infers a local memory inside the register file.', 1)
 @configurable(name='`memory` behavior')
 class Memory(Configurable):
     """This field behavior infers a local memory inside the register file.

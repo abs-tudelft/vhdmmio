@@ -73,7 +73,7 @@ class TestConfig(TestCase):
                 'interruptstatus.md',
                 'interruptunmask.md',
                 'latching.md',
-                'memory.md',
+                #'memory.md',
                 'metadataconfig.md',
                 'mmiotostream.md',
                 'multirequest.md',
