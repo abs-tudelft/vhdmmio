@@ -98,8 +98,8 @@ class Block(Named, Unique, Accessed):
                 mnem_suffix = 'HL'[index]
             name_suffix = '_low' if mnem_suffix == 'L' else '_high'
         elif count <= 26:
-            suffix = chr(ord('A') + index)
-            name_suffix = '_' + suffix.lower()
+            mnem_suffix = chr(ord('A') + index)
+            name_suffix = '_' + mnem_suffix.lower()
         else:
             raise ValueError('cannot have more than 26 blocks per register')
 
