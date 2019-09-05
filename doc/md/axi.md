@@ -19,7 +19,7 @@ the child bus from being accessed without side effects, so this feature was
 not implemented. Going from a 32-bit bus to a 64-bit bus on the other hand
 is perfectly fine, since this just makes the logical register for the AXI
 field wider than the bus, following `vhdmmio`'s normal rules. Just make
-sure that bit 2 of the field's address is
+sure that bit 2 of the field's address is zero.
 
 `axi` fields support multiple outstanding requests. The amount of
 outstanding requests supported is controlled centrally in the register file
