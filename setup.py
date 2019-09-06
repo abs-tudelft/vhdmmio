@@ -29,6 +29,10 @@ class BuildWithVersionCommand(BuildCommand):
             with open(version_fname, 'w') as fildes:
                 fildes.write('__version__ = """' + self.distribution.metadata.version + '"""\n')
 
+with open('MANIFEST.in', 'w') as fil:
+    for filename in glob.glob('vhdmmio/**/*.template.*', recursive=True):
+        fil.write('include %s\n' % filename)
+
 setup(
     name = 'vhdmmio',
     version_config={
