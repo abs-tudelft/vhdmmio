@@ -1,0 +1,16 @@
+metadata:
+  name: basic
+
+fields:
+
+  - address: 0
+    name: ctrl
+    behavior: control
+
+  - address: 4
+    name: stat
+    behavior: status
+
+  - address: 0x1---
+    name: slv_a
+    behavior: axi
