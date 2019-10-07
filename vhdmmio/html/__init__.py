@@ -220,8 +220,6 @@ class HtmlDocumentationGenerator:
 
                 if len(abbreviated) > mapping.col_span*4-1:
                     abbreviated = abbreviated[:mapping.col_span*4-2] + '…'
-                else:
-                    abbreviated = abbreviated
 
                 cell = (
                     '<div class="tooltip-right">\n'

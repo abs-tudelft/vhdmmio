@@ -221,7 +221,7 @@ class Choice(ScalarLoader):
         becomes the new default value. Choices can be specified either as just
         a descriptor or as a two-tuple of a descriptor and a new documentation
         string."""
-        current_choices = {desc: doc for desc, doc in self._choices}
+        current_choices = dict(self._choices)
         new_choices = []
         for choice_tuple in choices_to_keep:
             desc, doc = choice_tuple if isinstance(choice_tuple, tuple) else (choice_tuple, None)

@@ -622,16 +622,14 @@ class TemplateEngine:
                         paragraph_buffer.extend(line.split())
                         continue
 
-                    else:
-
-                        # Not a continuation of the buffered paragraph. Output the
-                        # current buffer so we can start a new one.
-                        output_lines.extend(self._wrap(
-                            paragraph_buffer_leading,
-                            paragraph_buffer_hanging,
-                            paragraph_buffer,
-                            wrap))
-                        paragraph_buffer = None
+                    # Not a continuation of the buffered paragraph. Output the
+                    # current buffer so we can start a new one.
+                    output_lines.extend(self._wrap(
+                        paragraph_buffer_leading,
+                        paragraph_buffer_hanging,
+                        paragraph_buffer,
+                        wrap))
+                    paragraph_buffer = None
 
                 if line:
 

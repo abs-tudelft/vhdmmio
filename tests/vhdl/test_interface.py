@@ -53,7 +53,7 @@ class TestVhdlInterface(TestCase):
     def test_ungrouped_unflattened(self):
         """test ungrouped, unflattened interface generation"""
         result = self.gen_basic_interface(False, False)
-        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
+        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result #pylint: disable=W0632
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface for field foo: a scalar field.',
             'f_foo_i : in tns_f_foo_i_type@:= TNS_F_FOO_I_RESET;',
@@ -128,7 +128,7 @@ class TestVhdlInterface(TestCase):
     def test_grouped_unflattened(self):
         """test grouped, unflattened interface generation"""
         result = self.gen_basic_interface('test', False)
-        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
+        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result #pylint: disable=W0632
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface group for:',
             '@  - field bar: a vector field.',
@@ -224,7 +224,7 @@ class TestVhdlInterface(TestCase):
     def test_ungrouped_flattened_records(self):
         """test ungrouped, record-flattened interface generation"""
         result = self.gen_basic_interface(False, 'record')
-        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
+        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result #pylint: disable=W0632
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface for field foo: a scalar field.',
             'f_foo_data : in std_logic_vector(7 downto 0)@:= (others => \'0\');',
@@ -260,7 +260,7 @@ class TestVhdlInterface(TestCase):
     def test_grouped_flattened_records(self):
         """test grouped, record-flattened interface generation"""
         result = self.gen_basic_interface('test', 'record')
-        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
+        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result #pylint: disable=W0632
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface group for:',
             '@  - field bar: a vector field.',
@@ -319,7 +319,7 @@ class TestVhdlInterface(TestCase):
     def test_ungrouped_flattened(self):
         """test ungrouped, array-flattened interface generation"""
         result = self.gen_basic_interface(False, True)
-        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
+        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result #pylint: disable=W0632
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface for field foo: a scalar field.',
             'f_foo_data : in std_logic_vector(7 downto 0)@:= (others => \'0\');',
@@ -353,7 +353,7 @@ class TestVhdlInterface(TestCase):
     def test_grouped_flattened(self):
         """test grouped, array-flattened interface generation"""
         result = self.gen_basic_interface('test', True)
-        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result
+        iface, foo_d, foo_v, foo_r, foo_e, bar_d, bar_v, bar_r, bar_e = result #pylint: disable=W0632
         self.assertEqual('\n\n'.join(iface.generate('port')), '\n'.join([
             '@ Interface group for:',
             '@  - field bar: a vector field.',
