@@ -3,6 +3,7 @@ vhdMMIO
 =======
 
 [![PyPi](https://badgen.net/pypi/v/vhdmmio)](https://pypi.org/project/vhdmmio/)
+[![Documentation](https://badgen.net/badge/documentation/%20/green)](https://abs-tudelft.github.io/vhdmmio/)
 [![Build Status](https://dev.azure.com/abs-tudelft/vhdmmio/_apis/build/status/abs-tudelft.vhdmmio?branchName=master)](https://dev.azure.com/abs-tudelft/vhdmmio/_build/latest?definitionId=4&branchName=master)
 [![codecov](https://codecov.io/gh/abs-tudelft/vhdmmio/branch/master/graph/badge.svg)](https://codecov.io/gh/abs-tudelft/vhdmmio)
 [![License](https://badgen.net/github/license/abs-tudelft/vhdmmio)](https://github.com/abs-tudelft/vhdmmio/blob/master/LICENSE)
@@ -60,6 +61,6 @@ Documentation
 
 Most of vhdMMIO's documentation is concerned with the structure of the YAML
 configuration files. You can find this
-[here](https://github.com/abs-tudelft/vhdmmio/blob/master/doc/md/README.md).
+[here](https://abs-tudelft.github.io/vhdmmio/).
 You can also find example register file descriptions
 [here](https://github.com/abs-tudelft/vhdmmio/tree/master/examples).
