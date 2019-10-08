@@ -6,6 +6,13 @@ trigger:
     include:
     - '*'
 
+resources:
+  repositories:
+  - repository: abs-tudelft
+    type: github
+    endpoint: github
+    name: abs-tudelft/azure-pipelines-templates
+
 jobs:
 
 - job:
@@ -14,7 +21,7 @@ jobs:
   container: abstudelft/ghdl-gcc-python:latest
   steps:
   - script: |
-      python3 setup.py build 
+      python3 setup.py build
     displayName: Build
   - script: |
       python3 setup.py test
@@ -71,3 +78,8 @@ jobs:
       addChangeLog: true
     condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
     displayName: Publish to GitHub
+
+- template: jobs/mdbook-gh-pages.yml@abs-tudelft
+  parameters:
+    source: doc
+    output: doc/html
