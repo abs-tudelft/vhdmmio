@@ -1,0 +1,338 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Interrupt descriptors - vhdMMIO</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">var path_to_root = "";</script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="index.html"><strong aria-hidden="true">1.</strong> Index</a></li><li><a href="registerfileconfig.html"><strong aria-hidden="true">2.</strong> Register files</a></li><li><ol class="section"><li><a href="metadataconfig.html"><strong aria-hidden="true">2.1.</strong> Metadata</a></li><li><a href="featureconfig.html"><strong aria-hidden="true">2.2.</strong> Register file options</a></li><li><a href="entityconfig.html"><strong aria-hidden="true">2.3.</strong> VHDL entity configuration</a></li><li><a href="interfaceconfig.html"><strong aria-hidden="true">2.4.</strong> VHDL interface configuration</a></li><li><a href="fieldconfig.html"><strong aria-hidden="true">2.5.</strong> Field descriptors</a></li><li><ol class="section"><li><a href="primitive.html"><strong aria-hidden="true">2.5.1.</strong> primitive behavior</a></li><li><a href="constant.html"><strong aria-hidden="true">2.5.2.</strong> constant behavior</a></li><li><a href="config.html"><strong aria-hidden="true">2.5.3.</strong> config behavior</a></li><li><a href="status.html"><strong aria-hidden="true">2.5.4.</strong> status behavior</a></li><li><a href="internalstatus.html"><strong aria-hidden="true">2.5.5.</strong> internal-status behavior</a></li><li><a href="latching.html"><strong aria-hidden="true">2.5.6.</strong> latching behavior</a></li><li><a href="control.html"><strong aria-hidden="true">2.5.7.</strong> Control</a></li><li><a href="internalcontrol.html"><strong aria-hidden="true">2.5.8.</strong> internal-control behavior</a></li><li><a href="flag.html"><strong aria-hidden="true">2.5.9.</strong> flag behavior</a></li><li><a href="volatileflag.html"><strong aria-hidden="true">2.5.10.</strong> volatile-flag behavior</a></li><li><a href="internalflag.html"><strong aria-hidden="true">2.5.11.</strong> internal-flag behavior</a></li><li><a href="volatileinternalflag.html"><strong aria-hidden="true">2.5.12.</strong> volatile-internal-flag behavior</a></li><li><a href="strobe.html"><strong aria-hidden="true">2.5.13.</strong> strobe behavior</a></li><li><a href="internalstrobe.html"><strong aria-hidden="true">2.5.14.</strong> internal-strobe behavior</a></li><li><a href="request.html"><strong aria-hidden="true">2.5.15.</strong> request behavior</a></li><li><a href="multirequest.html"><strong aria-hidden="true">2.5.16.</strong> multi-request behavior</a></li><li><a href="counter.html"><strong aria-hidden="true">2.5.17.</strong> counter behavior</a></li><li><a href="volatilecounter.html"><strong aria-hidden="true">2.5.18.</strong> volatile-counter behavior</a></li><li><a href="internalcounter.html"><strong aria-hidden="true">2.5.19.</strong> internal-counter behavior</a></li><li><a href="volatileinternalcounter.html"><strong aria-hidden="true">2.5.20.</strong> volatile-internal-counter behavior</a></li><li><a href="streamtommio.html"><strong aria-hidden="true">2.5.21.</strong> stream-to-mmio behavior</a></li><li><a href="mmiotostream.html"><strong aria-hidden="true">2.5.22.</strong> mmio-to-stream behavior</a></li><li><a href="axi.html"><strong aria-hidden="true">2.5.23.</strong> axi behavior</a></li><li><a href="interrupt.html"><strong aria-hidden="true">2.5.24.</strong> interrupt behavior</a></li><li><a href="interruptflag.html"><strong aria-hidden="true">2.5.25.</strong> interrupt-flag behavior</a></li><li><a href="volatileinterruptflag.html"><strong aria-hidden="true">2.5.26.</strong> volatile-interrupt-flag behavior</a></li><li><a href="interruptpend.html"><strong aria-hidden="true">2.5.27.</strong> interrupt-pend behavior</a></li><li><a href="interruptenable.html"><strong aria-hidden="true">2.5.28.</strong> interrupt-enable behavior</a></li><li><a href="interruptunmask.html"><strong aria-hidden="true">2.5.29.</strong> interrupt-unmask behavior</a></li><li><a href="interruptstatus.html"><strong aria-hidden="true">2.5.30.</strong> interrupt-status behavior</a></li><li><a href="interruptraw.html"><strong aria-hidden="true">2.5.31.</strong> interrupt-raw behavior</a></li><li><a href="custom.html"><strong aria-hidden="true">2.5.32.</strong> custom behavior</a></li><li><ol class="section"><li><a href="custominterfaceconfig.html"><strong aria-hidden="true">2.5.32.1.</strong> Interfaces for custom field behavior</a></li></ol></li><li><a href="conditionconfig.html"><strong aria-hidden="true">2.5.33.</strong> Additional address match conditions</a></li><li><a href="subaddressconfig.html"><strong aria-hidden="true">2.5.34.</strong> Subaddress components</a></li><li><a href="permissionconfig.html"><strong aria-hidden="true">2.5.35.</strong> Permissions</a></li></ol></li><li><a href="interruptconfig.html" class="active"><strong aria-hidden="true">2.6.</strong> Interrupt descriptors</a></li><li><a href="internalioconfig.html"><strong aria-hidden="true">2.7.</strong> Internal signal I/O</a></li></ol></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light <span class="default">(default)</span></button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">vhdMMIO</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#interrupt-descriptors" id="interrupt-descriptors"><h1>Interrupt descriptors</h1></a>
+<p>In addition to MMIO, <code>vhdmmio</code> can handle interrupt routing for you.
+Each AXI4-lite bus is equiped with an additional signal in the
+slave-to-master direction that serves as an interrupt request flag. This
+flag is connected to a (masked) wired-or network of any incoming interrupts
+you define.</p>
+<a class="header" href="#behavior" id="behavior"><h2>Behavior</h2></a>
+<p>The interrupts can be monitored and controlled through fields with the
+(<code>interrupt</code>)[interrupt.md] behavior.</p>
+<p>There are up to three internal registers for each interrupt, named <code>enab</code>
+(short for enable), <code>flag</code>, and <code>umsk</code> (short for unmask). <code>enab</code> controls
+whether incoming interrupts are passed on to the flag register. The flag
+register stores whether the interrupt is pending regardless of whether it
+is enabled; if an interrupt comes in while the interrupt is enabled, and
+the interrupt is then disabled, the flag remains asserted until it is
+explicitly cleared (usually by an interrupt handler). <code>umsk</code> (unmask) has a
+similar function, but is placed after the flag register. Thus, masking an
+interrupt immediately stops it from being requested, but once the interrupt
+is unmasked again, it will be requested again. This logic is shown
+schematically below.</p>
+<pre><code>            .--[raw&gt;
+            |         ____                 flag
+IRQ --------o--------|    \     _____     .----.   .-[flag&gt;
+                     |     )----\    \    |&gt;   |   |         ____
+                  .--|____/      )    )---|S  Q|---o--------|    \     to
+           enab   |      [pend&gt;-/____/  .-|R   |  umsk      |     )--&gt; wired
+          .----.  |      [clear&gt;--------' '----' .----.  .--|____/     OR
+          |&gt;   |  |                              |&gt;   |  |
+[enable&gt;--|S  Q|--o--[enabled&gt;          [unmask&gt;-|S  Q|--o--[unmasked&gt;
+[disable&gt;-|R   |                        [mask&gt;---|R   |
+          '----'                                 '----'
+</code></pre>
+<p>Each of the three registers are accessible in read, write, set, and clear
+modes through fields with (<code>interrupt</code>)[interrupt.md] behavior. The raw
+incoming interrupt signal and the masked output signal of an interrupt can
+also be monitored directly.</p>
+<p>Interrupts can be made level-sensitive by not specifying a way to clear the
+interrupt. In this case, the logic is automatically simplified to the
+following.</p>
+<pre><code>            .--[raw&gt;
+            |         ____                 .-[flag&gt;
+IRQ --------o--------|    \                |         ____
+                     |     )---------------o--------|    \     to
+                  .--|____/                         |     )--&gt; wired
+           enab   |                       umsk   .--|____/     OR
+          .----.  |                      .----.  |
+          |&gt;   |  |                      |&gt;   |  |
+[enable&gt;--|S  Q|--o--[enabled&gt;  [unmask&gt;-|S  Q|--o--[unmasked&gt;
+[disable&gt;-|R   |                [mask&gt;---|R   |
+          '----'                         '----'
+</code></pre>
+<p>Furthermore, if there is no way to enable/unmask an interrupt, the
+respective AND gate and the register is effectively optimized away. If
+there <em>is</em> a way, the reset state is disabled/masked.</p>
+<a class="header" href="#interrupt-sources" id="interrupt-sources"><h2>Interrupt sources</h2></a>
+<p>A <code>vhdmmio</code> interrupt can currently be requested through an internal or
+synchronous external signal, or by software using the
+<a href="interruptpend.html"><code>interrupt-pend</code></a> field behavior. An external
+synchronizer is needed to accept asynchronous interrupts. These are often
+vendor-specific, therefore they are not included in vhdmmio.</p>
+<a class="header" href="#configuration-keys" id="configuration-keys"><h2>Configuration keys</h2></a>
+<p>This structure supports the following configuration keys.</p>
+<a class="header" href="#repeat" id="repeat"><h2><code>repeat</code></h2></a>
+<p>This value specifies whether this interrupt descriptor describes a
+single interrupt or an array of interrupts.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): the descriptor describes a single interrupt.</p>
+</li>
+<li>
+<p>an integer above or equal to 1: the descriptor describes an array of interrupts of the given size.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#metadata-keys" id="metadata-keys"><h2>Metadata keys</h2></a>
+<p>This configuration structure is used to name and document the
+interrupt.</p>
+<p>More information about this structure may be found <a href="metadataconfig.html">here</a>.</p>
+<p>The following configuration keys are used to configure this structure.</p>
+<a class="header" href="#mnemonic" id="mnemonic"><h3><code>mnemonic</code></h3></a>
+<p>This key is documented <a href="metadataconfig.html#mnemonic">here</a>.</p>
+<a class="header" href="#name" id="name"><h3><code>name</code></h3></a>
+<p>This key is documented <a href="metadataconfig.html#name">here</a>.</p>
+<a class="header" href="#brief" id="brief"><h3><code>brief</code></h3></a>
+<p>This key is documented <a href="metadataconfig.html#brief">here</a>.</p>
+<a class="header" href="#doc" id="doc"><h3><code>doc</code></h3></a>
+<p>This key is documented <a href="metadataconfig.html#doc">here</a>.</p>
+<a class="header" href="#internal" id="internal"><h2><code>internal</code></h2></a>
+<p>This key specifies whether the interrupt is requested by an internal
+or external signal.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): the interrupt request source is an input port.</p>
+</li>
+<li>
+<p>a string matching <code>[a-zA-Z][a-zA-Z0-9_]*</code>: the interrupt request source is the internal signal with the given name. The arrayness of the signal must match this interrupt's repetition. Level-sensitive interrupts cannot be associated with strobe signals.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#active" id="active"><h2><code>active</code></h2></a>
+<p>This key specifies the event that the interrupt is sensitive to.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>high</code> (default): the interrupt is level/strobe-sensitive, active-high.</p>
+</li>
+<li>
+<p><code>low</code>: the interrupt is level/strobe-sensitive, active-low.</p>
+</li>
+<li>
+<p><code>rising</code>: the interrupt is rising-edge sensitive.</p>
+</li>
+<li>
+<p><code>falling</code>: the interrupt is falling-edge sensitive.</p>
+</li>
+<li>
+<p><code>edge</code>: the interrupt is sensitive to any edge.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>high</code>) is used.</p>
+<a class="header" href="#group" id="group"><h2><code>group</code></h2></a>
+<p>The interrupt request port for the internal signal can optionally be
+grouped along with other ports in a record. This key specifies the name
+of the group record.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): port grouping is determined by the global default.</p>
+</li>
+<li>
+<p><code>no</code>: the port is not grouped in a record.</p>
+</li>
+<li>
+<p>a string matching <code>[a-zA-Z][a-zA-Z0-9_]*</code>: the port is grouped in a record with the specified name.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="permissionconfig.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="internalioconfig.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="permissionconfig.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="internalioconfig.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

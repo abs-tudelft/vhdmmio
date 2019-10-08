@@ -1,0 +1,790 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Field descriptors - vhdMMIO</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">var path_to_root = "";</script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="index.html"><strong aria-hidden="true">1.</strong> Index</a></li><li><a href="registerfileconfig.html"><strong aria-hidden="true">2.</strong> Register files</a></li><li><ol class="section"><li><a href="metadataconfig.html"><strong aria-hidden="true">2.1.</strong> Metadata</a></li><li><a href="featureconfig.html"><strong aria-hidden="true">2.2.</strong> Register file options</a></li><li><a href="entityconfig.html"><strong aria-hidden="true">2.3.</strong> VHDL entity configuration</a></li><li><a href="interfaceconfig.html"><strong aria-hidden="true">2.4.</strong> VHDL interface configuration</a></li><li><a href="fieldconfig.html" class="active"><strong aria-hidden="true">2.5.</strong> Field descriptors</a></li><li><ol class="section"><li><a href="primitive.html"><strong aria-hidden="true">2.5.1.</strong> primitive behavior</a></li><li><a href="constant.html"><strong aria-hidden="true">2.5.2.</strong> constant behavior</a></li><li><a href="config.html"><strong aria-hidden="true">2.5.3.</strong> config behavior</a></li><li><a href="status.html"><strong aria-hidden="true">2.5.4.</strong> status behavior</a></li><li><a href="internalstatus.html"><strong aria-hidden="true">2.5.5.</strong> internal-status behavior</a></li><li><a href="latching.html"><strong aria-hidden="true">2.5.6.</strong> latching behavior</a></li><li><a href="control.html"><strong aria-hidden="true">2.5.7.</strong> Control</a></li><li><a href="internalcontrol.html"><strong aria-hidden="true">2.5.8.</strong> internal-control behavior</a></li><li><a href="flag.html"><strong aria-hidden="true">2.5.9.</strong> flag behavior</a></li><li><a href="volatileflag.html"><strong aria-hidden="true">2.5.10.</strong> volatile-flag behavior</a></li><li><a href="internalflag.html"><strong aria-hidden="true">2.5.11.</strong> internal-flag behavior</a></li><li><a href="volatileinternalflag.html"><strong aria-hidden="true">2.5.12.</strong> volatile-internal-flag behavior</a></li><li><a href="strobe.html"><strong aria-hidden="true">2.5.13.</strong> strobe behavior</a></li><li><a href="internalstrobe.html"><strong aria-hidden="true">2.5.14.</strong> internal-strobe behavior</a></li><li><a href="request.html"><strong aria-hidden="true">2.5.15.</strong> request behavior</a></li><li><a href="multirequest.html"><strong aria-hidden="true">2.5.16.</strong> multi-request behavior</a></li><li><a href="counter.html"><strong aria-hidden="true">2.5.17.</strong> counter behavior</a></li><li><a href="volatilecounter.html"><strong aria-hidden="true">2.5.18.</strong> volatile-counter behavior</a></li><li><a href="internalcounter.html"><strong aria-hidden="true">2.5.19.</strong> internal-counter behavior</a></li><li><a href="volatileinternalcounter.html"><strong aria-hidden="true">2.5.20.</strong> volatile-internal-counter behavior</a></li><li><a href="streamtommio.html"><strong aria-hidden="true">2.5.21.</strong> stream-to-mmio behavior</a></li><li><a href="mmiotostream.html"><strong aria-hidden="true">2.5.22.</strong> mmio-to-stream behavior</a></li><li><a href="axi.html"><strong aria-hidden="true">2.5.23.</strong> axi behavior</a></li><li><a href="interrupt.html"><strong aria-hidden="true">2.5.24.</strong> interrupt behavior</a></li><li><a href="interruptflag.html"><strong aria-hidden="true">2.5.25.</strong> interrupt-flag behavior</a></li><li><a href="volatileinterruptflag.html"><strong aria-hidden="true">2.5.26.</strong> volatile-interrupt-flag behavior</a></li><li><a href="interruptpend.html"><strong aria-hidden="true">2.5.27.</strong> interrupt-pend behavior</a></li><li><a href="interruptenable.html"><strong aria-hidden="true">2.5.28.</strong> interrupt-enable behavior</a></li><li><a href="interruptunmask.html"><strong aria-hidden="true">2.5.29.</strong> interrupt-unmask behavior</a></li><li><a href="interruptstatus.html"><strong aria-hidden="true">2.5.30.</strong> interrupt-status behavior</a></li><li><a href="interruptraw.html"><strong aria-hidden="true">2.5.31.</strong> interrupt-raw behavior</a></li><li><a href="custom.html"><strong aria-hidden="true">2.5.32.</strong> custom behavior</a></li><li><ol class="section"><li><a href="custominterfaceconfig.html"><strong aria-hidden="true">2.5.32.1.</strong> Interfaces for custom field behavior</a></li></ol></li><li><a href="conditionconfig.html"><strong aria-hidden="true">2.5.33.</strong> Additional address match conditions</a></li><li><a href="subaddressconfig.html"><strong aria-hidden="true">2.5.34.</strong> Subaddress components</a></li><li><a href="permissionconfig.html"><strong aria-hidden="true">2.5.35.</strong> Permissions</a></li></ol></li><li><a href="interruptconfig.html"><strong aria-hidden="true">2.6.</strong> Interrupt descriptors</a></li><li><a href="internalioconfig.html"><strong aria-hidden="true">2.7.</strong> Internal signal I/O</a></li></ol></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light <span class="default">(default)</span></button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">vhdMMIO</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#field-descriptors" id="field-descriptors"><h1>Field descriptors</h1></a>
+<p>A field descriptor describes either a single field or an array of
+fields. Each field produced by a field descriptor has exactly the same
+characteristics, but maps to a different bitrange, and uses a different
+array index on the register file interface. These bitranges are described
+by means of a base bitrange (<code>bitrange</code>, optionally offset by <code>address</code>), a
+repeat count (<code>repeat</code>) and the necessary strides (<code>stride</code>, <code>field-stride</code>
+and <code>field-repeat</code>). Such repetition is useful when you have an array of
+similar registers, for instance in a DMA controller with multiple channels,
+where each channel has its own set of status and control flags.</p>
+<p>Note that this means that you can have four kinds of field descriptors:</p>
+<ul>
+<li>singular scalar fields,</li>
+<li>singular vector fields,</li>
+<li>repeated/array scalar fields, and</li>
+<li>repeated/array vector fields.</li>
+</ul>
+<p>In the VHDL world, scalar vs. vector is distinguished by the base type used
+for interface signals: <code>std_logic</code> for scalar, and
+<code>std_logic_vector(N-1 downto 0)</code> for vectors. By default, ports that belong
+to the same field are gathered into a record. This record in turn becomes
+an array of records for repeated fields, indexed using <code>(0 to N-1)</code>. This
+record and/or the arrays of <code>std_logic_vector</code>s can be flattened away if
+needed using the <code>interface</code> structure.</p>
+<p>The fields themselves as well as the registers they reside in have
+identifiers and documentation attachted to them (<code>mnemonic</code>, <code>name</code>,
+<code>brief</code>, <code>doc</code>, <code>register-*</code>). These are obviously used for documentation
+generation, but also in the generated code in various ways, depending on
+the language backend used. A zero-indexed integer suffix is automatically
+added for arrays of fields.</p>
+<a class="header" href="#behavior" id="behavior"><h2>Behavior</h2></a>
+<p>The behavior of the field is determined by the <code>behavior</code> key and
+associated configuration. There are predefined behaviors for a lot of
+functions commonly and less commonly seen in commercial peripheral register
+files. On rare occasions where none of the predefined behaviors fit what
+you need, you can use the <code>custom</code> behavior, which lets you specify the
+field-specific VHDL code directly.</p>
+<p>Access to the field can optionally be denied based on the AXI4L <code>aw_prot</code>
+and <code>ar_prot</code> fields (<code>read-deny</code> and <code>write-deny</code>). The VHDL code
+generated for the field can be further customized using the <code>interface</code>
+key.</p>
+<p>Field behaviors can be read-write, read-only, or write-only. Read-only
+fields can overlap with write-only fields.</p>
+<a class="header" href="#logical-registers-and-blocks" id="logical-registers-and-blocks"><h2>Logical registers and blocks</h2></a>
+<p>When parsing a register file description, <code>vhdmmio</code> flattens the field
+descriptors into fields, and then groups them again by address and
+operation (read/write). Such groups are called logical registers.</p>
+<p>It is important to note here that even though each field essentially
+describes the shape of the logical register that surrounds it using the
+addressing keys, logical registers cannot overlap. The only exception
+is that a logical register with only write-only fields can overlap/differ
+from a logical register with only read-only fields.</p>
+<p>A logical register consists of one or more blocks. A block is a single
+addressable unit, consisting of a base addess and a mask. The mask allows
+the block to be bigger than a single bus word, by ignoring one or more
+bits in the comparison. Some field behaviors use these ignored bits for
+purposes other than address matching; for example, the AXI passthrough
+behavior uses them to construct the downstream bus addresses.</p>
+<p>Multiple blocks are assigned to a logical register when it has fields
+mapped to it with bit indices beyond the width of the bus; the higher-order
+bits carry over into a neighboring block until all fields have a place.
+Either little- or big-endian mode can be specified for this; in
+little-endian mode the LSB of the logical register resides in the first
+block, while in big-endian mode the MSB resides in the first block.</p>
+<p>The addresses of the blocks are computed by binary-incrementing the
+non-masked bits address. For example, if the base address for a field is
+specified to end with binary <code>10--10--</code>, consecutive blocks will be at
+addresses <code>10--11--</code>, <code>11--00--</code>, <code>11--01--</code>, and so on.</p>
+<a class="header" href="#atomic-access-to-multi-block-registers" id="atomic-access-to-multi-block-registers"><h2>Atomic access to multi-block registers</h2></a>
+<p><code>vhdmmio</code> ensures that logical registers that span multiple blocks are
+accessed atomically by means of holding registers. It does so by inferring
+central read/write holding registers as large as the largest logical
+register in the register file minus the bus width. For reads, reading from
+the first block actually performs the read, delivering the low/high word to
+the bus immediately (little-/big-endian), and saving the rest in the read
+holding register. Reads to the subsequent blocks simply return whatever is
+in the holding register. The inverse is done for writes: writing to the
+last block actually performs the write, while the preceding accesses write
+the data and strobe signals to the write holding register.</p>
+<p>The advantage of sharing holding registers is that it reduces the size of
+the address decoder and read multiplexer; many addresses taking data from
+the same source is advantageous for both area and timing. The primary
+disadvantage is that it only works properly when the blocks are accessed
+sequentially and completely. It is up to the bus master to enforce this; if
+it fails to do so, accesses may end up reading or writing garbage. You can
+therefore generally NOT mix purely AXI4L multi-master systems with
+multi-block registers.</p>
+<p>If you need both multi-block registers and have multiple masters, either
+use full AXI4 arbiters and use the <code>ar_lock</code>/<code>aw_lock</code> signals
+appropriately, ensure mutually-exclusive access by means of software
+solutions, or implement the desired behavior yourself. The necessary write
+holding registers are essentially just <code>control</code> fields, while the read
+holding registers are <code>latching</code> fields.</p>
+<p>Multi-block registers with shared holding registers also has security
+implications: a malicious piece of code may intentionally try to violate
+the aforementioned assumptions to manipulate or eavesdrop accesses made
+by another program/bus master. This is particularly important when the
+AXI4L <code>aw_prot</code> or <code>ar_prot</code> signals are used to restrict access to
+certain fields. More information on this subject can be found
+<a href="permissionconfig.html">here</a>.</p>
+<a class="header" href="#configuration-keys" id="configuration-keys"><h2>Configuration keys</h2></a>
+<p>This structure supports the following configuration keys.</p>
+<a class="header" href="#behavior-1" id="behavior-1"><h2><code>behavior</code></h2></a>
+<p>This key describes the behavior of this field or array of fields.</p>
+<p>This key can take the following values:</p>
+<ul>
+<li>
+<p><a href="primitive.html"><code>primitive</code></a>: base class for regular field behavior. Normally not used directly; it's easier to use one of its specializations:</p>
+<ul>
+<li>
+<p>Constant fields for reading the design-time configuration of the hardware:</p>
+<ul>
+<li>
+<p><a href="constant.html"><code>constant</code></a>: field which always reads as the same constant value.</p>
+</li>
+<li>
+<p><a href="config.html"><code>config</code></a>: field which always reads as the same value, configured through a generic.</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Status fields for monitoring hardware:</p>
+<ul>
+<li>
+<p><a href="status.html"><code>status</code></a>: field which always reflects the current state of an incoming signal.</p>
+</li>
+<li>
+<p><a href="internalstatus.html"><code>internal-status</code></a>: field which always reflects the current state of an internal signal.</p>
+</li>
+<li>
+<p><a href="latching.html"><code>latching</code></a>: status field that is only updated by hardware when a write-enable flag is set.</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Control fields for configuring hardware:</p>
+<ul>
+<li>
+<p><a href="control.html"><code>control</code></a>: basic control field, i.e. written by software and read by hardware.</p>
+</li>
+<li>
+<p><a href="internalcontrol.html"><code>internal-control</code></a>: like <code>control</code>, but drives an internal signal.</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Flag-like fields for signalling events from hardware to software:</p>
+<ul>
+<li>
+<p><a href="flag.html"><code>flag</code></a>: one flag per bit, set by hardware and explicitly cleared by an MMIO write.</p>
+</li>
+<li>
+<p><a href="volatileflag.html"><code>volatile-flag</code></a>: like <code>flag</code>, but implicitly cleared on read.</p>
+</li>
+<li>
+<p><a href="internalflag.html"><code>internal-flag</code></a>: like <code>flag</code>, but set by an internal signal.</p>
+</li>
+<li>
+<p><a href="volatileinternalflag.html"><code>volatile-internal-flag</code></a>: combination of <code>volatile-flag</code> and <code>internal-flag</code>.</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Flag-like fields for signalling requests from software to hardware:</p>
+<ul>
+<li>
+<p><a href="strobe.html"><code>strobe</code></a>: one flag per bit, strobed by an MMIO write to signal some request to hardware.</p>
+</li>
+<li>
+<p><a href="internalstrobe.html"><code>internal-strobe</code></a>: one flag per bit, strobed by an MMIO write to signal some request to another <code>vhdmmio</code> construct.</p>
+</li>
+<li>
+<p><a href="request.html"><code>request</code></a>: like <code>strobe</code>, but the request flags stay high until acknowledged by hardware.</p>
+</li>
+<li>
+<p><a href="multirequest.html"><code>multi-request</code></a>: allows multiple software-to-hardware requests to be queued up atomically by counting.</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Fields for counting events:</p>
+<ul>
+<li>
+<p><a href="counter.html"><code>counter</code></a>: external event counter, reset explicitly by a write.</p>
+</li>
+<li>
+<p><a href="volatilecounter.html"><code>volatile-counter</code></a>: external event counter, reset implicitly by the read.</p>
+</li>
+<li>
+<p><a href="internalcounter.html"><code>internal-counter</code></a>: internal event counter, reset explicitly by a write.</p>
+</li>
+<li>
+<p><a href="volatileinternalcounter.html"><code>volatile-internal-counter</code></a>: internal event counter, reset implicitly by the read.</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Fields for interfacing with AXI streams:</p>
+<ul>
+<li>
+<p><a href="streamtommio.html"><code>stream-to-mmio</code></a>: field which pops data from an incoming stream.</p>
+</li>
+<li>
+<p><a href="mmiotostream.html"><code>mmio-to-stream</code></a>: field which pushes data into an outgoing stream.</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Fields for interfacing with AXI4-lite busses:</p>
+<ul>
+<li><a href="axi.html"><code>axi</code></a>: connects a field to an AXI4-lite master port for generating hierarchical bus structures.</li>
+</ul>
+</li>
+<li>
+<p>Fields for controlling <code>vhdmmio</code>-managed interrupts:</p>
+<ul>
+<li>
+<p><a href="interrupt.html"><code>interrupt</code></a>: base class for interrupt field behaviors. Normally not used directly; it's easier to use one of its specializations:</p>
+</li>
+<li>
+<p><a href="interruptflag.html"><code>interrupt-flag</code></a>: interrupt pending flag, cleared by writing ones.</p>
+</li>
+<li>
+<p><a href="volatileinterruptflag.html"><code>volatile-interrupt-flag</code></a>: interrupt pending flag, cleared by reading.</p>
+</li>
+<li>
+<p><a href="interruptpend.html"><code>interrupt-pend</code></a>: software-pend field.</p>
+</li>
+<li>
+<p><a href="interruptenable.html"><code>interrupt-enable</code></a>: interrupt enable control field.</p>
+</li>
+<li>
+<p><a href="interruptunmask.html"><code>interrupt-unmask</code></a>: interrupt unmask control field.</p>
+</li>
+<li>
+<p><a href="interruptstatus.html"><code>interrupt-status</code></a>: reflects the masked interrupt flag.</p>
+</li>
+<li>
+<p><a href="interruptraw.html"><code>interrupt-raw</code></a>: reflects the raw interrupt request.</p>
+</li>
+</ul>
+</li>
+<li>
+<p><a href="custom.html"><code>custom</code></a>: allows you to specify the field-specific VHDL code manually.</p>
+</li>
+</ul>
+<p>Depending on the value, additional configuration keys may be supported or required. These must be specified in the same dictionary that this key resides in. Refer to the documentation for the individual values for more information.</p>
+<a class="header" href="#address" id="address"><h2><code>address</code></h2></a>
+<p>This key specifies the base address and block mask for the logical
+register that the first field described by this descriptor resides
+in.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p>an integer above or equal to 0: specifies the byte address. The address LSBs that index bytes within the bus word are ignored per the AXI4L specification.</p>
+</li>
+<li>
+<p>a hex/bin integer with don't cares: as before, but specified as a string representation of a hexadecimal or binary integer which may contain don't cares (<code>-</code>). The don't care bits mask out address bits in addition to the byte index LSBs. In hexadecimal integers, bit-granular don't-cares can be specified by inserting four-bit binary blocks enclosed in square braces in place of a hex digit.</p>
+</li>
+<li>
+<p><code>&lt;address&gt;/&lt;size&gt;</code>: as before, but the number of ignored LSBs is explicitly set. This is generally a more convenient notation to use when assigning large blocks of memory to a field.</p>
+</li>
+<li>
+<p><code>&lt;address&gt;|&lt;ignore&gt;</code>: specifies the byte address and ignored bits using two integers. Both integers can be specified in hexadecimal, binary, or decimal. A bit which is set in the <code>&lt;ignore&gt;</code> value is ignored by the address matcher.</p>
+</li>
+<li>
+<p><code>&lt;address&gt;&amp;&lt;mask&gt;</code>: specifies the byte address and mask using two integers. Both integers can be specified in hexadecimal, binary, or decimal. A bit which is not set in the <code>&lt;ignore&gt;</code> value is ignored by the address matcher.</p>
+</li>
+</ul>
+<p>This key is required.</p>
+<a class="header" href="#conditions" id="conditions"><h2><code>conditions</code></h2></a>
+<p>This key specifies additional address match conditions for the
+logical register surrounding the fields described by this descriptor.
+These are primarily intended to construct paged or indirect-access
+register files, which may be useful when not enough address space is
+allocated to the register file to fit all the registers, or when you
+want to emulate legacy register files such as a 16550 UART.</p>
+<p>The value for this key must match for all fields in the register, so
+if you use this, it is recommended to use the <code>subfields</code> key to group
+all fields that belong to the register together so you only have to
+specify it once. In the future, <code>vhdmmio</code> may be extended to allow this
+value to be field-specific.</p>
+<p>This key must be set to a list of dictionaries, of which the structure is defined <a href="conditionconfig.html">here</a>.</p>
+<p>This key is optional. Not specifying it is equivalent to specifying an empty list.</p>
+<a class="header" href="#endianness" id="endianness"><h2><code>endianness</code></h2></a>
+<p>This key specifies the endianness of the logical register
+surrounding the fields described by this descriptor.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): the endianness is taken from the global default (little), the register file default specified in the <code>features</code> key, or from other fields within the register that do specify a value.</p>
+</li>
+<li>
+<p><code>little</code>: the logical register is little endian. That is, when multiple blocks are needed to describe the field(s), bit 0 of the register resides in the <em>first</em> block.</p>
+</li>
+<li>
+<p><code>big</code>: the logical register is big endian. That is, when multiple blocks are needed to describe the field(s), bit 0 of the register resides in the <em>last</em> block.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#bitrange" id="bitrange"><h2><code>bitrange</code></h2></a>
+<p>This key specifies the position of the first field described by this
+descriptor within the surrounding logical register, and specifies its
+vectorness.</p>
+<p>Bit indices cannot go below 0, but they can be greater than or equal to
+the bus width. In this case, the field &quot;spills over&quot; into the
+subsequent block. For instance, for a 32-bit bus and little-endian
+endianness, <code>8:47..8</code> maps to:</p>
+<table><thead><tr><th> Address </th><th> 31..24 </th><th> 23..16 </th><th> 15..8  </th><th> 7..0   </th><th> Block name </th></tr></thead><tbody>
+<tr><td> 0x08    </td><td> 23..16 </td><td> 15..8  </td><td>  7..0  </td><td>        </td><td> <code>...L</code>     </td></tr>
+<tr><td> 0x0C    </td><td>        </td><td>        </td><td> 39..32 </td><td> 31..24 </td><td> <code>...H</code>     </td></tr>
+</tbody></table>
+<p>For big-endian it would be:</p>
+<table><thead><tr><th> Address </th><th> 31..24 </th><th> 23..16 </th><th> 15..8  </th><th> 7..0   </th><th> Block name </th></tr></thead><tbody>
+<tr><td> 0x08    </td><td>        </td><td>        </td><td> 39..32 </td><td> 31..24 </td><td> <code>...H</code>     </td></tr>
+<tr><td> 0x0C    </td><td> 23..16 </td><td> 15..8  </td><td>  7..0  </td><td>        </td><td> <code>...L</code>     </td></tr>
+</tbody></table>
+<p>Following the usual nomenclature, 0x08 and 0x0C would be two different
+registers, usually called <code>high</code> and <code>low</code> or some abbreviation
+thereof. <code>vhdmmio</code> calls 0x08 and 0x0C physical registers (or, more
+generally, blocks, which can have an arbitrary bitmask for the
+address), which together form a single logical register.</p>
+<p>Some output formats require unique names/mnemonics for blocks. Since
+names can only be specified for logical registers as a whole, <code>vhdmmio</code>
+needs to uniquify the identifiers on its own. It does this using the
+following rules:</p>
+<ul>
+<li>logical registers with one block do not receive any name/mnemonic
+suffix.</li>
+<li>logical registers with two blocks receive <code>_high</code>/<code>H</code> and <code>_low</code>/<code>L</code>
+suffixes for their name/mnemonic based on endianness.</li>
+<li>logical registers with more than two blocks receive alphabetical
+suffixes based on the block index (that is, regardless of
+endianness). The name suffixes have the form <code>_&lt;lowercase&gt;</code>, while
+the mnemonic suffixes are simply an uppercase letter.</li>
+</ul>
+<p>When the block address bitmask is nontrivial, the &quot;subsequent block&quot;
+concept requires further elaboration. Consider for instance the address
+<code>0b10--10--</code> in a 32-bit register file. You could argue that the next
+block is <code>0b11--10--</code> or <code>0b10--11--</code>. <code>vhdmmio</code> opts for the latter.
+Specifically, the final block addresses for each block and each of the
+the four subaddresses would become:</p>
+<table><thead><tr><th> Block </th><th> Mask          </th><th> Sub 0 </th><th> Sub 1 </th><th> Sub 2 </th><th> Sub 3 </th></tr></thead><tbody>
+<tr><td> 0     </td><td> <code>0b10--10--</code> </td><td> 0x088 </td><td> 0x098 </td><td> 0x0A8 </td><td> 0x0B8 </td></tr>
+<tr><td> 1     </td><td> <code>0b10--11--</code> </td><td> 0x08C </td><td> 0x09C </td><td> 0x0AC </td><td> 0x0BC </td></tr>
+<tr><td> 2     </td><td> <code>0b11--00--</code> </td><td> 0x0C0 </td><td> 0x0D0 </td><td> 0x0E0 </td><td> 0x0F0 </td></tr>
+<tr><td> 3     </td><td> <code>0b11--01--</code> </td><td> 0x0C4 </td><td> 0x0D4 </td><td> 0x0E4 </td><td> 0x0F4 </td></tr>
+<tr><td> 4     </td><td> <code>0b11--10--</code> </td><td> 0x0C8 </td><td> 0x0D8 </td><td> 0x0E8 </td><td> 0x0F8 </td></tr>
+<tr><td> 5     </td><td> <code>0b11--11--</code> </td><td> 0x0CC </td><td> 0x0DC </td><td> 0x0EC </td><td> 0x0FC </td></tr>
+<tr><td> 6     </td><td> <code>0b100--00--</code> </td><td> 0x100 </td><td> 0x110 </td><td> 0x120 </td><td> 0x130 </td></tr>
+<tr><td> ...   </td><td> ...           </td><td> ...   </td><td> ...   </td><td> ...   </td><td> ...   </td></tr>
+</tbody></table>
+<p>For field descriptors that describe an array of fields through the
+<code>repeat</code> key, this bitrange specifies the position of the first field
+in the array. Subsequent field positions are inferred based on
+<code>field-stride</code> and <code>field-repeat</code>.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): the field occupies the entire bus word, and is thus a vector of the same size as the bus.</p>
+</li>
+<li>
+<p>an integer above or equal to 0: the field occupies a single bit with the specified index, and is thus a scalar.</p>
+</li>
+<li>
+<p><code>&lt;high&gt;..&lt;low&gt;</code>: the field occupies the given inclusive bitrange, and is thus a vector of size <code>&lt;high&gt;</code> - <code>&lt;low&gt;</code> + 1.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#subaddress" id="subaddress"><h2><code>subaddress</code></h2></a>
+<p>This key specifies how the subaddress for this field is generated.
+This subaddress is used for memory-like fields, that need an address in
+addition to read/write data.</p>
+<p>If you leave this list empty or unspecified, the default is to build
+the subaddress by concatenating the masked word address bits. This is
+usually what you want. For instance, putting a 64-bit AXI field into a
+32-bit register file yields an address like <code>0b----0--</code>. The block with
+the first halfword then resides at that address, while the block with
+the second halfword is at <code>0b----1--</code>. The four don't-cares to the left
+of the block index bit form the subaddress, which the AXI field uses as
+a 64-bit word address, leading to natural ordering.</p>
+<p>For more advanced use cases, you can use this key to specify the
+structure of the subaddress manually. It must be a list of so-called
+components, each of which represents one or more subaddress bits taken
+from some source. The source can be the incoming address, an internal
+signal, an external input signal, or constant zero. The components are
+then concatenated in LSB to MSB order, and optionally summed with
+<code>subaddress_offset</code> to get the final subaddress.</p>
+<p>This key must be set to a list of dictionaries, of which the structure is defined <a href="subaddressconfig.html">here</a>.</p>
+<p>This key is optional. Not specifying it is equivalent to specifying an empty list.</p>
+<a class="header" href="#subaddress-offset" id="subaddress-offset"><h2><code>subaddress-offset</code></h2></a>
+<p>This key allows you to specify a constant offset for the subaddress.
+The value is added to the result of the logic specified by the
+<code>subaddress</code> key using a full adder before it is passed to the field.
+This behavior can not always be emulated by entries in the <code>subaddress</code>
+key alone due to the ripple carry logic.</p>
+<p>Note that subaddresses are usually word-oriented. Fields can be
+non-power-of-two-bytes wide, so byte addresses are often
+meaningless.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>0</code> (default): no offset is applied.</p>
+</li>
+<li>
+<p>a different integer: the given (word) offset is applied to the subaddress.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>0</code>) is used.</p>
+<a class="header" href="#repeat" id="repeat"><h2><code>repeat</code></h2></a>
+<p>This value specifies whether this field descriptor describes a
+single field or an array of fields.</p>
+<p>By default, the individual fields are placed in the same register,
+as if they were concatenated in LSB to MSB order. This can be
+customized using the <code>field-repeat</code>, <code>stride</code>, and <code>field-stride</code>
+keys.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): the descriptor describes a single field.</p>
+</li>
+<li>
+<p>an integer above or equal to 1: the descriptor describes an array field of the given size.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#field-repeat" id="field-repeat"><h2><code>field-repeat</code></h2></a>
+<p>This value specifies how many times this field is repeated within
+each logical register before moving on to the next logical register.
+For example, a field descriptor with a <code>repeat</code> of 7 and a
+<code>field-repeat</code> of 3 may look like this:</p>
+<table><thead><tr><th> Address  </th><th> Byte 3  </th><th> Byte 2  </th><th> Byte 1  </th><th> Byte 0  </th></tr></thead><tbody>
+<tr><td> Base     </td><td>         </td><td> Field 2 </td><td> Field 1 </td><td> Field 0 </td></tr>
+<tr><td> Base + 4 </td><td>         </td><td> Field 5 </td><td> Field 4 </td><td> Field 3 </td></tr>
+<tr><td> Base + 8 </td><td>         </td><td>         </td><td>         </td><td> Field 6 </td></tr>
+</tbody></table>
+<p>With <code>field-repeat</code> set to <code>null</code> instead, they get grouped in the same
+logical register, despite becoming wider than the bus (refer to the
+docs for <code>bitrange</code> for more info):</p>
+<table><thead><tr><th> Address  </th><th> Byte 3  </th><th> Byte 2  </th><th> Byte 1  </th><th> Byte 0  </th></tr></thead><tbody>
+<tr><td> Base     </td><td> Field 3 </td><td> Field 2 </td><td> Field 1 </td><td> Field 0 </td></tr>
+<tr><td> (cont.)  </td><td>         </td><td> Field 6 </td><td> Field 5 </td><td> Field 4 </td></tr>
+</tbody></table>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): all fields are placed in the same logical register.</p>
+</li>
+<li>
+<p><code>1</code>: each field gets its own logical register.</p>
+</li>
+<li>
+<p>an integer above or equal to 2: the given amount of fields are placed in each logical register.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#stride" id="stride"><h2><code>stride</code></h2></a>
+<p>This value specifies by how many blocks the address should be
+advanced when moving to the next logical register due to
+<code>field-repeat</code> &lt; <code>repeat</code>.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>1</code> (default): the address is incremented by one block. Note that this default is not correct when the logical register is wider than the bus.</p>
+</li>
+<li>
+<p>a different integer: the address is incremented by this amount of blocks each time. Negative numbers can be used for big-endian indexation.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>1</code>) is used.</p>
+<a class="header" href="#field-stride" id="field-stride"><h2><code>field-stride</code></h2></a>
+<p>This value specifies by how many bits the bitrange low/high indices
+should be advanced when moving to the next field within a single
+logical register.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): the bit index is incremented by the width of the field.</p>
+</li>
+<li>
+<p>an integer: the bit index is incremented by this amount of bits each time. Negative values are allowed, as long as the base bitrange is high enough to prevent the final bit indices from falling below zero.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#metadata-keys" id="metadata-keys"><h2>Metadata keys</h2></a>
+<p>This configuration structure is used to name and document the
+field.</p>
+<p>More information about this structure may be found <a href="metadataconfig.html">here</a>.</p>
+<p>The following configuration keys are used to configure this structure.</p>
+<a class="header" href="#mnemonic" id="mnemonic"><h3><code>mnemonic</code></h3></a>
+<p>This key is documented <a href="metadataconfig.html#mnemonic">here</a>.</p>
+<a class="header" href="#name" id="name"><h3><code>name</code></h3></a>
+<p>This key is documented <a href="metadataconfig.html#name">here</a>.</p>
+<a class="header" href="#brief" id="brief"><h3><code>brief</code></h3></a>
+<p>This key is documented <a href="metadataconfig.html#brief">here</a>.</p>
+<a class="header" href="#doc" id="doc"><h3><code>doc</code></h3></a>
+<p>This key is documented <a href="metadataconfig.html#doc">here</a>.</p>
+<a class="header" href="#register-" id="register-"><h2><code>register-*</code></h2></a>
+<p>This optional configuration structure can be used to name and
+document the logical register that this field resides in.</p>
+<p>Registers can have the same or different metadata attached to them
+based on the bus access mode (read/write). In the presence of multiple
+metadata sources, the first one encountered in the following list is
+used for the read metadata:</p>
+<ul>
+<li>the register metadata for the least significant readable field in
+the logical register that carries it;</li>
+<li>the register metadata for the least significant writable field in
+the logical register that carries it;</li>
+<li>generated from the field metadata for the least significant readable
+field.</li>
+<li>generated from the field metadata for the least significant writable
+field.</li>
+</ul>
+<p>The generated metadata copies the mnemonic from the field, and uses the
+field's name with <code>'_reg'</code> suffix for the name. The generated brief
+just lists the fields in the register.</p>
+<p>The priority list is the same for writes, but with points 1 and 2
+flipped around (3 and 4 are NOT flipped). If the metadata for the two
+access modes resolves to the same object, the register is documented
+once as being R/W, even if some fields are read- or write-only and/or
+overlap that way. Otherwise, it is documented twice, once as read-only
+and once as write-only.</p>
+<p>For example, in the 16550 UART, register 0/DLAB 0 is commonly referred
+to as the receiver buffer register (<code>RBR</code>) in read mode and the
+transmitter holding register (<code>THR</code>) in write mode, so you might want
+to document them separately. On the other hand, you could also document
+them once as a FIFO access register (<code>FAR</code>, for instance). This is
+mostly a matter of taste.</p>
+<p>More information about this structure may be found <a href="metadataconfig.html">here</a>.</p>
+<p>The following configuration keys are used to configure this structure. This structure is optional, so it is legal to not specify any of them, except when this structure is required by context.</p>
+<a class="header" href="#register-mnemonic" id="register-mnemonic"><h3><code>register-mnemonic</code></h3></a>
+<p>This key is documented <a href="metadataconfig.html#mnemonic">here</a>.</p>
+<a class="header" href="#register-name" id="register-name"><h3><code>register-name</code></h3></a>
+<p>This key is documented <a href="metadataconfig.html#name">here</a>.</p>
+<a class="header" href="#register-brief" id="register-brief"><h3><code>register-brief</code></h3></a>
+<p>This key is documented <a href="metadataconfig.html#brief">here</a>.</p>
+<a class="header" href="#register-doc" id="register-doc"><h3><code>register-doc</code></h3></a>
+<p>This key is documented <a href="metadataconfig.html#doc">here</a>.</p>
+<a class="header" href="#read-allow-" id="read-allow-"><h2><code>read-allow-*</code></h2></a>
+<p>These keys describe which AXI4L <code>ar_prot</code> values are acceptable for
+read transactions. By default, the <code>ar_prot</code> field is ignored, so all
+masters can read from the field(s). These keys have no effect for
+write-only fields.</p>
+<p>More information about this structure may be found <a href="permissionconfig.html">here</a>.</p>
+<p>The following configuration keys are used to configure this structure.</p>
+<a class="header" href="#read-allow-user" id="read-allow-user"><h3><code>read-allow-user</code></h3></a>
+<p>This key is documented <a href="permissionconfig.html#user">here</a>.</p>
+<a class="header" href="#read-allow-privileged" id="read-allow-privileged"><h3><code>read-allow-privileged</code></h3></a>
+<p>This key is documented <a href="permissionconfig.html#privileged">here</a>.</p>
+<a class="header" href="#read-allow-secure" id="read-allow-secure"><h3><code>read-allow-secure</code></h3></a>
+<p>This key is documented <a href="permissionconfig.html#secure">here</a>.</p>
+<a class="header" href="#read-allow-nonsecure" id="read-allow-nonsecure"><h3><code>read-allow-nonsecure</code></h3></a>
+<p>This key is documented <a href="permissionconfig.html#nonsecure">here</a>.</p>
+<a class="header" href="#read-allow-data" id="read-allow-data"><h3><code>read-allow-data</code></h3></a>
+<p>This key is documented <a href="permissionconfig.html#data">here</a>.</p>
+<a class="header" href="#read-allow-instruction" id="read-allow-instruction"><h3><code>read-allow-instruction</code></h3></a>
+<p>This key is documented <a href="permissionconfig.html#instruction">here</a>.</p>
+<a class="header" href="#write-allow-" id="write-allow-"><h2><code>write-allow-*</code></h2></a>
+<p>These keys describe which AXI4L <code>aw_prot</code> values are acceptable for
+write transactions. By default, the <code>aw_prot</code> field is ignored, so all
+masters can write to the field(s). These keys have no effect for
+read-only fields.</p>
+<p>More information about this structure may be found <a href="permissionconfig.html">here</a>.</p>
+<p>The following configuration keys are used to configure this structure.</p>
+<a class="header" href="#write-allow-user" id="write-allow-user"><h3><code>write-allow-user</code></h3></a>
+<p>This key is documented <a href="permissionconfig.html#user">here</a>.</p>
+<a class="header" href="#write-allow-privileged" id="write-allow-privileged"><h3><code>write-allow-privileged</code></h3></a>
+<p>This key is documented <a href="permissionconfig.html#privileged">here</a>.</p>
+<a class="header" href="#write-allow-secure" id="write-allow-secure"><h3><code>write-allow-secure</code></h3></a>
+<p>This key is documented <a href="permissionconfig.html#secure">here</a>.</p>
+<a class="header" href="#write-allow-nonsecure" id="write-allow-nonsecure"><h3><code>write-allow-nonsecure</code></h3></a>
+<p>This key is documented <a href="permissionconfig.html#nonsecure">here</a>.</p>
+<a class="header" href="#write-allow-data" id="write-allow-data"><h3><code>write-allow-data</code></h3></a>
+<p>This key is documented <a href="permissionconfig.html#data">here</a>.</p>
+<a class="header" href="#write-allow-instruction" id="write-allow-instruction"><h3><code>write-allow-instruction</code></h3></a>
+<p>This key is documented <a href="permissionconfig.html#instruction">here</a>.</p>
+<a class="header" href="#interface-keys" id="interface-keys"><h2>Interface keys</h2></a>
+<p>These keys specify how the VHDL entity interface is generated.</p>
+<p>More information about this structure may be found <a href="interfaceconfig.html">here</a>.</p>
+<p>The following configuration keys are used to configure this structure.</p>
+<a class="header" href="#group" id="group"><h3><code>group</code></h3></a>
+<p>This key is documented <a href="interfaceconfig.html#group">here</a>.</p>
+<a class="header" href="#flatten" id="flatten"><h3><code>flatten</code></h3></a>
+<p>This key is documented <a href="interfaceconfig.html#flatten">here</a>.</p>
+<a class="header" href="#generic-group" id="generic-group"><h3><code>generic-group</code></h3></a>
+<p>This key is documented <a href="interfaceconfig.html#generic-group">here</a>.</p>
+<a class="header" href="#generic-flatten" id="generic-flatten"><h3><code>generic-flatten</code></h3></a>
+<p>This key is documented <a href="interfaceconfig.html#generic-flatten">here</a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="interfaceconfig.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="primitive.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="interfaceconfig.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="primitive.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

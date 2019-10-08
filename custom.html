@@ -1,0 +1,767 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>custom behavior - vhdMMIO</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">var path_to_root = "";</script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="index.html"><strong aria-hidden="true">1.</strong> Index</a></li><li><a href="registerfileconfig.html"><strong aria-hidden="true">2.</strong> Register files</a></li><li><ol class="section"><li><a href="metadataconfig.html"><strong aria-hidden="true">2.1.</strong> Metadata</a></li><li><a href="featureconfig.html"><strong aria-hidden="true">2.2.</strong> Register file options</a></li><li><a href="entityconfig.html"><strong aria-hidden="true">2.3.</strong> VHDL entity configuration</a></li><li><a href="interfaceconfig.html"><strong aria-hidden="true">2.4.</strong> VHDL interface configuration</a></li><li><a href="fieldconfig.html"><strong aria-hidden="true">2.5.</strong> Field descriptors</a></li><li><ol class="section"><li><a href="primitive.html"><strong aria-hidden="true">2.5.1.</strong> primitive behavior</a></li><li><a href="constant.html"><strong aria-hidden="true">2.5.2.</strong> constant behavior</a></li><li><a href="config.html"><strong aria-hidden="true">2.5.3.</strong> config behavior</a></li><li><a href="status.html"><strong aria-hidden="true">2.5.4.</strong> status behavior</a></li><li><a href="internalstatus.html"><strong aria-hidden="true">2.5.5.</strong> internal-status behavior</a></li><li><a href="latching.html"><strong aria-hidden="true">2.5.6.</strong> latching behavior</a></li><li><a href="control.html"><strong aria-hidden="true">2.5.7.</strong> Control</a></li><li><a href="internalcontrol.html"><strong aria-hidden="true">2.5.8.</strong> internal-control behavior</a></li><li><a href="flag.html"><strong aria-hidden="true">2.5.9.</strong> flag behavior</a></li><li><a href="volatileflag.html"><strong aria-hidden="true">2.5.10.</strong> volatile-flag behavior</a></li><li><a href="internalflag.html"><strong aria-hidden="true">2.5.11.</strong> internal-flag behavior</a></li><li><a href="volatileinternalflag.html"><strong aria-hidden="true">2.5.12.</strong> volatile-internal-flag behavior</a></li><li><a href="strobe.html"><strong aria-hidden="true">2.5.13.</strong> strobe behavior</a></li><li><a href="internalstrobe.html"><strong aria-hidden="true">2.5.14.</strong> internal-strobe behavior</a></li><li><a href="request.html"><strong aria-hidden="true">2.5.15.</strong> request behavior</a></li><li><a href="multirequest.html"><strong aria-hidden="true">2.5.16.</strong> multi-request behavior</a></li><li><a href="counter.html"><strong aria-hidden="true">2.5.17.</strong> counter behavior</a></li><li><a href="volatilecounter.html"><strong aria-hidden="true">2.5.18.</strong> volatile-counter behavior</a></li><li><a href="internalcounter.html"><strong aria-hidden="true">2.5.19.</strong> internal-counter behavior</a></li><li><a href="volatileinternalcounter.html"><strong aria-hidden="true">2.5.20.</strong> volatile-internal-counter behavior</a></li><li><a href="streamtommio.html"><strong aria-hidden="true">2.5.21.</strong> stream-to-mmio behavior</a></li><li><a href="mmiotostream.html"><strong aria-hidden="true">2.5.22.</strong> mmio-to-stream behavior</a></li><li><a href="axi.html"><strong aria-hidden="true">2.5.23.</strong> axi behavior</a></li><li><a href="interrupt.html"><strong aria-hidden="true">2.5.24.</strong> interrupt behavior</a></li><li><a href="interruptflag.html"><strong aria-hidden="true">2.5.25.</strong> interrupt-flag behavior</a></li><li><a href="volatileinterruptflag.html"><strong aria-hidden="true">2.5.26.</strong> volatile-interrupt-flag behavior</a></li><li><a href="interruptpend.html"><strong aria-hidden="true">2.5.27.</strong> interrupt-pend behavior</a></li><li><a href="interruptenable.html"><strong aria-hidden="true">2.5.28.</strong> interrupt-enable behavior</a></li><li><a href="interruptunmask.html"><strong aria-hidden="true">2.5.29.</strong> interrupt-unmask behavior</a></li><li><a href="interruptstatus.html"><strong aria-hidden="true">2.5.30.</strong> interrupt-status behavior</a></li><li><a href="interruptraw.html"><strong aria-hidden="true">2.5.31.</strong> interrupt-raw behavior</a></li><li><a href="custom.html" class="active"><strong aria-hidden="true">2.5.32.</strong> custom behavior</a></li><li><ol class="section"><li><a href="custominterfaceconfig.html"><strong aria-hidden="true">2.5.32.1.</strong> Interfaces for custom field behavior</a></li></ol></li><li><a href="conditionconfig.html"><strong aria-hidden="true">2.5.33.</strong> Additional address match conditions</a></li><li><a href="subaddressconfig.html"><strong aria-hidden="true">2.5.34.</strong> Subaddress components</a></li><li><a href="permissionconfig.html"><strong aria-hidden="true">2.5.35.</strong> Permissions</a></li></ol></li><li><a href="interruptconfig.html"><strong aria-hidden="true">2.6.</strong> Interrupt descriptors</a></li><li><a href="internalioconfig.html"><strong aria-hidden="true">2.7.</strong> Internal signal I/O</a></li></ol></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light <span class="default">(default)</span></button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">vhdMMIO</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#custom-behavior" id="custom-behavior"><h1><code>custom</code> behavior</h1></a>
+<p>Custom fields allow you to describe the behavior of the field using
+VHDL snippits. This is very powerful, but not for the faint-hearted. Also,
+with great power comes great responsibility: you can easily break
+<code>vhdmmio</code>'s generated entities by writing incorrect code. Furthermore,
+<code>vhdmmio</code>'s internal template engine can execute arbitrary Python code, so
+building a register file from an untrusted source that contains custom
+fields is a big security risk. Therefore, <code>vhdmmio</code> requires you to specify
+<code>--trusted</code> on the command line to be able to use these fields.</p>
+<p><code>vhdmmio</code> implements custom fields in a tightly integrated way; it doesn't
+just copypaste your code directly into the generated output file. Instead,
+it lets you write code snippits for various actions, that get executed
+within the generated VHDL process at the appropriate times. This is exactly
+how the predefined field behaviors are programmed within <code>vhdmmio</code> - custom
+fields basically just allow direct access to this API. The big advantage of
+this is that you still don't need to worry about things like the AXI4L
+interface or interoperability with any other fields in the logical register
+or register file, but it does mean that you need to specify quite some
+metadata to <code>vhdmmio</code> to make things work, and that you need a good
+understanding of how <code>vhdmmio</code>'s generated VHDL code works.</p>
+<a class="header" href="#specifying-field-behavior" id="specifying-field-behavior"><h1>Specifying field behavior</h1></a>
+<p>The behavior of a field needs to be specified in two different ways. The
+first is obvious: (templates for) the VHDL code that gets inserted into
+the generated entity. The second consists of a more abstract description of
+the field's capabilities and characteristics, which <code>vhdmmio</code> uses to
+generate the glue logic between the fields and the AXI4L bus, the header
+files for accessing the registers, and in some cases the documentation.</p>
+<p><code>vhdmmio</code> allows you to specify the following VHDL code blocks. Note that
+<code>vhdmmio</code>'s generated entity is entirely synchronous and uses variables to
+maintain state, so the order of the blocks is important; the blocks are
+listed in the order in which they are executed.</p>
+<ul>
+<li><code>pre-access</code>: this code block is executed every clock cycle <em>before</em> the
+AXI4L bus access is handled.</li>
+<li><code>read</code>: this code block is executed when the bus is trying to read the
+field, and the bus interface logic is ready for the field's response.</li>
+<li><code>read-lookahead</code>: like <code>read</code>, but the bus interface logic is <em>not</em> yet
+ready for the response.</li>
+<li><code>read-request</code>: this code block is executed when a read request for the
+field is available, regardless of whether the bus interface logic is
+ready for the response.</li>
+<li><code>read-response</code>: this code block is executed when one of the above
+blocks deferred a read, and the bus interface logic is ready for the
+response.</li>
+<li><code>write</code>, <code>write-lookahead</code>, <code>write-request</code>, and <code>write-response</code>: the
+write analogues for the above.</li>
+<li><code>post-access</code>: this code block is executed every clock cycle <em>after</em> the
+AXI4L bus access is handled.</li>
+</ul>
+<p>For more information about each block, refer to the documentation below.</p>
+<p><code>vhdmmio</code> needs the following metadata in addition to the code blocks:</p>
+<ul>
+<li>whether the <code>read</code>/<code>read-request</code>/<code>write</code>/<code>write-request</code> code blocks
+can block a bus access (that is, delay the bus response);</li>
+<li>whether reads/writes are volatile (that is, the result of accessing the
+field once differs from accessing it twice);</li>
+<li>how the field can be accessed without affecting its state, if this is
+possible at all (used when a different field within a single logical
+register is to be accessed).</li>
+</ul>
+<p>This metadata is also used to determine whether two fields can coexist
+within the same register. The rules are:</p>
+<ul>
+<li>blocking fields cannot be combined with other blocking fields;</li>
+<li>blocking fields cannot be combined with volatile fields;</li>
+<li>fields that support multiple outstanding requests cannot be combined
+with any other field.</li>
+</ul>
+<a class="header" href="#template-syntax" id="template-syntax"><h1>Template syntax</h1></a>
+<p><code>vhdmmio</code> uses a custom template engine to preprocess VHDL code. The code
+blocks specified in for custom fields pass through this template engine as
+well.</p>
+<p>The template engine is controlled using three characters that are normally
+not used in VHDL: <code>|</code>, <code>$</code>, and <code>@</code>. Each corresponds to a different phase
+of the template logic.</p>
+<a class="header" href="#indentation-stripping-phase-" id="indentation-stripping-phase-"><h2>Indentation stripping phase (<code>|</code>)</h2></a>
+<p>In this phase, all whitespace at the start of a line followed by a <code>|</code> is
+stripped. This allows you to indent your template however you want, without
+this indentation appearing in the generated code block. If you need to
+start a line with an <code>|</code> for some reason, simply prefix a second <code>|</code>; the
+substitution is only done once per line.</p>
+<a class="header" href="#substitution-phase-" id="substitution-phase-"><h2>Substitution phase (<code>$</code>)</h2></a>
+<p>This is the most important phase, dealing with substitutions and
+conditionals, similar to the functionality of the C preprocessor.</p>
+<p>The template engine supports both inline and single-line directives.
+Single-line directives start with a <code>$</code>, followed by any amount of
+whitespace, followed by a command, followed by some arguments depending on
+the command. There should not be any whitespace before the <code>$</code> sign; to
+indent such commands you need to use the <code>|</code> syntax described above.
+Conversely, inline directives both start and end with a <code>$</code> and can be
+anywhere on a line. To insert a <code>$</code> in the output, use <code>$$</code>.</p>
+<p>The following single-line directives are available:</p>
+<ul>
+<li><code>$if &lt;python-expression&gt;</code>: opens a conditional block based on an
+expression evaluated by Python.</li>
+<li><code>$else</code>: opens the <code>else</code> block for a previous <code>$if</code>.</li>
+<li><code>$endif</code>: terminates an <code>$if</code> or <code>$else</code> block.</li>
+<li><code>$block &lt;name&gt;</code>: defines/adds code to a named block. This is like
+<code>#define</code> in the C preprocessor, but multiline.</li>
+<li><code>$end_block</code>: terminates a block definition.</li>
+<li><code>$&lt;name&gt;</code>: inserts a previously defined block. If there are no spaces
+between the <code>$</code> and the name, no indentation is added; otherwise one
+space plus the spacing between the <code>$</code> and the name is added for each
+line.</li>
+</ul>
+<p>Inline directives are always evaluated directly by Python. The result of
+the Python expression is cast to a string and inserted in place of the
+directive.</p>
+<p>The custom field logic makes some variables available within these
+Python expressions. These are:</p>
+<ul>
+<li><code>i</code>: the field index within the field descriptor, or <code>None</code> if the
+field descriptor describes only one field (that is, <code>repeat</code> is not
+specified).</li>
+<li><code>s</code>: structure containing the VHDL identifiers for each signal/variable
+specified through the <code>interfaces</code> configuration key.</li>
+</ul>
+<p>Additional variables may be available depending on the block.</p>
+<a class="header" href="#comment-and-wrapping-phase-" id="comment-and-wrapping-phase-"><h2>Comment and wrapping phase (<code>@</code>)</h2></a>
+<p>This phase deals with generating aestetically pleasing, properly
+line-wrapped code regardless of the current indentation depth, which is
+impossible (or at least hard) to know when the template is written. The
+following constructs are available:</p>
+<ul>
+<li>Lines that start with <code>@</code> are treated as comments. Subsequent comment
+lines are treated as markdown, and are rewrapped as such to get to
+column 80.</li>
+<li>Lines that start with <code>@@</code> are also treated as comments, but are not
+rewrapped.</li>
+<li><code>@@@</code> at the start of a line maps to a single <code>@</code> in the output.</li>
+<li>Inline <code>@</code> are replaced with either a space or a newline followed by
+appropriate indentation, depending on line wrapping.</li>
+<li>Inline <code>@@</code> maps to a single <code>@</code> in the output.</li>
+</ul>
+<a class="header" href="#configuration-keys" id="configuration-keys"><h2>Configuration keys</h2></a>
+<p>This structure supports the following configuration keys.</p>
+<a class="header" href="#interfaces" id="interfaces"><h2><code>interfaces</code></h2></a>
+<p>This key specifies the interfaces and state variables that this
+field uses.</p>
+<p>This key must be set to a list of dictionaries, of which the structure is defined <a href="custominterfaceconfig.html">here</a>.</p>
+<p>This key is optional. Not specifying it is equivalent to specifying an empty list.</p>
+<a class="header" href="#pre-access" id="pre-access"><h2><code>pre-access</code></h2></a>
+<p>This key specifies the VHDL template for the code block that is
+executed each cycle <em>before</em> the bus is accessed. This is usually used
+for initializing non-state variables and for connecting input signals
+to the internal state.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): no pre-access code block is needed.</p>
+</li>
+<li>
+<p>a string: insert the given pre-access code block.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#read" id="read"><h2><code>read</code></h2></a>
+<p>This key specifies the VHDL template for the code block that is
+executed when the bus is attempting to read the field while also ready
+for the response.</p>
+<p>The template must perform one of the following actions to respond to
+the bus.</p>
+<ul>
+<li>Set the <code>$ack$</code> boolean variable to <code>true</code>, and the <code>$data$</code>
+variable to the read result. <code>$data$</code> is appropriately sliced to
+represent the shape of the field; that is, it is sliced to an
+<code>std_logic</code> for scalar fields and to an appropriately sized
+<code>std_logic_vector</code> for vector fields.</li>
+<li>Set the <code>$nack$</code> boolean variable to <code>true</code> to respond with a
+slave error.</li>
+<li>Set the <code>$block$</code> boolean variable to <code>true</code> to stall. In this
+case, the block will be executed again the next cycle. The
+<code>read-can-block</code> key must be set in order to use this variable.</li>
+<li>Set the <code>$defer$</code> boolean variable to <code>true</code> to defer. In this
+case, the request logic will accept the bus request and send
+subsequent requests to <code>read-lookahead</code> blocks, while the
+response logic will start calling the <code>read-response</code> block to get
+the response. Such a <code>read-response</code> block must be specified in
+order to use this variable.</li>
+<li>Nothing: the bus behaves as if the field does not exist. If there
+are no other fields in the addressed register, a decode error is
+returned.</li>
+</ul>
+<p>In addition to the field's interfaces, the template can use the
+following variables:</p>
+<ul>
+<li><code>$prot$</code>: the <code>prot</code> field associated with the request as a
+3-bit <code>std_logic_vector</code>.</li>
+<li><code>$addr$</code>: the incoming bus address for the request as a 32-bit
+<code>std_logic_vector</code>.</li>
+<li><code>$sub$</code>: the subaddress for the for the request as an
+<code>std_logic_vector</code> slice, of which the width depends on the
+field's subaddress configuration.</li>
+</ul>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): no read code block is needed.</p>
+</li>
+<li>
+<p>a string: insert the given read code block.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#read-lookahead" id="read-lookahead"><h2><code>read-lookahead</code></h2></a>
+<p>This key specifies the VHDL template for the code block that is
+executed when the bus is attempting to read the field, but the
+response logic is not yet ready for the response. This can be used to
+initiate long transactions a few cycles earlier, or can be used in
+conjunction with multiple outstanding request support.</p>
+<p>The template must perform one of the following actions to respond to
+the bus.</p>
+<ul>
+<li>Set the <code>$defer$</code> boolean variable to <code>true</code> to defer. In this
+case, the request logic will accept the bus request and send
+subsequent requests to <code>read-lookahead</code> blocks, while the
+response logic will start calling the <code>read-response</code> block to get
+the response. Such a <code>read-response</code> block must be specified in
+order to use this variable.</li>
+<li>Nothing: the bus interface logic will continue to call this block
+in subsequent cycles until the response logic is ready, at which
+point the regular <code>read</code> block is executed instead.</li>
+</ul>
+<p>In addition to the field's interfaces, the template can use the
+following variables:</p>
+<ul>
+<li><code>$prot$</code>: the <code>prot</code> field associated with the request as a
+3-bit <code>std_logic_vector</code>.</li>
+<li><code>$addr$</code>: the incoming bus address for the request as a 32-bit
+<code>std_logic_vector</code>.</li>
+<li><code>$sub$</code>: the subaddress for the for the request as an
+<code>std_logic_vector</code> slice, of which the width depends on the
+field's subaddress configuration.</li>
+</ul>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): no read lookahead code block is needed.</p>
+</li>
+<li>
+<p>a string: insert the given read lookahead code block.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#read-request" id="read-request"><h2><code>read-request</code></h2></a>
+<p>This key specifies the VHDL template for the code block that is
+executed when the bus is attempting to read the field, regardless of
+whether the bus is ready for the response. It is up to the code block
+itself to check this where needed, using the <code>$resp_ready$</code> boolean
+variable. Depending on this boolean, the block must respond to the
+access as described in the documentation for the <code>read</code> and
+<code>read-lookahead</code> blocks.</p>
+<p>While uncommon, both <code>read</code>/<code>read-lookahead</code> and <code>read-request</code> may be
+specified at the same time. In this case, <code>read</code>/<code>read-lookahead</code> is
+executed before <code>read-request</code>.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): no read request code block is needed.</p>
+</li>
+<li>
+<p>a string: insert the given read request code block.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#read-response" id="read-response"><h2><code>read-response</code></h2></a>
+<p>This key specifies the VHDL template for the code block that is
+executed when the bus is ready for the response of a previously
+deferred read.</p>
+<p>The template must perform one of the following actions to respond to
+the bus.</p>
+<ul>
+<li>Set the <code>$ack$</code> boolean variable to <code>true</code>, and the <code>$data$</code>
+variable to the read result. <code>$data$</code> is appropriately sliced to
+represent the shape of the field; that is, it is sliced to an
+<code>std_logic</code> for scalar fields and to an appropriately sized
+<code>std_logic_vector</code> for vector fields.</li>
+<li>Set the <code>$nack$</code> boolean variable to <code>true</code> to respond with a
+slave error.</li>
+<li>Set the <code>$block$</code> boolean variable to <code>true</code> to stall. In this
+case, the block will be executed again the next cycle. The
+<code>read-can-block</code> key must be set in order to use this variable.</li>
+<li>Nothing: the bus behaves as if the field does not exist. If there
+are no other fields in the addressed register, a decode error is
+returned.</li>
+</ul>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): no read response code block is needed; multiple outstandingread requests are not supported for this field.</p>
+</li>
+<li>
+<p>a string: insert the given read response code block; this field supports multiple outstanding requests in read mode.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#write" id="write"><h2><code>write</code></h2></a>
+<p>This key specifies the VHDL template for the code block that is
+executed when the bus is attempting to write to the field while also
+ready for the response.</p>
+<p>The template must perform one of the following actions to respond to
+the bus.</p>
+<ul>
+<li>Set the <code>$ack$</code> boolean variable to <code>true</code> to respond with an
+acknowledgement.</li>
+<li>Set the <code>$nack$</code> boolean variable to <code>true</code> to respond with a
+slave error.</li>
+<li>Set the <code>$block$</code> boolean variable to <code>true</code> to stall. In this
+case, the block will be executed again the next cycle. The
+<code>write-can-block</code> key must be set in order to use this variable.</li>
+<li>Set the <code>$defer$</code> boolean variable to <code>true</code> to defer. In this
+case, the request logic will accept the bus request and send
+subsequent requests to <code>write-lookahead</code> blocks, while the
+response logic will start calling the <code>write-response</code> block to get
+the response. Such a <code>write-response</code> block must be specified in
+order to use this variable.</li>
+<li>Nothing: the bus behaves as if the field does not exist. If there
+are no other fields in the addressed register, a decode error is
+returned.</li>
+</ul>
+<p>In addition to the field's interfaces, the template can use the
+following variables:</p>
+<ul>
+<li><code>$data$</code>: the write data for the request, appropriately sliced for
+the shape of the field. That is, <code>$data$</code> behaves like an
+<code>std_logic</code> for scalar fields, and like an appropriately sized
+<code>std_logic_vector</code> for vector fields.</li>
+<li><code>$strb$</code>: the write strobe for the request. The variable has the
+same shape as <code>$data$</code> and thus behaves as a bit strobe, even though
+AXI4L's strobe signal is byte-oriented. If a bit in <code>$strb$</code> is
+zero, the respective <code>$data$</code> bit is guaranteed to also be zero, and
+should not be written.</li>
+<li><code>$prot$</code>: the <code>prot</code> field associated with the request as a
+3-bit <code>std_logic_vector</code>.</li>
+<li><code>$addr$</code>: the incoming bus address for the request as a 32-bit
+<code>std_logic_vector</code>.</li>
+<li><code>$sub$</code>: the subaddress for the for the request as an
+<code>std_logic_vector</code> slice, of which the width depends on the
+field's subaddress configuration.</li>
+</ul>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): no write code block is needed.</p>
+</li>
+<li>
+<p>a string: insert the given write code block.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#write-lookahead" id="write-lookahead"><h2><code>write-lookahead</code></h2></a>
+<p>This key specifies the VHDL template for the code block that is
+executed when the bus is attempting to write to the field, but the
+response logic is not yet ready for the response. This can be used to
+initiate long transactions a few cycles earlier, or can be used in
+conjunction with multiple outstanding request support.</p>
+<p>The template must perform one of the following actions to respond to
+the bus.</p>
+<ul>
+<li>Set the <code>$defer$</code> boolean variable to <code>true</code> to defer. In this
+case, the request logic will accept the bus request and send
+subsequent requests to <code>write-lookahead</code> blocks, while the
+response logic will start calling the <code>write-response</code> block to get
+the response. Such a <code>write-response</code> block must be specified in
+order to use this variable.</li>
+<li>Nothing: the bus interface logic will continue to call this block
+in subsequent cycles until the response logic is ready, at which
+point the regular <code>write</code> block is executed instead.</li>
+</ul>
+<p>In addition to the field's interfaces, the template can use the
+following variables:</p>
+<ul>
+<li><code>$data$</code>: the write data for the request, appropriately sliced for
+the shape of the field. That is, <code>$data$</code> behaves like an
+<code>std_logic</code> for scalar fields, and like an appropriately sized
+<code>std_logic_vector</code> for vector fields.</li>
+<li><code>$strb$</code>: the write strobe for the request. The variable has the
+same shape as <code>$data$</code> and thus behaves as a bit strobe, even though
+AXI4L's strobe signal is byte-oriented. If a bit in <code>$strb$</code> is
+zero, the respective <code>$data$</code> bit is guaranteed to also be zero, and
+should not be written.</li>
+<li><code>$prot$</code>: the <code>prot</code> field associated with the request as a
+3-bit <code>std_logic_vector</code>.</li>
+<li><code>$addr$</code>: the incoming bus address for the request as a 32-bit
+<code>std_logic_vector</code>.</li>
+<li><code>$sub$</code>: the subaddress for the for the request as an
+<code>std_logic_vector</code> slice, of which the width depends on the
+field's subaddress configuration.</li>
+</ul>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): no write lookahead code block is needed.</p>
+</li>
+<li>
+<p>a string: insert the given write lookahead code block.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#write-request" id="write-request"><h2><code>write-request</code></h2></a>
+<p>This key specifies the VHDL template for the code block that is
+executed when the bus is attempting to write to the field, regardless
+of whether the bus is ready for the response. It is up to the code
+block itself to check this where needed, using the <code>$resp_ready$</code>
+boolean variable. Depending on this boolean, the block must respond to
+the access as described in the documentation for the <code>write</code> and
+<code>write-lookahead</code> blocks.</p>
+<p>While uncommon, both <code>write</code>/<code>write-lookahead</code> and <code>write-request</code> may
+be specified at the same time. In this case, <code>write</code>/<code>write-lookahead</code>
+is executed before <code>write-request</code>.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): no write request code block is needed.</p>
+</li>
+<li>
+<p>a string: insert the given write request code block.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#write-response" id="write-response"><h2><code>write-response</code></h2></a>
+<p>This key specifies the VHDL template for the code block that is
+executed when the bus is ready for the response of a previously
+deferred write.</p>
+<p>The template must perform one of the following actions to respond to
+the bus.</p>
+<ul>
+<li>Set the <code>$ack$</code> boolean variable to <code>true</code> to respond with an
+acknowledgement.</li>
+<li>Set the <code>$nack$</code> boolean variable to <code>true</code> to respond with a
+slave error.</li>
+<li>Set the <code>$block$</code> boolean variable to <code>true</code> to stall. In this
+case, the block will be executed again the next cycle. The
+<code>write-can-block</code> key must be set in order to use this variable.</li>
+<li>Nothing: the bus behaves as if the field does not exist. If there
+are no other fields in the addressed register, a decode error is
+returned.</li>
+</ul>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): no write response code block is needed; multiple outstandingwrite requests are not supported for this field.</p>
+</li>
+<li>
+<p>a string: insert the given write response code block; this field supports multiple outstanding requests in write mode.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#post-access" id="post-access"><h2><code>post-access</code></h2></a>
+<p>This key specifies the VHDL template for the code block that is
+executed each cycle <em>after</em> the bus is accessed. This is usually used
+for connecting the internal state to output signals.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>null</code> (default): no pre-access code block is needed.</p>
+</li>
+<li>
+<p>a string: insert the given pre-access code block.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>null</code>) is used.</p>
+<a class="header" href="#read-can-block" id="read-can-block"><h2><code>read-can-block</code></h2></a>
+<p>This key specifies whether the field can block read accesses.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>no</code> (default): this field cannot block reads.</p>
+</li>
+<li>
+<p><code>yes</code>: this field can block reads.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>no</code>) is used.</p>
+<a class="header" href="#read-volatile" id="read-volatile"><h2><code>read-volatile</code></h2></a>
+<p>This key specifies whether the field is volatile in read mode.
+<code>vhdmmio</code> defines volatility as the read result or side effects being
+different when the field is accessed once versus when it is accessed
+more than once.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>no</code> (default): this field is not read-volatile.</p>
+</li>
+<li>
+<p><code>yes</code>: this field is read-volatile.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>no</code>) is used.</p>
+<a class="header" href="#read-has-side-effects" id="read-has-side-effects"><h2><code>read-has-side-effects</code></h2></a>
+<p>This key specifies whether reads have side effects.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>no</code> (default): reading this field does not have side effects.</p>
+</li>
+<li>
+<p><code>yes</code>: reading this field may have side effects.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>no</code>) is used.</p>
+<a class="header" href="#read-write-related" id="read-write-related"><h2><code>read-write-related</code></h2></a>
+<p>This key specifies whether the read data carries the same
+significance as the write data. If this is not set, <code>vhdmmio</code> will
+never attempt to read-modify-write this field.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>no</code> (default): the read and write data of this field are not related.</p>
+</li>
+<li>
+<p><code>yes</code>: the read and write data of this field are related.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>no</code>) is used.</p>
+<a class="header" href="#write-can-block" id="write-can-block"><h2><code>write-can-block</code></h2></a>
+<p>This key specifies whether the field can block write accesses.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>no</code> (default): this field cannot block writes.</p>
+</li>
+<li>
+<p><code>yes</code>: this field can block writes.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>no</code>) is used.</p>
+<a class="header" href="#write-volatile" id="write-volatile"><h2><code>write-volatile</code></h2></a>
+<p>This key specifies whether the field is volatile in write mode.
+<code>vhdmmio</code> defines volatility as the write result or side effects being
+different when the field is accessed once versus when it is accessed
+more than once.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>no</code> (default): this field is not write-volatile.</p>
+</li>
+<li>
+<p><code>yes</code>: this field is write-volatile.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>no</code>) is used.</p>
+<a class="header" href="#write-no-op" id="write-no-op"><h2><code>write-no-op</code></h2></a>
+<p>This key specifies what strategies <code>vhdmmio</code> can use to write the
+logical register that this field resides in without affecting this
+field, if this is possible at all.</p>
+<p>The following values are supported:</p>
+<ul>
+<li>
+<p><code>never</code> (default): it is impossible to write to this field without side effects.</p>
+</li>
+<li>
+<p><code>zero</code>: writing zero to this field never has any side effects (flags).</p>
+</li>
+<li>
+<p><code>current</code>: writing the current value never has any side effects. The current value must either be known from context, or, if <code>read-write-related</code> is set, can be read from the field first (read-modify-write).</p>
+</li>
+<li>
+<p><code>mask</code>: this field can only be masked out using the AXI4L byte strobe signal.</p>
+</li>
+<li>
+<p><code>current-or-mask</code>: this field can be masked out by writing the current value, or through the AXI4L byte strobe signal.</p>
+</li>
+<li>
+<p><code>always</code>: anything goes: writing to this field never has any side effects that <code>vhdmmio</code> has to concern itself with.</p>
+</li>
+</ul>
+<p>This key is optional unless required by context. If not specified, the default value (<code>never</code>) is used.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="interruptraw.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="custominterfaceconfig.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="interruptraw.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="custominterfaceconfig.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

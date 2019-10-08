@@ -1,0 +1,272 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Index - vhdMMIO</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">var path_to_root = "";</script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="index.html"><strong aria-hidden="true">1.</strong> Index</a></li><li><a href="registerfileconfig.html"><strong aria-hidden="true">2.</strong> Register files</a></li><li><ol class="section"><li><a href="metadataconfig.html"><strong aria-hidden="true">2.1.</strong> Metadata</a></li><li><a href="featureconfig.html"><strong aria-hidden="true">2.2.</strong> Register file options</a></li><li><a href="entityconfig.html"><strong aria-hidden="true">2.3.</strong> VHDL entity configuration</a></li><li><a href="interfaceconfig.html"><strong aria-hidden="true">2.4.</strong> VHDL interface configuration</a></li><li><a href="fieldconfig.html"><strong aria-hidden="true">2.5.</strong> Field descriptors</a></li><li><ol class="section"><li><a href="primitive.html"><strong aria-hidden="true">2.5.1.</strong> primitive behavior</a></li><li><a href="constant.html"><strong aria-hidden="true">2.5.2.</strong> constant behavior</a></li><li><a href="config.html"><strong aria-hidden="true">2.5.3.</strong> config behavior</a></li><li><a href="status.html"><strong aria-hidden="true">2.5.4.</strong> status behavior</a></li><li><a href="internalstatus.html"><strong aria-hidden="true">2.5.5.</strong> internal-status behavior</a></li><li><a href="latching.html"><strong aria-hidden="true">2.5.6.</strong> latching behavior</a></li><li><a href="control.html"><strong aria-hidden="true">2.5.7.</strong> Control</a></li><li><a href="internalcontrol.html"><strong aria-hidden="true">2.5.8.</strong> internal-control behavior</a></li><li><a href="flag.html"><strong aria-hidden="true">2.5.9.</strong> flag behavior</a></li><li><a href="volatileflag.html"><strong aria-hidden="true">2.5.10.</strong> volatile-flag behavior</a></li><li><a href="internalflag.html"><strong aria-hidden="true">2.5.11.</strong> internal-flag behavior</a></li><li><a href="volatileinternalflag.html"><strong aria-hidden="true">2.5.12.</strong> volatile-internal-flag behavior</a></li><li><a href="strobe.html"><strong aria-hidden="true">2.5.13.</strong> strobe behavior</a></li><li><a href="internalstrobe.html"><strong aria-hidden="true">2.5.14.</strong> internal-strobe behavior</a></li><li><a href="request.html"><strong aria-hidden="true">2.5.15.</strong> request behavior</a></li><li><a href="multirequest.html"><strong aria-hidden="true">2.5.16.</strong> multi-request behavior</a></li><li><a href="counter.html"><strong aria-hidden="true">2.5.17.</strong> counter behavior</a></li><li><a href="volatilecounter.html"><strong aria-hidden="true">2.5.18.</strong> volatile-counter behavior</a></li><li><a href="internalcounter.html"><strong aria-hidden="true">2.5.19.</strong> internal-counter behavior</a></li><li><a href="volatileinternalcounter.html"><strong aria-hidden="true">2.5.20.</strong> volatile-internal-counter behavior</a></li><li><a href="streamtommio.html"><strong aria-hidden="true">2.5.21.</strong> stream-to-mmio behavior</a></li><li><a href="mmiotostream.html"><strong aria-hidden="true">2.5.22.</strong> mmio-to-stream behavior</a></li><li><a href="axi.html"><strong aria-hidden="true">2.5.23.</strong> axi behavior</a></li><li><a href="interrupt.html"><strong aria-hidden="true">2.5.24.</strong> interrupt behavior</a></li><li><a href="interruptflag.html"><strong aria-hidden="true">2.5.25.</strong> interrupt-flag behavior</a></li><li><a href="volatileinterruptflag.html"><strong aria-hidden="true">2.5.26.</strong> volatile-interrupt-flag behavior</a></li><li><a href="interruptpend.html"><strong aria-hidden="true">2.5.27.</strong> interrupt-pend behavior</a></li><li><a href="interruptenable.html"><strong aria-hidden="true">2.5.28.</strong> interrupt-enable behavior</a></li><li><a href="interruptunmask.html"><strong aria-hidden="true">2.5.29.</strong> interrupt-unmask behavior</a></li><li><a href="interruptstatus.html"><strong aria-hidden="true">2.5.30.</strong> interrupt-status behavior</a></li><li><a href="interruptraw.html"><strong aria-hidden="true">2.5.31.</strong> interrupt-raw behavior</a></li><li><a href="custom.html"><strong aria-hidden="true">2.5.32.</strong> custom behavior</a></li><li><ol class="section"><li><a href="custominterfaceconfig.html"><strong aria-hidden="true">2.5.32.1.</strong> Interfaces for custom field behavior</a></li></ol></li><li><a href="conditionconfig.html"><strong aria-hidden="true">2.5.33.</strong> Additional address match conditions</a></li><li><a href="subaddressconfig.html"><strong aria-hidden="true">2.5.34.</strong> Subaddress components</a></li><li><a href="permissionconfig.html"><strong aria-hidden="true">2.5.35.</strong> Permissions</a></li></ol></li><li><a href="interruptconfig.html"><strong aria-hidden="true">2.6.</strong> Interrupt descriptors</a></li><li><a href="internalioconfig.html"><strong aria-hidden="true">2.7.</strong> Internal signal I/O</a></li></ol></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light <span class="default">(default)</span></button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">vhdMMIO</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#vhdmmio" id="vhdmmio"><h1><code>vhdmmio</code></h1></a>
+<p><code>vhdmmio</code> concerns itself with the generation of register files. To
+<code>vhdmmio</code>, a register file is an AXI4-lite slave, consisting of any number
+of fields, occupying the full 4GiB address range provided by AXI4-lite for
+as far as the register file is concerned. Normally, not the whole 4GiB
+range will be accessible; this is up to the unit that's generating the
+addresses. For the &quot;toplevel&quot; register file, this would normally be some
+shell or bus infrastructure that only maps a certain address range to it.</p>
+<p><code>vhdmmio</code> does not provide any bus infrastructure blocks such as address
+decoders/demuxers. Nevertheless, it is possible to connect multiple
+register files together in a hierarchical way; one of the field types
+<code>vhdmmio</code> provides behaves like an AXI4-lite passthrough.</p>
+<p>Each register file maps to a single VHDL entity and an accompanying
+support package for the component declaration and type definitions needed
+for the ports. There is also a common support package (<code>vhdmmio_pkg.vhd</code>)
+that defines shared data types, most importantly the AXI4-lite records that
+<code>vhdmmio</code> uses on the entity interfaces (intended to save you a whole lot
+of typing when connecting stuff together).</p>
+<p>Because of the above, register files in a design are largely independent.
+However, AXI4-Lite passthrough fields can refer to other register files in
+the design to indicate how the register files are hooked up in the design.
+<code>vhdmmio</code> can/will be able to use this information to generate more
+complete documentation, and to generate C(++) header files/classes and
+Python classes for accessing the register file hierarchy as a whole.</p>
+<p>The generated register files are human-readable, so if you need to debug or
+change something after generation, you should be able to. The entities
+consist of a single one-process-style FSM that use variables for state
+information, so for debugging you'll need a tool that can trace variables.
+Note that this code style implies that all output ports of <code>vhdmmio</code>
+generated entities are register outputs. This should help a little with
+timing closure, but the register files are not intended to be clocked
+insanely high. If your active logic requires a high clock speed and
+<code>vhdmmio</code>'s register files can't keep up, consider a multi-clock design.</p>
+<a class="header" href="#table-of-contents" id="table-of-contents"><h1>Table of contents</h1></a>
+<ul>
+<li><a href="registerfileconfig.html">Register files</a>
+<ul>
+<li><a href="metadataconfig.html">Metadata</a></li>
+<li><a href="featureconfig.html">Register file options</a></li>
+<li><a href="entityconfig.html">VHDL entity configuration</a></li>
+<li><a href="interfaceconfig.html">VHDL interface configuration</a></li>
+<li><a href="fieldconfig.html">Field descriptors</a>
+<ul>
+<li><a href="primitive.html"><code>primitive</code> behavior</a></li>
+<li><a href="constant.html"><code>constant</code> behavior</a></li>
+<li><a href="config.html"><code>config</code> behavior</a></li>
+<li><a href="status.html"><code>status</code> behavior</a></li>
+<li><a href="internalstatus.html"><code>internal-status</code> behavior</a></li>
+<li><a href="latching.html"><code>latching</code> behavior</a></li>
+<li><a href="control.html"><code>Control</code></a></li>
+<li><a href="internalcontrol.html"><code>internal-control</code> behavior</a></li>
+<li><a href="flag.html"><code>flag</code> behavior</a></li>
+<li><a href="volatileflag.html"><code>volatile-flag</code> behavior</a></li>
+<li><a href="internalflag.html"><code>internal-flag</code> behavior</a></li>
+<li><a href="volatileinternalflag.html"><code>volatile-internal-flag</code> behavior</a></li>
+<li><a href="strobe.html"><code>strobe</code> behavior</a></li>
+<li><a href="internalstrobe.html"><code>internal-strobe</code> behavior</a></li>
+<li><a href="request.html"><code>request</code> behavior</a></li>
+<li><a href="multirequest.html"><code>multi-request</code> behavior</a></li>
+<li><a href="counter.html"><code>counter</code> behavior</a></li>
+<li><a href="volatilecounter.html"><code>volatile-counter</code> behavior</a></li>
+<li><a href="internalcounter.html"><code>internal-counter</code> behavior</a></li>
+<li><a href="volatileinternalcounter.html"><code>volatile-internal-counter</code> behavior</a></li>
+<li><a href="streamtommio.html"><code>stream-to-mmio</code> behavior</a></li>
+<li><a href="mmiotostream.html"><code>mmio-to-stream</code> behavior</a></li>
+<li><a href="axi.html"><code>axi</code> behavior</a></li>
+<li><a href="interrupt.html"><code>interrupt</code> behavior</a></li>
+<li><a href="interruptflag.html"><code>interrupt-flag</code> behavior</a></li>
+<li><a href="volatileinterruptflag.html"><code>volatile-interrupt-flag</code> behavior</a></li>
+<li><a href="interruptpend.html"><code>interrupt-pend</code> behavior</a></li>
+<li><a href="interruptenable.html"><code>interrupt-enable</code> behavior</a></li>
+<li><a href="interruptunmask.html"><code>interrupt-unmask</code> behavior</a></li>
+<li><a href="interruptstatus.html"><code>interrupt-status</code> behavior</a></li>
+<li><a href="interruptraw.html"><code>interrupt-raw</code> behavior</a></li>
+<li><a href="custom.html"><code>custom</code> behavior</a>
+<ul>
+<li><a href="custominterfaceconfig.html">Interfaces for <code>custom</code> field behavior</a></li>
+</ul>
+</li>
+<li><a href="conditionconfig.html">Additional address match conditions</a></li>
+<li><a href="subaddressconfig.html">Subaddress components</a></li>
+<li><a href="permissionconfig.html">Permissions</a></li>
+</ul>
+</li>
+<li><a href="interruptconfig.html">Interrupt descriptors</a></li>
+<li><a href="internalioconfig.html">Internal signal I/O</a></li>
+</ul>
+</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

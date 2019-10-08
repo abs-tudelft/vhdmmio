@@ -1,0 +1,264 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Metadata - vhdMMIO</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body class="light">
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">var path_to_root = "";</script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            document.body.className = theme;
+            document.querySelector('html').className = theme + ' js';
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <ol class="chapter"><li><a href="index.html"><strong aria-hidden="true">1.</strong> Index</a></li><li><a href="registerfileconfig.html"><strong aria-hidden="true">2.</strong> Register files</a></li><li><ol class="section"><li><a href="metadataconfig.html" class="active"><strong aria-hidden="true">2.1.</strong> Metadata</a></li><li><a href="featureconfig.html"><strong aria-hidden="true">2.2.</strong> Register file options</a></li><li><a href="entityconfig.html"><strong aria-hidden="true">2.3.</strong> VHDL entity configuration</a></li><li><a href="interfaceconfig.html"><strong aria-hidden="true">2.4.</strong> VHDL interface configuration</a></li><li><a href="fieldconfig.html"><strong aria-hidden="true">2.5.</strong> Field descriptors</a></li><li><ol class="section"><li><a href="primitive.html"><strong aria-hidden="true">2.5.1.</strong> primitive behavior</a></li><li><a href="constant.html"><strong aria-hidden="true">2.5.2.</strong> constant behavior</a></li><li><a href="config.html"><strong aria-hidden="true">2.5.3.</strong> config behavior</a></li><li><a href="status.html"><strong aria-hidden="true">2.5.4.</strong> status behavior</a></li><li><a href="internalstatus.html"><strong aria-hidden="true">2.5.5.</strong> internal-status behavior</a></li><li><a href="latching.html"><strong aria-hidden="true">2.5.6.</strong> latching behavior</a></li><li><a href="control.html"><strong aria-hidden="true">2.5.7.</strong> Control</a></li><li><a href="internalcontrol.html"><strong aria-hidden="true">2.5.8.</strong> internal-control behavior</a></li><li><a href="flag.html"><strong aria-hidden="true">2.5.9.</strong> flag behavior</a></li><li><a href="volatileflag.html"><strong aria-hidden="true">2.5.10.</strong> volatile-flag behavior</a></li><li><a href="internalflag.html"><strong aria-hidden="true">2.5.11.</strong> internal-flag behavior</a></li><li><a href="volatileinternalflag.html"><strong aria-hidden="true">2.5.12.</strong> volatile-internal-flag behavior</a></li><li><a href="strobe.html"><strong aria-hidden="true">2.5.13.</strong> strobe behavior</a></li><li><a href="internalstrobe.html"><strong aria-hidden="true">2.5.14.</strong> internal-strobe behavior</a></li><li><a href="request.html"><strong aria-hidden="true">2.5.15.</strong> request behavior</a></li><li><a href="multirequest.html"><strong aria-hidden="true">2.5.16.</strong> multi-request behavior</a></li><li><a href="counter.html"><strong aria-hidden="true">2.5.17.</strong> counter behavior</a></li><li><a href="volatilecounter.html"><strong aria-hidden="true">2.5.18.</strong> volatile-counter behavior</a></li><li><a href="internalcounter.html"><strong aria-hidden="true">2.5.19.</strong> internal-counter behavior</a></li><li><a href="volatileinternalcounter.html"><strong aria-hidden="true">2.5.20.</strong> volatile-internal-counter behavior</a></li><li><a href="streamtommio.html"><strong aria-hidden="true">2.5.21.</strong> stream-to-mmio behavior</a></li><li><a href="mmiotostream.html"><strong aria-hidden="true">2.5.22.</strong> mmio-to-stream behavior</a></li><li><a href="axi.html"><strong aria-hidden="true">2.5.23.</strong> axi behavior</a></li><li><a href="interrupt.html"><strong aria-hidden="true">2.5.24.</strong> interrupt behavior</a></li><li><a href="interruptflag.html"><strong aria-hidden="true">2.5.25.</strong> interrupt-flag behavior</a></li><li><a href="volatileinterruptflag.html"><strong aria-hidden="true">2.5.26.</strong> volatile-interrupt-flag behavior</a></li><li><a href="interruptpend.html"><strong aria-hidden="true">2.5.27.</strong> interrupt-pend behavior</a></li><li><a href="interruptenable.html"><strong aria-hidden="true">2.5.28.</strong> interrupt-enable behavior</a></li><li><a href="interruptunmask.html"><strong aria-hidden="true">2.5.29.</strong> interrupt-unmask behavior</a></li><li><a href="interruptstatus.html"><strong aria-hidden="true">2.5.30.</strong> interrupt-status behavior</a></li><li><a href="interruptraw.html"><strong aria-hidden="true">2.5.31.</strong> interrupt-raw behavior</a></li><li><a href="custom.html"><strong aria-hidden="true">2.5.32.</strong> custom behavior</a></li><li><ol class="section"><li><a href="custominterfaceconfig.html"><strong aria-hidden="true">2.5.32.1.</strong> Interfaces for custom field behavior</a></li></ol></li><li><a href="conditionconfig.html"><strong aria-hidden="true">2.5.33.</strong> Additional address match conditions</a></li><li><a href="subaddressconfig.html"><strong aria-hidden="true">2.5.34.</strong> Subaddress components</a></li><li><a href="permissionconfig.html"><strong aria-hidden="true">2.5.35.</strong> Permissions</a></li></ol></li><li><a href="interruptconfig.html"><strong aria-hidden="true">2.6.</strong> Interrupt descriptors</a></li><li><a href="internalioconfig.html"><strong aria-hidden="true">2.7.</strong> Internal signal I/O</a></li></ol></li></ol>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light <span class="default">(default)</span></button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">vhdMMIO</h1> 
+
+                        <div class="right-buttons">
+                            <a href="print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <a class="header" href="#metadata" id="metadata"><h1>Metadata</h1></a>
+<p>This configuration structure is used to identify and document objects
+within <code>vhdmmio</code>.</p>
+<p>This structure supports the following configuration keys.</p>
+<a class="header" href="#mnemonic" id="mnemonic"><h2><code>mnemonic</code></h2></a>
+<p>The mnemonic of the object. Mnemonics are usually very short,
+uppercase identifiers, idiomatically used within register file
+descriptions. <code>vhdmmio</code> requires that they are unique within the
+current context only; that is, two fields in a single logical
+register cannot have the same mnemonic, but if they were in different
+logical registers this would be fine. However, chains of mnemonics
+separated by underscores must still be unique. For instance, it's
+illegal to have a register <code>X</code> containing field <code>Y_Z</code> and another
+register <code>X_Y</code> containing field <code>Z</code>.</p>
+<p>If the mnemonic names an array, it cannot end in a number, since the
+array index is added to the mnemonic in various contexts.</p>
+<p>If no mnemonic is specified, it is generated from the name by simply
+uppercasing it. Either name, mnemonic, or both must be specified.</p>
+<p>This key is optional unless required by context.</p>
+<a class="header" href="#name" id="name"><h2><code>name</code></h2></a>
+<p>The name of the object. Names are generally longer and more
+descriptive than mnemonics, but also need to be more unique; no two
+fields within a register file can have the same name. Matching is
+case-insensitive since VHDL is case-insensitive, but <code>vhdmmio</code> never
+changes the case of a name.</p>
+<p>Like mnemonics, if the name names an array, it cannot end in a number,
+since the array index is added to the name in various contexts.</p>
+<p>If no name is specified, it is generated from the mnemonic by simply
+lowercasing it. Either name, mnemonic, or both must be specified.</p>
+<p>This key is optional unless required by context.</p>
+<a class="header" href="#brief" id="brief"><h2><code>brief</code></h2></a>
+<p>A brief, one-line description of the object. This will be rendered
+as markdown in the documentation output. Idiomatically, the brief
+description should start with a lowercase letter and end in a period,
+so it looks good when used in a list like <code>&quot;&lt;name&gt;: &lt;brief&gt;&quot;</code>. The
+brief may also be used as a standalone sentence; in this case, the
+first letter is automatically uppercased. When printed in source code
+comments, the description is automatically wrapped to an appropriate
+line length. All spacing characters, including newlines, are collapsed
+into a single space before the brief is used.</p>
+<p>Brief documentation may be printed once for an array of fields or for
+each field index independently depending on context. To this end,
+the magic string <code>{index}</code> is replaced with the index or range as
+required by context:</p>
+<ul>
+<li>If the object is not an array, it is replaced with an empty string.</li>
+<li>If the object is an array and the brief refers to the entire array
+or a slice thereof, it is replaced with <code>&lt;low&gt;..&lt;high&gt;</code>.</li>
+<li>If the object is an array and the brief refers to a single index,
+it is simply replaced with just that index.</li>
+</ul>
+<p>This key is optional unless required by context.</p>
+<a class="header" href="#doc" id="doc"><h2><code>doc</code></h2></a>
+<p>Extended documentation for the object. This is only used for
+documentation output, and can therefore be any valid markdown. However,
+avoid using <code>----</code> and <code>====</code> underlining for headers; instead use the
+<code>#</code> prefix notation. <code>vhdmmio</code> will automatically prefix such headers
+with additional hashes to get to the right header level. The brief
+documentation is always added as a single paragraph before the extended
+documentation.</p>
+<p>Like the brief documentation, extended documentation may be printed
+once for an array of fields or for each field index independently
+depending on context. Therefore, <code>{index}</code> is replaced for <code>doc</code> in
+exactly the same way.</p>
+<p>This key is optional unless required by context.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="registerfileconfig.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="featureconfig.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="registerfileconfig.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="featureconfig.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
