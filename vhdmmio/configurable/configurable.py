@@ -117,7 +117,7 @@ class Configurable:
         if isinstance(obj, str):
             if obj.lower().endswith('.json'):
                 loader = json.loads
-            with open(obj, 'r') as fil:
+            with open(obj, 'r', encoding="utf-8") as fil:
                 return cls(
                     parent, loader(fil.read()),
                     source_file=obj)
@@ -148,7 +148,7 @@ class Configurable:
             data = dumper(data, default_flow_style=False)
 
         if isinstance(obj, str):
-            with open(obj, 'w') as fil:
+            with open(obj, 'w', encoding="utf-8") as fil:
                 fil.write(data)
             return None
 
