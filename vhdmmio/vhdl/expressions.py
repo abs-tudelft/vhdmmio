@@ -39,7 +39,7 @@ class LinearExpression:
                 self._terms = args[0].terms
                 self._offset = args[0].offset
                 return
-        raise TypeError('cannot convert to linear expression: %r' % args)
+        raise TypeError('cannot convert to linear expression: %r' % (args,))
 
     @property
     def terms(self):

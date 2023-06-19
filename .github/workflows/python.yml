@@ -1,0 +1,51 @@
+name: Python
+
+on:
+  pull_request:
+  push:
+    branches: [ master ]
+    tags: [ 'v*.*.*' ]
+
+jobs:
+  test:
+    name: Test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Upgrade pip
+      run: python3 -m pip install --upgrade pip
+    - name: Install vhdmmio and its dev dependencies
+      run: python3 -m pip install .[dev,test]
+    - name: Run tests
+      run: make test
+    - name: Run pylint
+      run: make lint-check
+    - name: Build examples
+      run: make examples
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    - name: Upgrade pip
+      run: python3 -m pip install --upgrade pip
+    - name: Install vhdmmio and its dev dependencies
+      run: python3 -m pip install .[dev,test]
+    - name: Install mdbook
+      uses: dtolnay/install@master
+      with:
+        crate: mdbook
+    - name: Build documentation
+      run: make doc
