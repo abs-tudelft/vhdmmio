@@ -17,9 +17,12 @@ doc:
 
 .PHONY: test
 test:
-	./setup.py test
-	-coverage html
+	pytest
 
-.PHONY: lint
-lint:
-	./setup.py lint
+.PHONY: lint-all
+lint-all:
+	pylint vhdmmio --rcfile .pylintrc
+
+.PHONY: lint-check
+lint-check:
+	pylint vhdmmio --rcfile .pylintrc --disable=R,C,W
