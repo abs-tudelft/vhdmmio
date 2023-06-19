@@ -133,7 +133,7 @@ class TemplateEngine:
         result to the given output file. Extra arguments are passed to
         `apply_str_to_str()` and are documented there."""
         output = self.apply_file_to_str(template_filename, *args, **kwargs)
-        with open(output_filename, 'w') as output_file:
+        with open(output_filename, 'w', encoding="utf-8") as output_file:
             output_file.write(output)
 
     def apply_str_to_file(self, template, output_filename, *args, **kwargs):
@@ -141,14 +141,14 @@ class TemplateEngine:
         result to the given output file. Extra arguments are passed to
         `apply_str_to_str()` and are documented there."""
         output = self.apply_str_to_str(template, *args, **kwargs)
-        with open(output_filename, 'w') as output_file:
+        with open(output_filename, 'w', encoding="utf-8") as output_file:
             output_file.write(output)
 
     def apply_file_to_str(self, template_filename, *args, **kwargs):
         """Applies this template engine to the given template file, returning
         the result as a string. Extra arguments are passed to
         `apply_str_to_str()` and are documented there."""
-        with open(template_filename, 'r') as template_file:
+        with open(template_filename, 'r', encoding="utf-8") as template_file:
             template = annotate_block(
                 template_file.read(),
                 template_filename,
@@ -784,7 +784,7 @@ def preload_template(fname, comment='#'):
         caller_fname, _, _, _, _ = inspect.getframeinfo(previous_frame)
         fname = os.path.dirname(caller_fname) + os.sep + fname
 
-    with open(fname, 'r') as fil:
+    with open(fname, 'r', encoding="utf-8") as fil:
         template = fil.read()
 
     return annotate_block(template, fname, comment)
