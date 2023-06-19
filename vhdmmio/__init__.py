@@ -16,6 +16,8 @@
 
 Use `run_cli()` to run vhdmmio as if it was run from the command line."""
 
+# does azure pipelines still do something?
+
 import sys
 import os
 import argparse
