@@ -91,16 +91,14 @@ the bus immediately (little-/big-endian), and saving the rest in the read
 holding register. Reads to the subsequent blocks simply return whatever is
 in the holding register. The inverse is done for writes: writing to the
 last block actually performs the write, while the preceding accesses write
-the data and strobe signals to the write holding register.
+the data and strobe signals to the write holding register. This ensures
+that operations on logical registers are atomic.
 
-The advantage of sharing holding registers is that it reduces the size of
-the address decoder and read multiplexer; many addresses taking data from
-the same source is advantageous for both area and timing. The primary
-disadvantage is that it only works properly when the blocks are accessed
-sequentially and completely. It is up to the bus master to enforce this; if
-it fails to do so, accesses may end up reading or writing garbage. You can
-therefore generally NOT mix purely AXI4L multi-master systems with
-multi-block registers.
+This only works properly when the blocks are accessed sequentially and
+completely. It is up to the bus master to enforce this; if it fails to do
+so, accesses may end up reading or writing garbage. You can therefore
+generally NOT mix purely AXI4L multi-master systems with multi-block
+registers.
 
 If you need both multi-block registers and have multiple masters, either
 use full AXI4 arbiters and use the `ar_lock`/`aw_lock` signals
