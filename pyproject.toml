@@ -1,0 +1,39 @@
+[project]
+name = "vhdmmio"
+version = "0.0.4"
+description = "VHDL code generator for AXI4-lite compatible memory-mapped I/O (MMIO) register files and bus infrastructure."
+readme = "README.md"
+requires-python = ">=3.7"
+license = {file = "LICENSE.txt"}
+keywords = ["vhdl", "mmio", "registers", "generator"]
+authors = [
+  {name = "Jeroen van Straten", email = "author@example.com" } # Optional
+]
+maintainers = [
+  {name = "Jeroen van Straten"}
+]
+classifiers = [  # Optional
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Topic :: Software Development :: Code Generators",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+]
+dependencies = [
+  "pyyaml",
+  "markdown2"
+]
+
+[project.optional-dependencies]
+dev = ["wheel", "pylint"]
+test = ["vhdeps", "pytest"]
+
+[project.urls]
+"Homepage" = "https://github.com/jvanstraten/vhdmmio/"
+
+[project.scripts]
+vhdmmio = "vhdmmio:run_cli"
+
+[build-system]
+requires = ["setuptools>=43.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
